@@ -49,14 +49,16 @@ head=$(git -C "$checkout" rev-parse HEAD 2>/dev/null || true)
 # The declared skills: entry symlinks into the store, readable through.
 # The copy contract served real trees; the declarative surface serves ONE
 # store symlink per skill — anything else here is drift.
-[ -L "$home/.hermes/skills/secrets" ] ||
-  fail "declared skill at $home/.hermes/skills/secrets is not an entry symlink (copy-contract drift)"
-case "$(readlink "$home/.hermes/skills/secrets")" in
-  /nix/store/*) ;;
-  *) fail "declared skill at $home/.hermes/skills/secrets does not resolve into the store" ;;
-esac
-[ -f "$home/.hermes/skills/secrets/SKILL.md" ] ||
-  fail "declared skill unreadable through the symlink at $home/.hermes/skills/secrets/SKILL.md"
+for skill in secrets workstation; do
+  [ -L "$home/.hermes/skills/$skill" ] ||
+    fail "declared skill at $home/.hermes/skills/$skill is not an entry symlink (copy-contract drift)"
+  case "$(readlink "$home/.hermes/skills/$skill")" in
+    /nix/store/*) ;;
+    *) fail "declared skill at $home/.hermes/skills/$skill does not resolve into the store" ;;
+  esac
+  [ -f "$home/.hermes/skills/$skill/SKILL.md" ] ||
+    fail "declared skill unreadable through the symlink at $home/.hermes/skills/$skill/SKILL.md"
+done
 for entry in "$home"/.hermes/skills/*; do
   [ -L "$entry" ] || continue
   case "$(readlink "$entry")" in

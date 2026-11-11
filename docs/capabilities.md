@@ -174,7 +174,9 @@ and sorted, never hidden.
   `~/.hermes/profiles/<name>/skills`). The skills parent stays hot
   (`skills_sync` seeds bundled skills; the curator archives there; a
   declared name the pinned tree bundles fails the eval). `secrets` is
-  authored at `modules/agent/skills/secrets`; `hsql` is generated from the
+  authored at `modules/agent/skills/secrets`; `workstation` (the substrate
+  dev workflow + references) is authored at
+  `modules/agent/skills/workstation`; `hsql` is generated from the
   harlequin derivation by `hsql --skill` at build time.
 - Gateway extensions: `programs.hermes.extensions` → entry symlinks into
   `~/.hermes/plugins/<name>`.

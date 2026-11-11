@@ -105,6 +105,7 @@ let
 
   authoredSkills = {
     secrets = ./skills/secrets;
+    workstation = ./skills/workstation;
   };
 
   skillEntries = lib.flatten (
