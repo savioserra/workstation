@@ -48,13 +48,22 @@ Roles: `accent`, `ok`, `warn`, `err`, `chrome` (muted chrome/borders), `text`,
 
 ## Consumers
 
-A domain contributes through `workstation.theme.consumers.<name>`, guarded by `ws.whenOn "theme"`:
+The tokens: `ws.themeTokens` (the read-only `workstation.theme.tokens`) —
+every theme as `{ name; appearance; palette; ansi; }`, `ansi` the 16
+terminal colors in index order or `null`. A capability maps them into its
+own setup:
+
+```nix
+skins = lib.mapAttrs (_: t: { background = t.palette.bg; accent = t.palette.accent; }) ws.themeTokens;
+```
+
+A domain follows the pick through `workstation.theme.consumers.<name>`, guarded by `ws.whenOn "theme"`:
 
 | Field | Shape |
 | --- | --- |
-| `file` | path inside each theme dir |
-| `render` | `theme: text`; the theme carries `name`, `appearance`, `palette` |
-| `reload` | shell lines run after a pick and after every apply |
+| `file` | path inside each theme dir; `null` for a reload-only consumer |
+| `render` | one theme's tokens → the file text |
+| `reload` | shell lines run after a pick and after every apply; `$THEME` names the pick |
 
 | Surface | Reads | Mechanism |
 | --- | --- | --- |
@@ -62,4 +71,5 @@ A domain contributes through `workstation.theme.consumers.<name>`, guarded by `w
 | tmux | palette, ansi | `consumers.tmux`: `tmux.conf` per theme — tmux2k colors, borders, messages; light themes paint the pane and popup canvas; `ansi` → `pane-colours` ([tmux](tmux.md)) |
 | nvim | appearance | `tokens.json` through the pick sets `vim.o.background` for oasis.nvim, live via a directory watch ([nvim](nvim.md)) |
 | nunchux colors | palette | `consumers.nunchux`: `nunchux.conf` per theme — the full launcher config, `fzf_colors` from the palette unless `workstation.terminal.nunchux.settings.fzf_colors` is set; `~/.config/nunchux/config` links through the pick, read per launch |
+| hermes | palette | `~/.hermes/skins/workstation-<theme>.yaml` per theme from `ws.themeTokens`; `consumers.hermes` reload: `hermes config set display.skin workstation-$THEME` on change — the CLI, TUI and desktop repaint live |
 | herdr | terminal-following | documented canonical choice only: `[theme] name = "terminal"`, `auto_switch = true` ([herdr](herdr.md)) |

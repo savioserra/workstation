@@ -95,17 +95,19 @@ let
   consumerType = lib.types.submodule {
     options = {
       file = lib.mkOption {
-        type = lib.types.str;
-        description = "The consumer's file inside each theme dir.";
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "The consumer's file inside each theme dir; null for a reload-only consumer.";
       };
       render = lib.mkOption {
         type = lib.types.functionTo lib.types.lines;
-        description = "Theme to file text; the theme carries name, appearance, palette and ansi (16 colors in index order, or null).";
+        default = _: "";
+        description = "One theme's tokens (workstation.theme.tokens.<theme>) to the file text.";
       };
       reload = lib.mkOption {
         type = lib.types.lines;
         default = "";
-        description = "Shell lines run after a pick and after every apply.";
+        description = "Shell lines run after a pick and after every apply; $THEME names the pick.";
       };
     };
   };
@@ -119,18 +121,18 @@ let
   themeTree = pkgs.linkFarm "workstation-themes" (
     lib.concatLists (
       lib.mapAttrsToList (
-        name: t:
+        name: tokens:
         [
           {
             name = "${name}/tokens.json";
-            path = pkgs.writeText "workstation-theme-${name}.json" (builtins.toJSON (themeOf name t));
+            path = pkgs.writeText "workstation-theme-${name}.json" (builtins.toJSON tokens);
           }
         ]
         ++ lib.mapAttrsToList (consumer: c: {
           name = "${name}/${c.file}";
-          path = pkgs.writeText "workstation-theme-${name}-${consumer}" (c.render (themeOf name t));
-        }) cfg.consumers
-      ) cfg.themes
+          path = pkgs.writeText "workstation-theme-${name}-${consumer}" (c.render tokens);
+        }) (lib.filterAttrs (_: c: c.file != null) cfg.consumers)
+      ) cfg.tokens
     )
   );
 
@@ -142,6 +144,7 @@ let
       STATE=${home}/.local/state/workstation/theme
       DEFAULT=${cfg.default}
       reload_consumers() {
+      THEME=$(picked) || return 0
       ${lib.concatMapStrings (c: c.reload) (builtins.attrValues cfg.consumers)}:
       }
     '';
@@ -165,7 +168,14 @@ ws.capability [ "theme" ] {
     consumers = lib.mkOption {
       type = lib.types.attrsOf consumerType;
       default = { };
-      description = "Theme consumers: a file rendered per theme under ~/.local/share/workstation/themes/<theme>/ and read through ~/.local/state/workstation/theme/current; contributors guard with whenOn \"theme\".";
+      description = "Theme consumers: a file rendered per theme under ~/.local/share/workstation/themes/<theme>/ and read through ~/.local/state/workstation/theme/current, a reload hook, or both; contributors guard with whenOn \"theme\".";
+    };
+    tokens = lib.mkOption {
+      type = lib.types.attrsOf lib.types.raw;
+      readOnly = true;
+      default = lib.mapAttrs themeOf cfg.themes;
+      defaultText = lib.literalMD "every theme as `{ name; appearance; palette; ansi; }`";
+      description = "The color map tokens per theme (`ws.themeTokens`): `palette` role → #rrggbb, `ansi` the 16 terminal colors in index order or null; capabilities map them into their own setup.";
     };
   };
   config = {

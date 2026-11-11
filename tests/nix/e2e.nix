@@ -294,7 +294,7 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "node runtime single-source" ".node-version ($nv) does not match the runtime ($runtime)"
   pass "node runtime single-source"
 
-  step "theme plane (rendered themes, the seeded pick, the switcher, tmux, nunchux and nvim following, the picker)"
+  step "theme plane (rendered themes, the seeded pick, the switcher, tmux, nunchux, hermes and nvim following, the picker)"
   themes="$home/.local/share/workstation/themes"
   pick="$home/.local/state/workstation/theme/current"
   for t in dark light; do
@@ -325,6 +325,10 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "theme plane" "the dark render does not hand the panes back to the terminal's colors"
   grep -q 'hl:#023c75' "$home/.config/nunchux/config" \
     || fail "theme plane" "the nunchux fzf colors did not follow the light pick"
+  grep -qx "  background: '#f5f2ea'" "$home/.hermes/skins/workstation-light.yaml" \
+    || fail "theme plane" "the hermes light skin did not render from the light tokens"
+  grep -q 'config set display.skin "workstation-$THEME"' "$(readlink -f "$wt")" \
+    || fail "theme plane" "the pick does not switch the hermes skin"
   "$tmux_bin" set -g @tmux2k-blue unreloaded
   TERM=unknown ${pkgs.util-linux}/bin/script -qec "$wt reload" /dev/null >/dev/null 2>&1 || true
   [ "$("$tmux_bin" show -gv @tmux2k-blue)" = '#023c75' ] \

@@ -173,6 +173,9 @@ and sorted, never hidden.
 - The launcher: `programs.hermes.package` at `.local/bin/hermes`; resolves
   the interpreter and checkout from `$HOME` at run time, runs the
   interpreter isolated, fails closed with a named message.
+- Theme (theme domain on): `~/.hermes/skins/workstation-<theme>.yaml` per
+  theme from `ws.themeTokens`; the pick sets `display.skin` through
+  `hermes config set` ([theme](theme.md)).
 - The deployed pin manifest `.local/opt/hermes/pin.json` — the verify
   anchor.
 - Skills: `programs.hermes.skills` — one store entry symlink per target

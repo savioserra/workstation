@@ -1,5 +1,5 @@
 # Capability helpers: the enable option and its gate, guarded contributions,
-# bash+zsh init, payload scripts, overlaid trees.
+# the theme tokens, bash+zsh init, payload scripts, overlaid trees.
 {
   lib,
   pkgs,
@@ -39,6 +39,11 @@ in
         lib.range 1 (builtins.length path)
       )
     );
+
+  # themeTokens: the color map tokens per theme,
+  # { <theme> = { name; appearance; palette; ansi; }; }; a capability maps
+  # them into its own setup; empty without the theme domain
+  themeTokens = lib.attrByPath [ "workstation" "theme" "tokens" ] { } config;
 
   shellInit = text: {
     programs.bash.initExtra = text;

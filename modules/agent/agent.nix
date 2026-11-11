@@ -1,5 +1,6 @@
 # The agent domain: hermes (pinned checkout, launcher, interpreter, skills,
-# extensions, the A2A node, the fleet member service) and herdr.
+# extensions, the A2A node, the fleet member service, a skin per theme
+# following the pick) and herdr.
 {
   config,
   lib,
@@ -7,7 +8,59 @@
   ...
 }:
 let
+  ws = import ../../nix/lib/capability.nix { inherit config lib pkgs; };
   hermes = config.programs.hermes;
+
+  # a hermes skin from one theme's color map tokens
+  hermesSkin =
+    t:
+    let
+      p = t.palette;
+    in
+    {
+      name = "workstation-${t.name}";
+      description = "The workstation ${t.name} theme";
+      colors = {
+        background = p.bg;
+        banner_title = p.accent;
+        banner_accent = p.accent;
+        banner_text = p.text;
+        banner_dim = p.muted;
+        banner_border = p.chrome;
+        ui_accent = p.accent;
+        ui_tool = p.shortcut;
+        ui_label = p.shortcut;
+        ui_text = p.text;
+        ui_border = p.chrome;
+        ui_ok = p.ok;
+        ui_warn = p.warn;
+        ui_error = p.err;
+        prompt = p.text;
+        input_rule = p.chrome;
+        response_border = p.accent;
+        session_label = p.shortcut;
+        session_border = p.chrome;
+        status_bar_bg = p.bg;
+        status_bar_text = p.text;
+        status_bar_strong = p.accent;
+        status_bar_dim = p.muted;
+        status_bar_good = p.ok;
+        status_bar_warn = p.warn;
+        status_bar_bad = p.err;
+        status_bar_critical = p.err;
+        completion_menu_bg = p.bg;
+        completion_menu_current_bg = p.selected_bg;
+        selection_bg = p.selected_bg;
+        shell_dollar = p.accent;
+        voice_status_bg = p.bg;
+      };
+    };
+  skinFiles = lib.mapAttrs' (
+    name: t:
+    lib.nameValuePair ".hermes/skins/workstation-${name}.yaml" {
+      source = (pkgs.formats.yaml { }).generate "hermes-skin-${name}.yaml" (hermesSkin t);
+    }
+  ) ws.themeTokens;
 
   hermesRev = "b23600860f82bd66d345c0a1baefd0f264605955";
   hermesTree = pkgs.fetchFromGitHub {
@@ -333,15 +386,28 @@ in
       inherit source;
     }) authoredSkills;
 
-    home.file =
-      builtins.listToAttrs (map (entry: lib.nameValuePair entry.path { source = entry.source; }) entries)
-      // {
-        ".local/opt/hermes/python".source = hermesPython;
-        ".local/opt/hermes/pin.json".text = pinJson;
-        ".local/opt/hermes/bin/hermes".source = "${hermes.package}/hermes-launcher";
-        ".local/bin/hermes".source = "${hermes.package}/hermes-launcher";
-        ".local/bin/herdr".source = "${herdr}/bin/herdr";
-      };
+    home.file = lib.mkMerge [
+      (
+        builtins.listToAttrs (map (entry: lib.nameValuePair entry.path { source = entry.source; }) entries)
+        // {
+          ".local/opt/hermes/python".source = hermesPython;
+          ".local/opt/hermes/pin.json".text = pinJson;
+          ".local/opt/hermes/bin/hermes".source = "${hermes.package}/hermes-launcher";
+          ".local/bin/hermes".source = "${hermes.package}/hermes-launcher";
+          ".local/bin/herdr".source = "${herdr}/bin/herdr";
+        }
+      )
+      (ws.whenOn "theme" skinFiles)
+    ];
+
+    # the pick's skin, set only on change (a set rewrites config.yaml)
+    workstation.theme = ws.whenOn "theme" {
+      consumers.hermes.reload = ''
+        if [ "$(${hermes.package}/hermes-launcher config get display.skin </dev/null 2>/dev/null)" != "workstation-$THEME" ]; then
+          ${hermes.package}/hermes-launcher config set display.skin "workstation-$THEME" </dev/null >/dev/null 2>&1 || true
+        fi
+      '';
+    };
 
     home.activation.ensure-hermes-checkout = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       url=${lib.escapeShellArg (if hermes.pin != null then hermes.pin.url else "")}
