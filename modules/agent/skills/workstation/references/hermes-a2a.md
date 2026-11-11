@@ -103,7 +103,7 @@ debug cycles.
   to `a2a.enable = false`. On the linux home leg, turning the fleet on also
   selects the `network` domain (tailscale is selection-gated there).
 
-## Deploying on live hosts (the server and darwin legs, exercised)
+## Deploying on live hosts (linux and darwin legs, exercised)
 
 - The shim's `switch_flake()` hands a writable checkout to the driver
   (`WORKSTATION_SWITCH_FLAKE`) for `apply` and every verb's apply offer —
@@ -113,7 +113,7 @@ debug cycles.
 - macOS leg: `sudo env NIX_CONFIG="extra-experimental-features =
   nix-command flakes" "$(command -v workstation)" apply --system` (sudo per
   apply; the operator types the password in the pane). Check `command -v
-  workstation` resolves to the substrate shim first — an engine-era
+  workstation` resolves to the substrate shim first — a stale
   `~/.local/bin/workstation` shadows it (move it to a dated backup dir).
 - macOS has no `timeout(1)` — don't use it in pane commands.
 - Testing a branch on a host whose checkout carries uncommitted machine

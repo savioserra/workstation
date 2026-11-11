@@ -10,7 +10,7 @@ The workstation repo IS a nixpkgs-native flake: nix owns build, pins, the file p
 - `hosts/{linux,mac}/default.nix` — the system legs, fed by `nix/lib/machine.nix`.
 - `bin/workstation` — the POSIX shim: resolves the checkout (`--flake` > `$WORKSTATION_FLAKE` > enclosing checkout > `$WORKSTATION_CHECKOUT`, baked into the launcher from the machine file's `checkout`), builds `git+file://<checkout>?rev=<HEAD>` (only when the dir is the git toplevel) with `--override-input machine-files path:<checkout>/hosts/local`; reads are `nix eval`s over `workstation.report.<verb>`, `add|remove|fleet` edit `hosts/local/machine.json` with jq, writes delegate to `nix/workstation-switch.nix` through env (`WORKSTATION_SWITCH_FLAKE|MACHINE|CHECKOUT`) — the driver carries no repo copy; it builds the activationPackage, runs its activate, and receipts `generation N applied … at <rev>` in `~/.local/state/workstation/switch.log`, the rev parsed from the ref's `?rev=`. `update` only moves `flake.lock` (commit it, then apply). `WORKSTATION_WORKTREE=1` builds the working tree.
 - `nix/report.nix` — one home eval; attribution per capability from `options.<x>.definitionsWithLocations`.
-- `tests/nix/` — the CONTAINER E2E (`run-container.sh`, `e2e.nix` driver, `e2e-home.nix` persona, `e2e-selections*.nix` flag modules). The VM lane sits outside the battery (no nested KVM on the server leg); system planes stay eval-only.
+- `tests/nix/` — the CONTAINER E2E (`run-container.sh`, `e2e.nix` driver, `e2e-home.nix` persona, `e2e-selections*.nix` flag modules). The VM lane sits outside the battery (no nested KVM on cloud hosts); system planes stay eval-only.
 
 ## The machine file
 
@@ -27,7 +27,7 @@ The workstation repo IS a nixpkgs-native flake: nix owns build, pins, the file p
 - Battery: `sh .github/scripts/check.sh` with nix + the flakes `NIX_CONFIG` — identity gate, history-prose gate, ShellCheck over `bin/ modules/ .github/scripts/ tests/ hosts/` + `install.sh`, the shim dispatch test, the report eval gate. Put shellcheck and nixfmt on PATH or the gates silently skip.
 - check.sh does NOT eval the legs: eval `nixosConfigurations.TEMPLATE`, `darwinConfigurations."TEMPLATE@TEMPLATE"`, `checks.x86_64-linux.e2e-home`/`e2e-driver` yourself; prove real host keys on a scratch copy with the machine files overlaid.
 - **Behavioral proof is the container E2E plus consumer smokes on the BUILT generation** (`<gen>/home-files/...`) — no byte goldens.
-- **Convergence proof on a standalone-HM root leg**: the live generation is an indirection (`/nix/var/nix/profiles/per-user/root/profile-<N>-link` → a `-profile` store path), so it never string-equals the built `activationPackage` path. Prove convergence with the switch.log receipt (rev matches HEAD) plus a consumer smoke of the package in the live profile closure (`nix-store -qR <profile-path> | grep <tool>` and `<tool> --version` from PATH).
+- **Convergence proof on a standalone-HM leg**: the live generation is an indirection (`/nix/var/nix/profiles/per-user/<user>/profile-<N>-link` → a `-profile` store path), so it never string-equals the built `activationPackage` path. Prove convergence with the switch.log receipt (rev matches HEAD) plus a consumer smoke of the package in the live profile closure (`nix-store -qR <profile-path> | grep <tool>` and `<tool> --version` from PATH).
 - Format before landing: nixfmt (RFC 166) over every tracked and new `.nix`.
 
 ## Module conventions (nixpkgs-idiomatic)

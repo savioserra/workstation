@@ -1,4 +1,4 @@
-# Cutting a macOS host over (the darwin leg)
+# First switch on a darwin host (the darwin leg)
 
 The darwin leg's first switch differs from the linux/home-plane flow: the
 operator surface stays `workstation init`, but the plane behind it is
@@ -8,14 +8,14 @@ nix-darwin, and the bootstrap has its own ordering.
 
 1. **Survey**: `sw_vers -productVersion`, `uname -m` (aarch64-darwin),
    `command -v nix`, `sudo -n true` (passwordless or not). A foreign
-   host carries the same payload shapes as linux but NO nix — the engine
-   never needed it there.
+   host carries the same payload shapes as linux but NO nix — the
+   substrate never shipped there.
 2. **Install nix** (the one hard prerequisite): the Determinate installer
    escalates via sudo — over ssh the OPERATOR types the password; never
    handle credentials. After install, source
    `/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh` in the same
    shell (a fresh shell also works).
-3. **Clone** the repo (`~/lazyvim`), then `./bin/workstation init` —
+3. **Clone** the repo (`~/workstation`), then `./bin/workstation init` —
    captures the identity (`host` = the mac's hostname, `user` = the mac
    user, `home` = `/Users/<user>`) and chains the first switch.
 4. **The first switch is the darwin plane** — build
@@ -66,7 +66,7 @@ read the NEXT gate.
    `/etc/zshenv` (sourcing the nix daemon profile); nix-darwin aborts on
    the unrecognized content. The remedy is its documented rename
    (`mv /etc/zshenv /etc/zshenv.before-nix-darwin`), but read the file
-   first: after the switch, zsh may does not source the nix profile (the
+   first: after the switch, zsh does not source the nix profile (the
    substrate does not manage /etc) — restore the sourcing block manually
    if `nix` leaves PATH in zsh. /etc stays host-owned.
 3. **brew `--cleanup` disabled.** brew 7.0.11 removed the `--cleanup`
@@ -84,10 +84,10 @@ read the NEXT gate.
    BOTH abort shapes ('Existing file' AND 'Is a directory'): directory
    conflicts (the old plugin checkouts, fonts) log in the cmp form that a
    file-only extraction misses.
-5. **The PATH shadowing follow-up.** After a green switch, the
-   old engine's `~/.local/bin` links still shadow the substrate's tools
+5. **The PATH shadowing follow-up.** After a green switch, stale
+   `~/.local/bin` links still shadow the substrate's tools
    (`nvim` 0.12.4 vs 0.12.6, mise/eza/starship from `~/.local/opt`): the
-   engine-era cleanup pass (drop the old `~/.local/bin` links and
+   stale-link cleanup pass (drop the superseded `~/.local/bin` links and
    `~/.local/opt` trees, preserving the operator's own tools) is what
    actually puts the substrate's versions on PATH. Verify with
    `nvim --version` and `which <tool>` after the cleanup, not before.
@@ -123,7 +123,7 @@ read the NEXT gate.
   command (an endless 'y' stream — Ctrl-C at once).
 - Delivering files to the mac without an ssh key: serve a scratch dir
   (only the files needed) with `python3 -m http.server <port> --bind
-  <the server leg tailnet IP>` as a background process, `curl -fsS` from the mac pane,
+  <the other host's tailnet IP>` as a background process, `curl -fsS` from the mac pane,
   then kill the server right after the fetch.
 
 ## Homebrew as a managed dependency
@@ -149,7 +149,7 @@ shim or a brew formula is a host-local one-off — an out-of-repo runner,
 never a system activation hook. A stopped removal leaves the app serving.
 
 1. Deliver one runner and start it in tmux ON the mac (`tmux new-session
-   -s first switch 'sh runner | tee ~/log'`): the sysext removal drops the
+   -s hostswitch 'sh runner | tee ~/log'`): the sysext removal drops the
    tailnet the ssh session rides. Serve the runner from the other host over
    the tailnet (a temporary `python3 -m http.server` bound to its tailnet
    IP; stop it after) when no ssh key exists. Inside: `sudo -v` once plus a

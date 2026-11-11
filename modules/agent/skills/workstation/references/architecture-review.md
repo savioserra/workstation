@@ -38,17 +38,17 @@ never implements before the operator rules.
 
 ## Output shape
 
-A report file outside the repo (`/root/reports/<topic>.md`), tables only:
+A report file outside the repo (`<reports-dir>/<topic>.md`), tables only:
 verdict per axis → evidence probes with numbers → findings
 (`# | finding | where | nix-native answer | severity`) → keep list → target
 shape with one domain-module example → move steps, each landing alone
-with its proof and both hosts re-converged → sources. The chat reply carries
+with its proof and every host re-converged → sources. The chat reply carries
 the verdict, any live bug found, the top findings and the next decision.
 
 ## Implementing the ruled steps
 
-One plan step = one commit pushed to `main`, then both hosts converge before
-the next step starts. Per step:
+One plan step = one commit pushed to `main`, then every host converges
+before the next step starts. Per step:
 
 1. Work in the release worktree on a feature branch from `origin/main`.
    Write each multi-file edit as a scratch python script (`$TMPDIR/arch/stepN*.py`)

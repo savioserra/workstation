@@ -1,4 +1,4 @@
-# Cutting a host over to the substrate (first switch on a machine)
+# First switch on a host (converging onto the substrate)
 
 The procedure for converging a real host onto the nixpkgs-native substrate
 (local or remote). The remote-host pane mechanics live in the swarm skill's
@@ -137,7 +137,7 @@ on / on-again-without-root / restart / off, asserting state hash equality.
   surface catches it — a persona with no languages never will.
 - **Version floors move with the payload**: a move that swaps the
   provider of a tool (download pin → nixpkgs) must floor the version at the
-  removed pin's line (assert `lib.versionAtLeast` in the owning module and
+  dropped pin's line (assert `lib.versionAtLeast` in the owning module and
   supply the newer build through the overlay) — the pinned 25.05 set's
   neovim is OLDER than the removed binary pin, and the regression only
   shows in `nvim --version` after the switch.
