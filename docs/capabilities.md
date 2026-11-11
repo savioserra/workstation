@@ -302,8 +302,9 @@ and sorted, never hidden.
 - Verify: token bytes against the tokens module. Hosts: all.
 
 ### `terminal`
-- `programs.eza` (`ls` = `eza -lh`), `programs.starship` + `.config/starship.toml`.
+- `programs.eza` (`ls` = `eza -lh`, `home.shellAliases`), `programs.starship` + `.config/starship.toml`.
 - mosh: `home.packages` (all legs), `programs.mosh.enable` (NixOS legs).
+- btop: `home.packages` (all legs) — the nunchux system entry and the tmux2k ram popup.
 - Hosts: all.
 
 ### `tmux`
@@ -318,8 +319,19 @@ and sorted, never hidden.
 - The `terminal/nunchux` member capability (linux; enabling it on
   darwin fails an assertion): pinned checkout (`.tmux/plugins/nunchux` at
   the v3.1.3 commit, hash-pinned `fetchFromGitHub`, repo-tracked launcher
-  binary) + the `.platform` marker composed in; theme-slot launcher
-  config rendered natively from `tokens.lua`.
+  binary) + the `.platform` marker composed in.
+- `.config/nunchux/config` rendered from two options:
+
+  | Option | Renders |
+  | --- | --- |
+  | `workstation.terminal.nunchux.settings` | `[settings]`; `fzf_colors` from the theme slot layer |
+  | `workstation.terminal.nunchux.entries."<header>"` | one section per header (`menu:<name>`, `app:<name>`, `app:<menu>/<name>`); every field but `rank` as `key = value`; `[order]` = the top-level items by `rank`, then name |
+
+  | Entry | Owner | Guard |
+  | --- | --- | --- |
+  | `menu:system` (btop, journal) | `terminal/nunchux` | the member |
+  | `app:sql` (harlequin) | `database` | `whenOn [ "terminal" "nunchux" ]` |
+  | `app:net` (tailscale status) | `network` | `network.enable` + `whenOn [ "terminal" "nunchux" ]` |
 - Hosts: linux (darwin deferred; no release-asset consumer).
 
 ## Fresh-host tools

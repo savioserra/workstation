@@ -27,8 +27,18 @@ in
     config = lib.mkIf (chain path) (spec.config or { });
   };
 
-  # whenOn "editor" { … }: a contribution guarded by the owning domain's enable
-  whenOn = domain: lib.mkIf (lib.getAttrFromPath [ "workstation" domain "enable" ] config);
+  # whenOn "editor" | whenOn [ "terminal" "nunchux" ]: a contribution guarded
+  # by every enable on the owner's path; an undeclared owner fails the eval
+  whenOn =
+    owner:
+    let
+      path = lib.toList owner;
+    in
+    lib.mkIf (
+      lib.all (n: lib.getAttrFromPath ([ "workstation" ] ++ lib.take n path ++ [ "enable" ]) config) (
+        lib.range 1 (builtins.length path)
+      )
+    );
 
   shellInit = text: {
     programs.bash.initExtra = text;

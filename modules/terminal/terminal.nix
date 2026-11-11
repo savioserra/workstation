@@ -9,10 +9,13 @@ let
   ws = import ../../nix/lib/capability.nix { inherit config lib pkgs; };
 in
 ws.capability [ "terminal" ] {
-  description = "eza, starship, mosh, tmux and nunchux";
+  description = "eza, starship, mosh, btop, tmux and nunchux";
   default = true;
   config = {
-    home.packages = [ pkgs.mosh ];
+    home.packages = [
+      pkgs.mosh
+      pkgs.btop
+    ];
     programs.eza = {
       enable = true;
       icons = "auto";

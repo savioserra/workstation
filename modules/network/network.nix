@@ -28,6 +28,15 @@ in
     (lib.mkIf (on && pkgs.stdenv.hostPlatform.isLinux) {
       home.packages = [ pkgs.tailscale ];
     })
+    (lib.mkIf on {
+      workstation.terminal.nunchux = ws.whenOn [ "terminal" "nunchux" ] {
+        entries."app:net" = {
+          cmd = "sh -c 'tailscale status | less -R'";
+          desc = "Tailnet status";
+          rank = 30;
+        };
+      };
+    })
     (lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
       home.activation.ensure-tailscaled = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         ${ensure}/bin/workstation-tailscaled ${if on then "on" else "off"} || true

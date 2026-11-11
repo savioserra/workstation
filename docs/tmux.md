@@ -94,9 +94,10 @@ Nunchux (fzf popup launcher for apps, files and task runners) is ACTIVE:
 - Upstream tracks `bin/nunchux` in the repo (a linux-amd64 build of the
   same release), so the release artifact and the checkout compose at one
   path.
-- The launcher payload (the checkout pin, the slot-templated
-  `~/.config/nunchux/config` consuming theme slots — [theme](theme.md) —
-  and the `bin/.platform` marker) lives in the `nunchux` package.
+- The launcher payload (the checkout pin, `~/.config/nunchux/config`
+  rendered from the `settings` + `entries` options — fzf colors from the
+  theme slots, [theme](theme.md) — and the `bin/.platform` marker) lives in
+  the `nunchux` package.
 
 The marker is load-bearing: upstream's `nunchux.tmux`
 `ensure_binary` fetches `releases/latest` — unchecksummed, the same

@@ -34,7 +34,7 @@ Platforms: linux x86_64 (WSL counts as linux), macOS arm64.
 | JetBrainsMono Nerd Font | 3.5.0 | nixpkgs (`modules/fonts/fonts.nix`) | linux `.local/share/fonts/JetBrainsMonoNerdFont`; darwin `Library/Fonts/JetBrainsMonoNerdFont`; fontconfig enabled | linux-x86_64, darwin-arm64 |
 | nunchux | 3.1.3 | github.com/datamadsen/nunchux | pinned checkout `.tmux/plugins/nunchux` (`fetchFromGitHub`) + the `bin/.platform` marker; package is linux-only | linux-x86_64 |
 | tmux | 3.7c | nixpkgs | the tmux member's `home.packages` and the system legs | linux-x86_64, darwin-arm64 |
-| btop | 1.4.7 | nixpkgs | the system legs (NixOS, darwin) | linux-x86_64, darwin-arm64 |
+| btop | 1.4.7 | nixpkgs | the terminal domain (`home.packages`, every leg); the system legs (NixOS, darwin) | linux-x86_64, darwin-arm64 |
 | TPM plugin set | pinned commits | github.com/tmux-plugins/tpm, github.com/2KAbhishek/tmux2k, github.com/tmux-plugins/tmux-yank, github.com/tmux-plugins/tmux-resurrect, github.com/christoomey/vim-tmux-navigator | pinned store checkouts `~/.tmux/plugins/<name>` | linux-x86_64, darwin-arm64 |
 
 ## Pin maintenance

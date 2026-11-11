@@ -33,5 +33,13 @@ ws.capability [ "database" ] {
         source = hsqlSkill;
       };
     };
+    workstation.terminal.nunchux = ws.whenOn [ "terminal" "nunchux" ] {
+      entries."app:sql" = {
+        cmd = "harlequin";
+        desc = "SQL IDE";
+        primary_action = "window";
+        rank = 20;
+      };
+    };
   };
 }

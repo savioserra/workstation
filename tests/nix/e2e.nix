@@ -226,8 +226,15 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "nunchux plane" "the rendered config did not deploy"
   grep -q 'fzf_colors = fg+:white:bold' "$home/.config/nunchux/config" \
     || fail "nunchux plane" "the theme slot substitution did not render (text=white missing)"
-  grep -q '{{ .theme.slots.' "$home/.config/nunchux/config" \
-    && fail "nunchux plane" "unresolved slot references survived the render"
+  grep -qx '\[app:sql\]' "$home/.config/nunchux/config" \
+    || fail "nunchux plane" "the database domain's sql entry did not render"
+  grep -qx '\[app:net\]' "$home/.config/nunchux/config" \
+    && fail "nunchux plane" "the net entry rendered with the network domain off"
+  grep -qx '\[app:system/btop\]' "$home/.config/nunchux/config" \
+    || fail "nunchux plane" "the system menu's btop entry did not render"
+  btop_bin=$(find_client btop) || fail "nunchux plane" "btop (the system entry's command) is not on PATH"
+  "$btop_bin" --version >/dev/null 2>&1 \
+    || fail "nunchux plane" "btop --version failed at $btop_bin"
   pass "nunchux plane"
 
   step "pre-existing rc file moved aside by the first switch"
