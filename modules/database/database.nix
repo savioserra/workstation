@@ -7,6 +7,7 @@
   ...
 }:
 let
+  ws = import ../../nix/lib/capability.nix { inherit config lib pkgs; };
   hsqlSkill =
     pkgs.runCommand "hsql-agent-skill-${pkgs.harlequin.version}"
       {
@@ -21,17 +22,16 @@ let
         cp -a "$TMPDIR/skill/." "$out/"
       '';
 in
-{
-  options.workstation.database.enable = lib.mkEnableOption "harlequin and the hsql agent skill" // {
-    default = true;
-  };
-
-  config = lib.mkIf config.workstation.database.enable {
+ws.capability [ "database" ] {
+  description = "harlequin and the hsql agent skill";
+  default = true;
+  config = {
     home.packages = [ pkgs.harlequin ];
-
-    programs.hermes.skills.hsql = {
-      enable = true;
-      source = hsqlSkill;
+    programs.hermes.skills = ws.whenOn "agent" {
+      hsql = {
+        enable = true;
+        source = hsqlSkill;
+      };
     };
   };
 }

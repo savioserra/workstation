@@ -6,17 +6,13 @@
   ...
 }:
 let
-  cfg = config.workstation.languages.go;
-  go = pkgs.go;
+  ws = import ../../../nix/lib/capability.nix { inherit config lib pkgs; };
 in
-{
-  options.workstation.languages.go.enable =
-    lib.mkEnableOption "the go toolchain and its editor profile";
-
-  config = lib.mkIf (config.workstation.languages.enable && cfg.enable) {
-    home.packages = [ go ];
-
-    workstation.editor = lib.mkIf config.workstation.editor.enable {
+ws.capability [ "languages" "go" ] {
+  description = "the go toolchain and its editor profile";
+  config = {
+    home.packages = [ pkgs.go ];
+    workstation.editor = ws.whenOn "editor" {
       languages = [
         {
           id = "go";
@@ -25,10 +21,7 @@ in
           plugin_module = "languages.plugins.go";
         }
       ];
-
-      languagePlugins = [
-        ./files/languages/plugins/go.lua
-      ];
+      languagePlugins = [ ./files/languages/plugins/go.lua ];
     };
   };
 }

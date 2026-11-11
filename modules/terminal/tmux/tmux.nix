@@ -7,6 +7,8 @@
   ...
 }:
 let
+  ws = import ../../../nix/lib/capability.nix { inherit config lib pkgs; };
+
   drain = ''
     tmux() {
       command tmux "$@"
@@ -16,7 +18,7 @@ let
     }
   '';
 
-  pluginPins = {
+  plugins = builtins.mapAttrs (_: pkgs.fetchFromGitHub) {
     "tpm" = {
       owner = "tmux-plugins";
       repo = "tpm";
@@ -48,42 +50,24 @@ let
       hash = "sha256-efqiRffnidYx+qjgsHyWshCFWgZp/ZrHl+Clt04pfpM=";
     };
   };
-  plugins = builtins.mapAttrs (
-    _: pin:
-    pkgs.fetchFromGitHub {
-      inherit (pin)
-        owner
-        repo
-        rev
-        hash
-        ;
-    }
-  ) pluginPins;
-
 in
-{
-  options.workstation.terminal.tmux.enable = lib.mkEnableOption "the tmux config and plugin set" // {
-    default = true;
-  };
-
-  config = lib.mkIf (config.workstation.terminal.enable && config.workstation.terminal.tmux.enable) {
-    home.packages = [ pkgs.tmux ];
-
-    programs.bash.initExtra = drain;
-    programs.zsh.initContent = drain;
-
-    home.file = lib.mkMerge (
-      [
-        {
-          ".tmux.conf".source = ./files/.tmux.conf;
-          ".config/tmux/tmux.conf".source =
-            config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.tmux.conf";
-        }
-      ]
-      ++ lib.mapAttrsToList (name: tree: {
-        ".tmux/plugins/${name}".source = tree;
-      }) plugins
-    );
-
-  };
+ws.capability [ "terminal" "tmux" ] {
+  description = "the tmux config and plugin set";
+  default = true;
+  config = lib.mkMerge [
+    (ws.shellInit drain)
+    {
+      home.packages = [ pkgs.tmux ];
+      home.file = lib.mkMerge (
+        [
+          {
+            ".tmux.conf".source = ./files/.tmux.conf;
+            ".config/tmux/tmux.conf".source =
+              config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.tmux.conf";
+          }
+        ]
+        ++ lib.mapAttrsToList (name: tree: { ".tmux/plugins/${name}".source = tree; }) plugins
+      );
+    }
+  ];
 }

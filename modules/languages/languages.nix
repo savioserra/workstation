@@ -1,7 +1,14 @@
 # The languages domain: the members are the granularity.
-{ lib, ... }:
 {
-  options.workstation.languages.enable = lib.mkEnableOption "the language toolchains" // {
-    default = true;
-  };
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  ws = import ../../nix/lib/capability.nix { inherit config lib pkgs; };
+in
+ws.capability [ "languages" ] {
+  description = "the language toolchains";
+  default = true;
 }

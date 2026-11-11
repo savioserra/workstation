@@ -7,31 +7,31 @@
   pkgs,
   ...
 }:
+let
+  ws = import ../../nix/lib/capability.nix { inherit config lib pkgs; };
+  on = config.workstation.network.enable;
+  ensure = ws.script {
+    name = "workstation-tailscaled";
+    inputs = [
+      pkgs.coreutils
+      pkgs.diffutils
+      pkgs.gnugrep
+    ];
+    prelude = "TAILSCALE_PKG=${pkgs.tailscale}\n";
+    file = ./files/tailscaled-ensure.sh;
+  };
+in
 {
   options.workstation.network.enable = lib.mkEnableOption "tailscale, the fleet transport";
 
-  config =
-    let
-      on = config.workstation.network.enable;
-      ensure = pkgs.writeShellApplication {
-        name = "workstation-tailscaled";
-        runtimeInputs = [
-          pkgs.coreutils
-          pkgs.diffutils
-          pkgs.gnugrep
-        ];
-        bashOptions = [ ];
-        text = "TAILSCALE_PKG=${pkgs.tailscale}\n" + builtins.readFile ./files/tailscaled-ensure.sh;
-      };
-    in
-    lib.mkMerge [
-      (lib.mkIf (on && pkgs.stdenv.hostPlatform.isLinux) {
-        home.packages = [ pkgs.tailscale ];
-      })
-      (lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
-        home.activation.ensure-tailscaled = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-          ${ensure}/bin/workstation-tailscaled ${if on then "on" else "off"} || true
-        '';
-      })
-    ];
+  config = lib.mkMerge [
+    (lib.mkIf (on && pkgs.stdenv.hostPlatform.isLinux) {
+      home.packages = [ pkgs.tailscale ];
+    })
+    (lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
+      home.activation.ensure-tailscaled = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        ${ensure}/bin/workstation-tailscaled ${if on then "on" else "off"} || true
+      '';
+    })
+  ];
 }

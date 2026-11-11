@@ -9,35 +9,37 @@
 # | workstation-fleet | the fleet member service and `workstation fleet` joins |
 { pkgs }:
 let
-  workstation-a2a-token = pkgs.writeShellApplication {
+  ws = import ../../nix/lib/capability.nix {
+    inherit pkgs;
+    inherit (pkgs) lib;
+  };
+  workstation-a2a-token = ws.script {
     name = "workstation-a2a-token";
-    runtimeInputs = [
+    inputs = [
       pkgs.coreutils
       pkgs.gnugrep
     ];
-    bashOptions = [ ];
-    text = builtins.readFile ./files/a2a-token.sh;
+    file = ./files/a2a-token.sh;
   };
 in
 {
   inherit workstation-a2a-token;
 
-  workstation-a2a-converge = pkgs.writeShellApplication {
+  workstation-a2a-converge = ws.script {
     name = "workstation-a2a-converge";
-    runtimeInputs = [
+    inputs = [
       pkgs.coreutils
       pkgs.gnugrep
       pkgs.gnused
       pkgs.tailscale
       pkgs.yq-go
     ];
-    bashOptions = [ ];
-    text = builtins.readFile ./files/a2a-converge.sh;
+    file = ./files/a2a-converge.sh;
   };
 
-  workstation-peers = pkgs.writeShellApplication {
+  workstation-peers = ws.script {
     name = "workstation-peers";
-    runtimeInputs = [
+    inputs = [
       pkgs.coreutils
       pkgs.curl
       pkgs.gnugrep
@@ -48,13 +50,12 @@ in
       pkgs.tailscale
       workstation-a2a-token
     ];
-    bashOptions = [ ];
-    text = builtins.readFile ./files/a2a-peers.sh;
+    file = ./files/a2a-peers.sh;
   };
 
-  workstation-fleet = pkgs.writeShellApplication {
+  workstation-fleet = ws.script {
     name = "workstation-fleet";
-    runtimeInputs = [
+    inputs = [
       pkgs.coreutils
       pkgs.curl
       pkgs.findutils
@@ -65,7 +66,6 @@ in
       pkgs.tailscale
       workstation-a2a-token
     ];
-    bashOptions = [ ];
-    text = builtins.readFile ./files/a2a-fleet.sh;
+    file = ./files/a2a-fleet.sh;
   };
 }

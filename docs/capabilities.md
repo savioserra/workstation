@@ -72,6 +72,7 @@ option tree applied as a module.
 | `modules/default.nix` | The capability module list |
 | `modules/<domain>/<domain>.nix` | The domain's options and declarations, gated on `workstation.<domain>.enable` (members also on their own flag) |
 | `nix/report.nix` | The read verbs from one home eval: rows from the option tree, attribution from `definitionsWithLocations` |
+| `nix/lib/capability.nix` | The module helpers, imported by relative path: `capability` (the enable option + its gate over every enclosing enable), `whenOn` (a contribution guarded by the owning domain's enable), `shellInit`, `script`, `overlayTree` |
 | `nix/lib/license.nix` | The secrets domain's unfree acceptance (the 1Password CLI): one predicate, imported by every composition root |
 | `modules/agent/agent.nix` | The agent domain's hot-home surfaces: managed skill leaves, the checkout ensure, version-matched skill provisions |
 | `modules/<domain>/` payload dirs | Payload assets (`files/`, verify scripts), co-located with the declaring module |
@@ -82,6 +83,10 @@ option tree applied as a module.
 - One native nix module per domain, imported by `workstation-home.nix`
   (system-plane toolchains ride `workstation-system.nix` / `home.packages`).
   The module import IS the registration; duplicate options fail the eval.
+- Module shape: `ws.capability [ "<domain>" "<member>" ] { description; default; options; config; }`
+  (`ws = import <rel>/nix/lib/capability.nix { inherit config lib pkgs; }`):
+  the enable option at the path, `config` gated on every enclosing enable;
+  a contribution to another domain's option rides `ws.whenOn "<domain>" { … }`.
 - Payload bytes live beside the module and are copied into the store at
   eval.
 - A capability declares, natively:

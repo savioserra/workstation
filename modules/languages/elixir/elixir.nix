@@ -6,16 +6,13 @@
   ...
 }:
 let
-  cfg = config.workstation.languages.elixir;
+  ws = import ../../../nix/lib/capability.nix { inherit config lib pkgs; };
 in
-{
-  options.workstation.languages.elixir.enable =
-    lib.mkEnableOption "the elixir toolchain and its editor profile";
-
-  config = lib.mkIf (config.workstation.languages.enable && cfg.enable) {
+ws.capability [ "languages" "elixir" ] {
+  description = "the elixir toolchain and its editor profile";
+  config = {
     home.packages = [ pkgs.beam.packages.erlang_28.elixir ];
-
-    workstation.editor = lib.mkIf config.workstation.editor.enable {
+    workstation.editor = ws.whenOn "editor" {
       languages = [
         {
           id = "elixir";
@@ -24,10 +21,7 @@ in
           plugin_module = "languages.plugins.elixir";
         }
       ];
-
-      languagePlugins = [
-        ./files/languages/plugins/elixir.lua
-      ];
+      languagePlugins = [ ./files/languages/plugins/elixir.lua ];
     };
   };
 }

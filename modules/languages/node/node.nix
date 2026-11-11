@@ -6,17 +6,13 @@
   ...
 }:
 let
-  cfg = config.workstation.languages.node;
+  ws = import ../../../nix/lib/capability.nix { inherit config lib pkgs; };
   nodejs = pkgs.nodejs_24;
-
-  nodeVersionFile = pkgs.writeText "node-version" "${nodejs.version}\n";
 in
-{
-  options.workstation.languages.node.enable = lib.mkEnableOption "the node runtime";
-
-  config = lib.mkIf (config.workstation.languages.enable && cfg.enable) {
+ws.capability [ "languages" "node" ] {
+  description = "the node runtime";
+  config = {
     home.packages = [ nodejs ];
-
-    home.file.".node-version".source = nodeVersionFile;
+    home.file.".node-version".source = pkgs.writeText "node-version" "${nodejs.version}\n";
   };
 }

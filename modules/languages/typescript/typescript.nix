@@ -6,17 +6,13 @@
   ...
 }:
 let
-  cfg = config.workstation.languages.typescript;
-  pnpm = pkgs.pnpm;
+  ws = import ../../../nix/lib/capability.nix { inherit config lib pkgs; };
 in
-{
-  options.workstation.languages.typescript.enable =
-    lib.mkEnableOption "pnpm and the typescript editor profile";
-
-  config = lib.mkIf (config.workstation.languages.enable && cfg.enable) {
-    home.packages = [ pnpm ];
-
-    workstation.editor = lib.mkIf config.workstation.editor.enable {
+ws.capability [ "languages" "typescript" ] {
+  description = "pnpm and the typescript editor profile";
+  config = {
+    home.packages = [ pkgs.pnpm ];
+    workstation.editor = ws.whenOn "editor" {
       languages = [
         {
           id = "typescript";
@@ -34,10 +30,7 @@ in
           plugin_module = "languages.plugins.typescript";
         }
       ];
-
-      languagePlugins = [
-        ./files/languages/plugins/typescript.lua
-      ];
+      languagePlugins = [ ./files/languages/plugins/typescript.lua ];
     };
   };
 }

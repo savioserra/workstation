@@ -6,26 +6,21 @@
   ...
 }:
 let
-  op = pkgs._1password-cli;
+  ws = import ../../nix/lib/capability.nix { inherit config lib pkgs; };
+  envFile = config.workstation.secrets.envFile;
 in
-{
-  options.workstation.secrets = {
-    enable = lib.mkEnableOption "the 1Password CLI and its env fragment" // {
-      default = true;
-    };
-
-    envFile = lib.mkOption {
-      type = lib.types.str;
-      default = "/etc/workstation/secrets.env";
-      description = "Root-only env file sourced in login shells when present (service-account tokens for headless hosts).";
-    };
+ws.capability [ "secrets" ] {
+  description = "the 1Password CLI and its env fragment";
+  default = true;
+  options.envFile = lib.mkOption {
+    type = lib.types.str;
+    default = "/etc/workstation/secrets.env";
+    description = "Root-only env file sourced in login shells when present (service-account tokens for headless hosts).";
   };
-
-  config = lib.mkIf config.workstation.secrets.enable {
+  config = {
     home.sessionVariablesExtra = ''
-      [ -r ${config.workstation.secrets.envFile} ] && { set -a; . ${config.workstation.secrets.envFile}; set +a; }
+      [ -r ${envFile} ] && { set -a; . ${envFile}; set +a; }
     '';
-
-    home.packages = [ op ];
+    home.packages = [ pkgs._1password-cli ];
   };
 }

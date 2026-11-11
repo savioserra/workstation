@@ -7,47 +7,16 @@
   ...
 }:
 let
+  ws = import ../../../nix/lib/capability.nix { inherit config lib pkgs; };
   theme = config.workstation.theme.lib;
 
-  nunchuxPin = {
-    owner = "datamadsen";
-    repo = "nunchux";
-    rev = "1546eaa980d834c331496ea9d51942be07ea9fdd";
-    hash = "sha256-C7sXigf8qB5umoZSU8nsqj6vPdd8NMhmTg8B64rysUw=";
-  };
-
-  compose =
-    base: children:
-    if children == [ ] then
-      base
-    else
-      pkgs.runCommand "ws-composed-${base.name or "tree"}" { } ''
-        set -euo pipefail
-        mkdir -p "$out"
-        cp -a ${base}/. "$out/"
-        chmod -R u+w "$out"
-        ${lib.concatStrings (
-          map (c: ''
-            mkdir -p "$out/$(dirname "${c.path}")"
-            if [ -d "${c.source}" ]; then
-              mkdir -p "$out/${c.path}"
-              cp -a "${c.source}"/. "$out/${c.path}"/
-            else
-              cp -a "${c.source}" "$out/${c.path}"
-            fi
-          '') children
-        )}
-      '';
-
   nunchuxTree =
-    compose
+    ws.overlayTree
       (pkgs.fetchFromGitHub {
-        inherit (nunchuxPin)
-          owner
-          repo
-          rev
-          hash
-          ;
+        owner = "datamadsen";
+        repo = "nunchux";
+        rev = "1546eaa980d834c331496ea9d51942be07ea9fdd";
+        hash = "sha256-C7sXigf8qB5umoZSU8nsqj6vPdd8NMhmTg8B64rysUw=";
       })
       [
         {
@@ -60,27 +29,21 @@ let
     theme.renderSlots (builtins.readFile ./files/.config/nunchux/config)
   );
 in
-{
-  options.workstation.terminal.nunchux.enable = lib.mkEnableOption "the nunchux launcher (linux)" // {
-    default = pkgs.stdenv.hostPlatform.isLinux;
-    defaultText = lib.literalExpression "pkgs.stdenv.hostPlatform.isLinux";
-  };
-
-  config =
-    lib.mkIf (config.workstation.terminal.enable && config.workstation.terminal.nunchux.enable)
+ws.capability [ "terminal" "nunchux" ] {
+  description = "the nunchux launcher (linux)";
+  default = pkgs.stdenv.hostPlatform.isLinux;
+  enable.defaultText = lib.literalExpression "pkgs.stdenv.hostPlatform.isLinux";
+  config = {
+    assertions = [
       {
-        assertions = [
-          {
-            assertion = pkgs.stdenv.hostPlatform.isLinux;
-            message = "workstation.terminal.nunchux is linux-only";
-          }
-        ];
-
-        home.packages = [ pkgs.fzf ];
-
-        home.file = {
-          ".tmux/plugins/nunchux".source = nunchuxTree;
-          ".config/nunchux/config".text = nunchuxConfig;
-        };
-      };
+        assertion = pkgs.stdenv.hostPlatform.isLinux;
+        message = "workstation.terminal.nunchux is linux-only";
+      }
+    ];
+    home.packages = [ pkgs.fzf ];
+    home.file = {
+      ".tmux/plugins/nunchux".source = nunchuxTree;
+      ".config/nunchux/config".text = nunchuxConfig;
+    };
+  };
 }
