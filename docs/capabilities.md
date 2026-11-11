@@ -310,7 +310,11 @@ and sorted, never hidden.
 
 ### `terminal`
 - `programs.eza` (`ls` = `eza -lh`, `home.shellAliases`), `programs.starship` + `.config/starship.toml`.
-- mosh: `home.packages` (all legs), `programs.mosh.enable` (NixOS legs).
+- mosh: `home.packages` (all legs), `programs.mosh.enable` (NixOS legs); the
+  `mosh` wrapper passes `--server` with `~/.nix-profile/bin`,
+  `/etc/profiles/per-user/$USER/bin` and `/run/current-system/sw/bin`
+  prepended to the remote PATH — an ssh command on a bash host carries no
+  profile PATH. Other clients (Termius): `--server=.nix-profile/bin/mosh-server`.
 - btop: `home.packages` (all legs) — the nunchux system entry and the tmux2k ram popup.
 - Hosts: all.
 
