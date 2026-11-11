@@ -29,6 +29,26 @@ let
     "bg"
     "muted"
   ];
+  # terminal color index order
+  ansiNames = [
+    "black"
+    "red"
+    "green"
+    "yellow"
+    "blue"
+    "magenta"
+    "cyan"
+    "white"
+    "brightblack"
+    "brightred"
+    "brightgreen"
+    "brightyellow"
+    "brightblue"
+    "brightmagenta"
+    "brightcyan"
+    "brightwhite"
+  ];
+  hex = lib.types.strMatching "#[0-9a-fA-F]{6}";
 
   themeType = lib.types.submodule (
     { name, ... }:
@@ -49,10 +69,25 @@ let
         palette = lib.genAttrs paletteRoles (
           role:
           lib.mkOption {
-            type = lib.types.strMatching "#[0-9a-fA-F]{6}";
+            type = hex;
             description = "The ${role} role as #rrggbb.";
           }
         );
+        ansi = lib.mkOption {
+          type = lib.types.nullOr (
+            lib.types.submodule {
+              options = lib.genAttrs ansiNames (
+                n:
+                lib.mkOption {
+                  type = hex;
+                  description = "The terminal ${n} as #rrggbb.";
+                }
+              );
+            }
+          );
+          default = null;
+          description = "The 16 terminal colors over this theme's canvas; null follows the terminal's own.";
+        };
       };
     }
   );
@@ -65,7 +100,7 @@ let
       };
       render = lib.mkOption {
         type = lib.types.functionTo lib.types.lines;
-        description = "Theme to file text; the theme carries name, appearance and palette.";
+        description = "Theme to file text; the theme carries name, appearance, palette and ansi (16 colors in index order, or null).";
       };
       reload = lib.mkOption {
         type = lib.types.lines;
@@ -78,6 +113,7 @@ let
   themeOf = name: t: {
     inherit name;
     inherit (t) appearance palette;
+    ansi = if t.ansi == null then null else map (n: t.ansi.${n}) ansiNames;
   };
 
   themeTree = pkgs.linkFarm "workstation-themes" (

@@ -319,6 +319,10 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "theme plane" "the running tmux did not reload the light palette"
   [ "$("$tmux_bin" show -gv popup-style)" = 'fg=#181811,bg=#f5f2ea' ] \
     || fail "theme plane" "the tmux popup canvas did not follow the light pick"
+  [ "$("$tmux_bin" show -gwv 'pane-colours[6]')" = '#237277' ] \
+    || fail "theme plane" "the light terminal colors did not reach the tmux panes"
+  grep -qx 'set -gwu pane-colours' "$themes/dark/tmux.conf" \
+    || fail "theme plane" "the dark render does not hand the panes back to the terminal's colors"
   grep -q 'hl:#023c75' "$home/.config/nunchux/config" \
     || fail "theme plane" "the nunchux fzf colors did not follow the light pick"
   "$tmux_bin" set -g @tmux2k-blue unreloaded

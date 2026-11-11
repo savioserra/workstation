@@ -162,6 +162,7 @@ it and re-run tmux2k on a running server.
 | `@tmux2k-purple`, `@tmux2k-light-purple` | `shortcut` |
 | `@tmux2k-bg-main`, `@tmux2k-bg-alt`, `@tmux2k-dark-blue`, `window-style`, `window-active-style`, `popup-style` | `default` on dark themes; `bg` (+ `text` foreground) on light themes |
 | `popup-border-style` | `chrome` over the canvas |
+| `pane-colours[0-15]` | the theme's `ansi`; unset on themes without it (the terminal's own) |
 
 The pin (`d8c5c292`) carries upstream's early return on an empty plugin
 name in `get_plugin_colors`, which `main.sh` needs on bash 5.2.

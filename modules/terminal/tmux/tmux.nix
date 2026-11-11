@@ -67,13 +67,19 @@ ws.capability [ "terminal" "tmux" ] {
               light = t.appearance == "light";
               canvas = if light then p.bg else "default";
               ink = if light then p.text else "default";
+              # the theme's terminal colors in panes, or the terminal's own
+              ansi =
+                if t.ansi == null then
+                  "set -gwu pane-colours\n"
+                else
+                  lib.concatStrings (lib.imap0 (i: c: "set -gw pane-colours[${toString i}] '${c}'\n") t.ansi);
             in
             ''
               set -g window-style 'fg=${ink},bg=${canvas}'
               set -g window-active-style 'fg=${ink},bg=${canvas}'
               set -g popup-style 'fg=${ink},bg=${canvas}'
               set -g popup-border-style 'fg=${p.chrome},bg=${canvas}'
-              set -g @tmux2k-bg-main '${canvas}'
+              ${ansi}set -g @tmux2k-bg-main '${canvas}'
               set -g @tmux2k-bg-alt '${canvas}'
               set -g @tmux2k-dark-blue '${canvas}'
               set -g @tmux2k-black '${p.bg}'

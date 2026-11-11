@@ -16,7 +16,8 @@ workstation theme light        # pick: applies at once, kept across applies
 | `dark` | `modules/theme/themes/dark.nix` | dark | Starlight — the oasis.nvim starlight palette |
 | `light` | `modules/theme/themes/light.nix` | light | Starlight light — the `light_3` sibling (upstream default intensity) |
 
-- A theme: `{ description; appearance = "dark" | "light"; palette.<role> = "#rrggbb"; }` — plain nix data.
+- A theme: `{ description; appearance = "dark" | "light"; palette.<role> = "#rrggbb"; ansi.<color> = "#rrggbb" | null; }` — plain nix data.
+- `ansi`: the 16 terminal colors (`black` … `brightwhite`) over the theme's canvas, applied to tmux panes; `null` (dark) keeps the terminal's own. `light` ships soft hues at ≥ 4.5:1 on its `bg`.
 - `workstation.theme.themes.<name>`: a typed submodule — an unknown role, a missing role or a non-hex value fails the eval.
 - Presets merge at `mkDefault` per leaf: a machine overrides one role (`settings.workstation.theme.themes.dark.palette.accent`) or adds a theme.
 - `workstation.theme.default` (`dark`): the theme linked when no live pick exists.
@@ -38,7 +39,7 @@ Roles: `accent`, `ok`, `warn`, `err`, `chrome` (muted chrome/borders), `text`,
 
 | Path | Owner | Content |
 | --- | --- | --- |
-| `~/.local/share/workstation/themes/<name>/tokens.json` | the generation | `name`, `appearance`, `palette` |
+| `~/.local/share/workstation/themes/<name>/tokens.json` | the generation | `name`, `appearance`, `palette`, `ansi` (16 colors in index order, or `null`) |
 | `~/.local/share/workstation/themes/<name>/<consumer file>` | the generation | each consumer's render of that theme |
 | `~/.local/state/workstation/theme/current` | the pick | link → `…/themes/<name>`; consumers read through it |
 
@@ -58,7 +59,7 @@ A domain contributes through `workstation.theme.consumers.<name>`, guarded by `w
 | Surface | Reads | Mechanism |
 | --- | --- | --- |
 | nunchux picker | — | `menu:theme` + one `app:theme/<name>` entry per theme (`workstation-theme set <name>`), the pick as the menu status |
-| tmux | palette | `consumers.tmux`: `tmux.conf` per theme — tmux2k colors, borders, messages; light themes paint the pane and popup canvas ([tmux](tmux.md)) |
+| tmux | palette, ansi | `consumers.tmux`: `tmux.conf` per theme — tmux2k colors, borders, messages; light themes paint the pane and popup canvas; `ansi` → `pane-colours` ([tmux](tmux.md)) |
 | nvim | appearance | `tokens.json` through the pick sets `vim.o.background` for oasis.nvim, live via a directory watch ([nvim](nvim.md)) |
 | nunchux colors | palette | `consumers.nunchux`: `nunchux.conf` per theme — the full launcher config, `fzf_colors` from the palette unless `workstation.terminal.nunchux.settings.fzf_colors` is set; `~/.config/nunchux/config` links through the pick, read per launch |
 | herdr | terminal-following | documented canonical choice only: `[theme] name = "terminal"`, `auto_switch = true` ([herdr](herdr.md)) |
