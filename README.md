@@ -54,6 +54,7 @@ workstation setup             # the inquiry again: answers prefilled, languages 
 workstation status           # the declared inventory
 workstation fleet            # start / join / standalone — the fleet choice
 workstation peers            # pair with agents outside the fleet
+workstation theme light      # pick a theme (dark, light): every theme consumer follows
 workstation help             # the full contract
 ```
 

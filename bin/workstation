@@ -45,6 +45,10 @@ peers (the A2A node's peers, hosts/local/peers.nix):
                   the apply. Fleet members pair on their own (fleet);
                   peers adds other agents and tunes any peer
 
+theme (the palette every theme consumer follows):
+  theme [<name>]  pick a theme — applied at once, kept across applies;
+                  bare prints the current one; `theme list` shows them all
+
 reads (nix eval over #workstation.report.<verb>):
   status          counts and the capability paths
   plan            the declared surface the next switch applies
@@ -614,6 +618,11 @@ peers)
 	if [ "$rc" = 10 ] || [ "$before" != "$(cksum <"$peers_file")" ]; then
 		offer_apply peers
 	fi
+	;;
+theme)
+	command -v workstation-theme >/dev/null 2>&1 ||
+		die 'theme: the switcher ships with the theme domain — workstation add theme, then workstation apply' 2
+	exec workstation-theme "$@"
 	;;
 apply | rollback | update | sync)
 	# writes refuse until init captured the machine

@@ -17,6 +17,6 @@
     ./terminal/terminal.nix
     ./terminal/nunchux/nunchux.nix
     ./terminal/tmux/tmux.nix
-    ./theme/tokens.nix
+    ./theme/theme.nix
   ];
 }

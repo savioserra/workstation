@@ -287,19 +287,29 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "node runtime single-source" ".node-version ($nv) does not match the runtime ($runtime)"
   pass "node runtime single-source"
 
-  step "theme token path deployed (the switch-time push surface)"
-  totop="$home/.local/state/workstation/theme.json"
-  [ -L "$totop" ] \
-    || fail "theme token path" "$totop is not the store token link"
-  case "$(readlink "$totop")" in
-    /nix/store/*) ;;
-    *) fail "theme token path" "$totop does not resolve into the store" ;;
-  esac
-  grep -q '"dark"' "$totop" \
-    || fail "theme token path" "the token file carries no dark palette"
-  grep -q '#[0-9a-fA-F]\{6\}' "$totop" \
-    || fail "theme token path" "the token file carries no hex roles"
-  pass "theme token path deployed"
+  step "theme plane (rendered themes, the seeded pick, the switcher, the picker)"
+  themes="$home/.local/share/workstation/themes"
+  pick="$home/.local/state/workstation/theme/current"
+  for t in dark light; do
+    grep -q "\"appearance\":\"$t\"" "$themes/$t/tokens.json" 2>/dev/null \
+      || fail "theme plane" "$themes/$t/tokens.json carries no $t appearance"
+  done
+  [ -L "$pick" ] \
+    || fail "theme plane" "the activation seeded no pick at $pick"
+  [ "$(readlink "$pick")" = "$themes/dark" ] \
+    || fail "theme plane" "the seeded pick is not the default (dark): $(readlink "$pick")"
+  wt=$(find_client workstation-theme) || fail "theme plane" "workstation-theme is not on PATH"
+  "$wt" light >/dev/null \
+    || fail "theme plane" "workstation-theme light failed"
+  [ "$("$wt" current)" = light ] \
+    || fail "theme plane" "the pick did not move to light"
+  rc=0
+  "$wt" set nope 2>/dev/null || rc=$?
+  [ "$rc" = 2 ] \
+    || fail "theme plane" "an unknown theme must exit 2 (got $rc)"
+  grep -qx '\[app:theme/light\]' "$home/.config/nunchux/config" \
+    || fail "theme plane" "the nunchux picker carries no light entry"
+  pass "theme plane"
 
   step "init capture live (placeholders fill, settings survive, the re-init is byte-identical)"
   initlive=/tmp/ws-init
@@ -395,6 +405,11 @@ writeShellScriptBin "workstation-e2e" ''
   nvim_boot >/dev/null 2>"$home/.cache/e2e-nvim-boot-removal.err" \
     || fail "nvim still boots after the removal" "nvim --headless +qa exited non-zero (see .cache/e2e-nvim-boot-removal.err in the persona home)"
   pass "nvim still boots after the removal"
+
+  step "the theme pick survives the apply"
+  [ "$("$wt" current)" = light ] \
+    || fail "the theme pick survives the apply" "the apply moved the pick to $("$wt" current)"
+  pass "the theme pick survives the apply"
 
   step "shell lane: the operator extras close the rc files, the editor env speaks in a login shell"
   command -v bash >/dev/null 2>&1 \

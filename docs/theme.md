@@ -1,67 +1,63 @@
 # Theme capability
 
-One canonical color source for every workstation surface that renders color.
-Owned by `modules/theme/` (`tokens.lua` holds the data payload; nix reads it
-directly at eval). Re-branding edits that one carrier.
+One palette source for every workstation surface that renders color, picked
+at run time. Owned by `modules/theme/`.
 
-Current brand: **Starlight** — the oasis.nvim starlight `@thm_*` palette
-(dark) and its `light_3` sibling (light, upstream's default intensity).
-Palette values cite those theme tokens; the slot layer rides the matching
-starlight ANSI-16 terminal assignment. Judgment calls (chrome/muted split,
-`selected_bg`, light `muted`) are pinned in this section.
+```bash
+workstation theme              # the current pick
+workstation theme list         # every theme, the pick starred
+workstation theme light        # pick: applies at once, kept across applies
+```
+
+## Themes
+
+| Theme | File | Appearance | Source |
+| --- | --- | --- | --- |
+| `dark` | `modules/theme/themes/dark.nix` | dark | Starlight — the oasis.nvim starlight palette |
+| `light` | `modules/theme/themes/light.nix` | light | Starlight light — the `light_3` sibling (upstream default intensity) |
+
+- A theme: `{ description; appearance = "dark" | "light"; palette.<role> = "#rrggbb"; }` — plain nix data.
+- `workstation.theme.themes.<name>`: a typed submodule — an unknown role, a missing role or a non-hex value fails the eval.
+- Presets merge at `mkDefault` per leaf: a machine overrides one role (`settings.workstation.theme.themes.dark.palette.accent`) or adds a theme.
+- `workstation.theme.default` (`dark`): the theme linked when no live pick exists.
 
 ## Layers
 
-Roles are the API, values are data. Consumers reference role names and never
-hardcode a color or slot name for a role carried here. Two layers per role:
+Roles are the API, values are data; consumers reference role names, never a literal color or slot name.
 
-| Layer | Maps | Consumed by |
+| Layer | Option | Maps | Consumed by |
+| --- | --- | --- | --- |
+| palette | `themes.<name>.palette` | role → `#rrggbb`, per theme | rendered consumer files, `tokens.json` readers |
+| slots | `workstation.theme.slots` | role → ANSI named color (16 names + `default`), shared | terminal-following surfaces (nunchux fzf colors) |
+
+Roles: `accent`, `ok`, `warn`, `err`, `chrome` (muted chrome/borders), `text`,
+`shortcut` (key-cap letters), `selected_bg`/`selected_fg`, `inactive`
+(dimmed chrome), `ramp_start`/`ramp_mid`/`ramp_end` (magnitude ramp); the
+palette adds `bg` and `muted`.
+
+## Deployed state
+
+| Path | Owner | Content |
 | --- | --- | --- |
-| `slots` | role → terminal **named** palette slot | surfaces that follow the live terminal palette (the nunchux launcher config); appearance-agnostic, zero regeneration on theme switch |
-| `palette` | role → concrete color, per appearance (`dark`, `light`) | surfaces that cannot follow the terminal (rendered UI themes, exports) |
+| `~/.local/share/workstation/themes/<name>/tokens.json` | the generation | `name`, `appearance`, `palette`, `slots` |
+| `~/.local/share/workstation/themes/<name>/<consumer file>` | the generation | each consumer's render of that theme |
+| `~/.local/state/workstation/theme/current` | the pick | link → `…/themes/<name>`; consumers read through it |
 
-Roles: `accent`, `ok`, `warn`, `err`, `chrome` (muted chrome/borders),
-`text` (on accent surfaces in the slot layer, primary foreground in the
-palette layer), plus `bg` and `muted` in the palette layer. The btop-grammar
-affordance roles complete the set: `shortcut` (key-cap letters in tab strips
-and border buttonbars), the `selected_bg`/`selected_fg` pair (selection is
-never color-alone), `inactive` (dimmed chrome: inactive tabs, stale rows),
-and the `ramp_start`/`ramp_mid`/`ramp_end` trio (magnitude ramp: freshness,
-drift age, load). Slot values are validated against the 16 ANSI names plus
-`default`; palette values must be `#rrggbb`.
-
-## Distribution
-
-The token set has no envelope and no render step: `tokens.lua` is the
-canonical byte source and nix reads it directly at eval — the fail-closed
-line extraction in `modules/theme/theme.nix` (every listed key must exist,
-every value must match its layer's shape, the extracted set asserted
-non-empty; a restructure the parser cannot read fails the eval, never
-renders empty tokens). Template consumers substitute slots natively:
-`workstationTheme.lib` (the flake output carrying `renderSlots` +
-`assertNoUnresolved`) turns `{{ .theme.slots.<name> }}` references into
-extracted values, and a template naming a slot the token set does not
-carry fails the eval. One home target IS deployed: the store token path —
-`modules/theme/tokens.nix` links the extracted tokens (palette + slots) at
-`~/.local/state/workstation/theme.json`, a store symlink the switch
-re-points every generation (the switch-time push; consumers read the file
-or watch the link, nothing polls).
+- The activation seeds `current` with the default only when no live pick exists (first apply, or a pick the generation dropped), then runs every consumer's reload.
+- `workstation theme <name>`: re-links `current` atomically, then runs every consumer's reload. Nothing polls.
 
 ## Consumers
 
+A domain contributes through `workstation.theme.consumers.<name>`, guarded by `ws.whenOn "theme"`:
+
+| Field | Shape |
+| --- | --- |
+| `file` | path inside each theme dir |
+| `render` | `theme: text`; the theme carries `name`, `appearance`, `palette`, `slots` |
+| `reload` | shell lines run after a pick and after every apply |
+
 | Surface | Layer | Mechanism |
 | --- | --- | --- |
-| tmux (status bar) | — (upstream-truthed) | pinned `tmux2k` at the upstream `onedark` theme; `.tmux.conf` sets no theme color options — upstream's onedark palette is canonical (the tokens palette does not feed the bar). |
-| nunchux (launcher config) | `slots` | `workstation.terminal.nunchux.settings.fzf_colors` from the slot layer; the checkout is the fetchGit-pinned store tree ([tmux](tmux.md)) |
-| herdr | philosophy (terminal-following) | documented canonical choice only: `[theme] name = "terminal"`, `auto_switch = true` (see [herdr](herdr.md)); herdr tracks the host terminal's live ANSI palette, so it renders the terminal theme — the substrate never writes herdr's live `config.toml` and ships no herdr colors |
-| nvim | upstream pin (`oasis-starlight`) | `lazy-lock.json` pins `uhs-robert/oasis.nvim`; the editor rides the upstream starlight palette tokens.lua cites — not a generated colorscheme |
-
-## Consumers and the follow law
-
-The theme's live surface is the store token link
-`~/.local/state/workstation/theme.json`: the switch re-points it at each
-generation's token store path (the activation hook), and consumers read it
-at startup or watch the link — nothing polls. A new consumer renders from
-the deployed token file or from
-`workstationTheme.lib` (the flake output) at eval — never from a second
-copy of the bytes.
+| nunchux picker | — | `menu:theme` + one `app:theme/<name>` entry per theme (`workstation-theme set <name>`), the pick as the menu status |
+| nunchux colors | slots | `workstation.terminal.nunchux.settings.fzf_colors` |
+| herdr | terminal-following | documented canonical choice only: `[theme] name = "terminal"`, `auto_switch = true` ([herdr](herdr.md)) |

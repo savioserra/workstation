@@ -62,7 +62,7 @@ checkout or Git) carries only read-side state:
 | Entry | Owner |
 | --- | --- |
 | `switch.log` | the switch receipt |
-| `theme.json` | the theme token link |
+| `theme/current` | the theme pick (link into `~/.local/share/workstation/themes`) |
 | `nvim-managed.list` | the editor deploy's managed paths |
 | `hermes-a2a.owned` | the A2A converge's declared keys |
 | `hermes-a2a.restart` | a pairing awaiting the gateway (consumed by the converge) |
@@ -81,8 +81,8 @@ Plan reads never persist or forward home contents into logs.
 - paths the file plane never owned are the operator's: the substrate
   never deletes them.
 
-`modules/theme/tokens.lua` is the canonical token payload, and nix reads
-it directly (the extraction asserted at eval, `modules/theme/theme.nix`).
+The themes are nix data (`modules/theme/themes/*.nix`), typed by
+`workstation.theme.themes` at eval.
 
 ## Isolated validation
 

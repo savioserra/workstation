@@ -113,8 +113,6 @@
 
       homeManagerModules.workstation = ./nix/modules/workstation-home.nix;
 
-      workstationTheme.lib = import ./modules/theme/theme.nix { inherit lib; };
-
       packages = lib.genAttrs systems (
         system: import ./modules/agent/packages.nix { pkgs = nixpkgs.legacyPackages.${system}; }
       );

@@ -25,7 +25,7 @@
 | [`secrets.md`](secrets.md) | 1Password boundary, vault scope, secrets skill policy |
 | [`nvim.md`](nvim.md) | Editor entry points, profile, plugins, locks |
 | [`tmux.md`](tmux.md) | Settings, plugin pins, theme |
-| [`theme.md`](theme.md) | Shared color tokens, slot/palette layers, consumer surfaces |
+| [`theme.md`](theme.md) | Themes, palette/slot layers, the pick, consumer surfaces |
 | [`herdr.md`](herdr.md) | Pinned Herdr binary, ownership and compatibility gates |
 
 ## Substrate law (binding)
@@ -34,5 +34,5 @@ The substrate is nixpkgs-native: declared state + two clients.
 One current shape per verb, per option, per pin; no compatibility
 surfaces. `modules/default.nix` is the capability list; reads are `nix eval` over `workstation.report`;
 verification is behavioral (docs/architecture.md is the anchor). Lua appears
-only as live payload data (deployed editor config, theme tokens read as
-bytes), never executed.
+only as live payload data (deployed editor config read as bytes), never
+executed.

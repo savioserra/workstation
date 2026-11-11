@@ -1,90 +1,204 @@
-# The theme library: palette and slots parsed from tokens.lua, slot
-# rendering for templates.
-{ lib }:
+# The theme domain: the themes (a palette per role, dark and light ship
+# here), the terminal slot layer, the consumer registry, the rendered theme
+# tree and the runtime pick (`workstation theme`).
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
-  lines = lib.splitString "\n" (builtins.readFile ./tokens.lua);
+  ws = import ../../nix/lib/capability.nix { inherit config lib pkgs; };
+  cfg = config.workstation.theme;
+  home = config.home.homeDirectory;
 
-  blockLines =
-    name:
-    let
-      start = lib.lists.findFirstIndex (
-        l: l == "M.${name} = {"
-      ) (throw "workstation-theme: tokens.lua carries no M.${name} block") lines;
-      body = lib.drop (start + 1) lines;
-      end = lib.lists.findFirstIndex (
-        l: l == "}"
-      ) (throw "workstation-theme: M.${name} block is unterminated") body;
-    in
-    lib.sublist 0 end body;
+  paletteRoles = [
+    "accent"
+    "ok"
+    "warn"
+    "err"
+    "chrome"
+    "text"
+    "shortcut"
+    "selected_bg"
+    "selected_fg"
+    "inactive"
+    "ramp_start"
+    "ramp_mid"
+    "ramp_end"
+    "bg"
+    "muted"
+  ];
+  slotRoles = lib.subtractLists [
+    "bg"
+    "muted"
+  ] paletteRoles;
+  ansiNames = [
+    "black"
+    "red"
+    "green"
+    "yellow"
+    "blue"
+    "magenta"
+    "cyan"
+    "white"
+    "brightblack"
+    "brightred"
+    "brightgreen"
+    "brightyellow"
+    "brightblue"
+    "brightmagenta"
+    "brightcyan"
+    "brightwhite"
+    "default"
+  ];
+  slotDefaults = import ./slots.nix;
 
-  sectionLines =
-    section: body:
-    let
-      start = lib.lists.findFirstIndex (
-        l: l == "\t${section} = {"
-      ) (throw "workstation-theme: tokens.lua carries no ${section} section") body;
-      rest = lib.drop (start + 1) body;
-      end = lib.lists.findFirstIndex (
-        l: l == "\t},"
-      ) (throw "workstation-theme: the ${section} section is unterminated") rest;
-    in
-    lib.sublist 0 end rest;
+  themeType = lib.types.submodule (
+    { name, ... }:
+    {
+      options = {
+        description = lib.mkOption {
+          type = lib.types.str;
+          default = name;
+          description = "The picker's label.";
+        };
+        appearance = lib.mkOption {
+          type = lib.types.enum [
+            "dark"
+            "light"
+          ];
+          description = "The background family: consumers with a dark/light mode follow it.";
+        };
+        palette = lib.genAttrs paletteRoles (
+          role:
+          lib.mkOption {
+            type = lib.types.strMatching "#[0-9a-fA-F]{6}";
+            description = "The ${role} role as #rrggbb.";
+          }
+        );
+      };
+    }
+  );
 
-  parsePairs =
-    pattern: ls:
-    lib.listToAttrs (
-      map (
-        l:
-        let
-          m = builtins.match pattern l;
-        in
-        if m == null then
-          throw "workstation-theme: unparsable token line: ${l}"
-        else
-          lib.nameValuePair (builtins.elemAt m 0) (builtins.elemAt m 1)
-      ) (lib.filter (l: lib.trim l != "") ls)
-    );
-
-  slotsBlock = blockLines "slots";
-  paletteBlock = blockLines "palette";
-
-  slots = parsePairs ''[[:space:]]*([a-z_]+) = "([a-z]+)",?'' slotsBlock;
-  palette = {
-    dark = parsePairs ''[[:space:]]*([a-z_]+) = "(#[0-9a-fA-F]{6})",?'' (
-      sectionLines "dark" paletteBlock
-    );
-    light = parsePairs ''[[:space:]]*([a-z_]+) = "(#[0-9a-fA-F]{6})",?'' (
-      sectionLines "light" paletteBlock
-    );
+  consumerType = lib.types.submodule {
+    options = {
+      file = lib.mkOption {
+        type = lib.types.str;
+        description = "The consumer's file inside each theme dir.";
+      };
+      render = lib.mkOption {
+        type = lib.types.functionTo lib.types.lines;
+        description = "Theme to file text; the theme carries name, appearance, palette and slots.";
+      };
+      reload = lib.mkOption {
+        type = lib.types.lines;
+        default = "";
+        description = "Shell lines run after a pick and after every apply.";
+      };
+    };
   };
 
-  assertNonEmpty =
-    attrs: what:
-    assert attrs != { } || throw "workstation-theme: extracted ${what} is empty";
-    attrs;
+  themeOf = name: t: {
+    inherit name;
+    inherit (t) appearance palette;
+    inherit (cfg) slots;
+  };
 
-  renderSlots =
-    template:
-    let
-      names = lib.attrNames slots;
-      needles = map (n: "{{ .theme.slots.${n} }}") names;
-    in
-    builtins.replaceStrings needles (map (n: slots.${n}) names) template;
+  themeTree = pkgs.linkFarm "workstation-themes" (
+    lib.concatLists (
+      lib.mapAttrsToList (
+        name: t:
+        [
+          {
+            name = "${name}/tokens.json";
+            path = pkgs.writeText "workstation-theme-${name}.json" (builtins.toJSON (themeOf name t));
+          }
+        ]
+        ++ lib.mapAttrsToList (consumer: c: {
+          name = "${name}/${c.file}";
+          path = pkgs.writeText "workstation-theme-${name}-${consumer}" (c.render (themeOf name t));
+        }) cfg.consumers
+      ) cfg.themes
+    )
+  );
 
-  assertNoUnresolved =
-    rendered:
-    assert
-      !(lib.hasInfix "{{ .theme.slots." rendered)
-      || throw "workstation-theme: a template referenced a slot tokens.lua does not carry";
-    rendered;
+  program = ws.script {
+    name = "workstation-theme";
+    inputs = [ pkgs.coreutils ];
+    prelude = ''
+      THEMES=${home}/.local/share/workstation/themes
+      STATE=${home}/.local/state/workstation/theme
+      DEFAULT=${cfg.default}
+      reload_consumers() {
+      ${lib.concatMapStrings (c: c.reload) (builtins.attrValues cfg.consumers)}:
+      }
+    '';
+    file = ./files/workstation-theme.sh;
+  };
 in
-assertNonEmpty slots "slots"
-// {
-  inherit
-    slots
-    palette
-    renderSlots
-    assertNoUnresolved
-    ;
-  version = builtins.head (lib.filter (l: lib.hasPrefix "M.version" l) lines);
+ws.capability [ "theme" ] {
+  description = "the themes, the picker and the consumer files";
+  default = true;
+  options = {
+    themes = lib.mkOption {
+      type = lib.types.attrsOf themeType;
+      default = { };
+      description = "The themes by name; dark and light ship with the domain, more merge in.";
+    };
+    default = lib.mkOption {
+      type = lib.types.str;
+      default = "dark";
+      description = "The theme linked when no live pick exists (the first apply, or a pick the generation dropped).";
+    };
+    slots = lib.genAttrs slotRoles (
+      role:
+      lib.mkOption {
+        type = lib.types.enum ansiNames;
+        default = slotDefaults.${role};
+        description = "The ${role} role as a terminal named color.";
+      }
+    );
+    consumers = lib.mkOption {
+      type = lib.types.attrsOf consumerType;
+      default = { };
+      description = "Theme consumers: a file rendered per theme under ~/.local/share/workstation/themes/<theme>/ and read through ~/.local/state/workstation/theme/current; contributors guard with whenOn \"theme\".";
+    };
+  };
+  config = {
+    workstation.theme.themes = lib.mapAttrsRecursive (_: lib.mkDefault) {
+      dark = import ./themes/dark.nix;
+      light = import ./themes/light.nix;
+    };
+
+    assertions = [
+      {
+        assertion = cfg.themes ? ${cfg.default};
+        message = "workstation.theme.default '${cfg.default}' names no theme (${lib.concatStringsSep ", " (builtins.attrNames cfg.themes)})";
+      }
+    ];
+
+    home.packages = [ program ];
+    home.file.".local/share/workstation/themes".source = themeTree;
+    home.activation.workstation-theme = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+      ${program}/bin/workstation-theme seed || true
+    '';
+
+    workstation.terminal.nunchux = ws.whenOn [ "terminal" "nunchux" ] {
+      entries = {
+        "menu:theme" = {
+          desc = "Theme";
+          status = "workstation-theme current";
+          rank = 40;
+        };
+      }
+      // lib.mapAttrs' (
+        name: t:
+        lib.nameValuePair "app:theme/${name}" {
+          cmd = "workstation-theme set ${name}";
+          desc = t.description;
+        }
+      ) cfg.themes;
+    };
+  };
 }

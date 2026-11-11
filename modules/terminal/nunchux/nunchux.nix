@@ -9,7 +9,7 @@
 let
   ws = import ../../../nix/lib/capability.nix { inherit config lib pkgs; };
   cfg = config.workstation.terminal.nunchux;
-  slots = config.workstation.theme.lib.slots;
+  slots = config.workstation.theme.slots;
 
   nunchuxTree =
     ws.overlayTree

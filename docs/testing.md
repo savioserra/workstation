@@ -54,7 +54,8 @@ The lane map — which lane proves what:
   the boot home, then runs `tests/nix/e2e.nix`: the consumer smokes (the launcher shim
   dispatch, the nvim headless boot with the languages composed — the
   composed profile.lua is a lua CHUNK, the regression the boot smoke
-  owns, the lazy-lock merge, the theme token path, the language profile,
+  owns, the lazy-lock merge, the theme plane (rendered themes, the seeded
+  pick, the switcher, the pick across an apply), the language profile,
   the shell init (eza, starship, the direnv hook after the prompt, the
   op env, the editor env), the tools running, the agent
   skills at pinned versions, the tmux/nunchux/foundation planes, the

@@ -76,7 +76,7 @@ option tree applied as a module.
 | `nix/lib/license.nix` | The secrets domain's unfree acceptance (the 1Password CLI): one predicate, imported by every composition root |
 | `modules/agent/agent.nix` | The agent domain's hot-home surfaces: managed skill leaves, the checkout ensure, version-matched skill provisions |
 | `modules/<domain>/` payload dirs | Payload assets (`files/`, verify scripts), co-located with the declaring module |
-| `modules/theme/tokens.lua` | Canonical theme tokens (data: slot/palette layers, per-appearance palettes) — read as bytes, never executed |
+| `modules/theme/themes/*.nix` | The themes (`dark`, `light`): appearance + a `#rrggbb` palette per role — nix data typed by `workstation.theme.themes` |
 
 ## Declaration contract
 
@@ -105,7 +105,8 @@ option tree applied as a module.
   - **activation scripts** — hot-home and mutation surfaces, sequenced with
     `lib.hm.sequence`;
   - **the switch driver** — the one system-ordered surface: its tail writes
-    the receipt; the activation re-points the theme token path.
+    the receipt; the theme activation seeds the pick and reloads the
+    theme consumers.
 - No inter-capability ordering graph exists: store closure has no apply
   order. The only ordered surfaces are the ones above.
 
@@ -296,10 +297,16 @@ and sorted, never hidden.
   Hosts: all.
 
 ### `theme`
-- `tokens.lua` is the canonical token payload; nix extracts the slots
-  consumers need (fail-closed line parse — a restructure the parser cannot
-  read fails the eval). Deploys no home target.
-- Verify: token bytes against the tokens module. Hosts: all.
+- The themes (`modules/theme/themes/{dark,light}.nix`) typed by
+  `workstation.theme.themes`; the slot layer `workstation.theme.slots`.
+- The consumer registry `workstation.theme.consumers.<name>` (`file`,
+  `render`, `reload`); every theme rendered under
+  `~/.local/share/workstation/themes/<name>/` with its `tokens.json`.
+- The pick: `~/.local/state/workstation/theme/current`, seeded with
+  `workstation.theme.default`, moved by `workstation theme <name>`
+  (`workstation-theme`); the nunchux picker menu.
+- Verify: the container E2E (rendered themes, seeded pick, switch, the
+  pick across an apply). Hosts: all. [theme](theme.md)
 
 ### `terminal`
 - `programs.eza` (`ls` = `eza -lh`, `home.shellAliases`), `programs.starship` + `.config/starship.toml`.
@@ -381,8 +388,8 @@ itself: the switch receipt in `switch.log`, and the home carries only
 declared targets.
 
 A switch is the one event a generation carries: the receipt line lands in
-`switch.log`, and the switch re-points the theme token path
-(`~/.local/state/workstation/theme.json`). Consumers read files or watch
+`switch.log`, and the theme consumers reload against the live pick
+(`~/.local/state/workstation/theme/current`). Consumers read files or watch
 the link; nothing polls.
 
 ## Payload rule

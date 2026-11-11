@@ -13,6 +13,7 @@
 # | 7 | peers: helper build, file guards, change-gated apply offer |
 # | 8 | the write plane switches the resolved checkout only |
 # | 9 | fleet: asked once, member/standalone written to the machine file, re-asked by `workstation fleet` |
+# | 10 | theme: delegates to workstation-theme anywhere (args unchanged); no switcher fails closed naming the fix |
 set -eu
 progname='shim-dispatch.sh'
 repo_root=$(CDPATH='' cd -P "$(dirname "$0")/../.." && pwd -P)
@@ -469,4 +470,22 @@ WORKSTATION_FLAKE=$fl "$shim" fleet >/dev/null 2>"$root/err" || rc=$?
 [ "$rc" = 2 ] || fail "fleet on a template machine must exit 2 (got $rc)"
 grep -q 'workstation init' "$root/err" || fail 'the refusal must name workstation init'
 
-echo "$progname: OK (dispatch, resolution order, delegation, fail-closed, selection, init, peers, switch-checkout and fleet paths all hold)"
+# 10
+cat >"$stub_dir/workstation-theme" <<STUB
+#!/bin/sh
+printf 'workstation-theme %s\n' "\$*" >> '$root/stub.log'
+STUB
+chmod +x "$stub_dir/workstation-theme"
+: >"$root/stub.log"
+(cd "$root" && "$shim" theme light) >/dev/null 2>&1 || fail 'theme <name> must delegate outside a checkout'
+expect_log 'workstation-theme light'
+: >"$root/stub.log"
+"$shim" theme >/dev/null 2>&1 || fail 'the bare theme verb must delegate'
+grep -qx 'workstation-theme ' "$root/stub.log" || fail 'the bare theme verb must pass no arguments'
+rm -f "$stub_dir/workstation-theme"
+rc=0
+"$shim" theme light 2>"$root/err" || rc=$?
+[ "$rc" = 2 ] || fail "theme without the switcher must exit 2 (got $rc)"
+grep -q 'workstation add theme' "$root/err" || fail 'the missing-switcher failure must name the fix'
+
+echo "$progname: OK (dispatch, resolution order, delegation, fail-closed, selection, init, peers, switch-checkout, fleet and theme paths all hold)"
