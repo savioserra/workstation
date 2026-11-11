@@ -94,10 +94,12 @@ ws.capability [ "terminal" "tmux" ] {
               set -g @tmux2k-pane-border '${p.chrome}'
               set -g @tmux2k-pane-active-border '${p.accent}'
             '';
+          # tmux with stdin off the tty: no terminfo load for $TERM, which the
+          # darwin activation sets to unknown
           reload = ''
-            if ${pkgs.tmux}/bin/tmux has-session 2>/dev/null; then
-              ${pkgs.tmux}/bin/tmux source-file "$STATE/current/tmux.conf" 2>/dev/null || true
-              ${pkgs.tmux}/bin/tmux run-shell -b "$HOME/.tmux/plugins/tmux2k/2k.tmux" 2>/dev/null || true
+            if ${pkgs.tmux}/bin/tmux has-session </dev/null 2>/dev/null; then
+              ${pkgs.tmux}/bin/tmux source-file "$STATE/current/tmux.conf" </dev/null 2>/dev/null || true
+              ${pkgs.tmux}/bin/tmux run-shell -b "$HOME/.tmux/plugins/tmux2k/2k.tmux" </dev/null 2>/dev/null || true
             fi
           '';
         };

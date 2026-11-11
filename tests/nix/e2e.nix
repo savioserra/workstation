@@ -315,6 +315,10 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "theme plane" "the light tmux render carries no light accent"
   [ "$("$tmux_bin" show -gv @tmux2k-blue)" = '#023c75' ] \
     || fail "theme plane" "the running tmux did not reload the light palette"
+  "$tmux_bin" set -g @tmux2k-blue unreloaded
+  TERM=unknown ${pkgs.util-linux}/bin/script -qec "$wt reload" /dev/null >/dev/null 2>&1 || true
+  [ "$("$tmux_bin" show -gv @tmux2k-blue)" = '#023c75' ] \
+    || fail "theme plane" "the reload under TERM=unknown on a tty did not reach tmux"
   "$tmux_bin" kill-server 2>/dev/null || true
   out=$("$home/.local/bin/nvim" --headless -c "lua io.stdout:write('BG=' .. vim.o.background .. '\n')" -c 'qa!' 2>/dev/null)
   case "$out" in
