@@ -206,7 +206,7 @@ writeShellScriptBin "workstation-e2e" ''
   esac
   pass "hsql skill version"
 
-  step "tmux plane (config, XDG link, pinned plugin checkouts)"
+  step "tmux plane (config, XDG link, pinned plugin checkouts, a server on the managed config)"
   [ -r "$home/.tmux.conf" ] \
     || fail "tmux plane" "$home/.tmux.conf missing"
   [ -L "$home/.config/tmux/tmux.conf" ] \
@@ -215,6 +215,14 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "tmux plane" "the tpm checkout did not deploy"
   [ -d "$home/.tmux/plugins/tmux2k" ] \
     || fail "tmux plane" "the tmux2k checkout did not deploy"
+  tmux_bin=$(find_client tmux) || fail "tmux plane" "tmux is not on PATH"
+  "$tmux_bin" -L e2e-conf -f "$home/.tmux.conf" new-session -d -s conf \
+    || fail "tmux plane" "a tmux server did not start on the managed config"
+  [ "$("$tmux_bin" -L e2e-conf show -gv pane-border-status)" = top ] \
+    || fail "tmux plane" "the managed config set no pane labels"
+  [ "$("$tmux_bin" -L e2e-conf show -gv menu-border-lines)" = rounded ] \
+    || fail "tmux plane" "the managed config set no rounded menu borders"
+  "$tmux_bin" -L e2e-conf kill-server 2>/dev/null || true
   pass "tmux plane"
 
   step "nunchux plane (pinned checkout, platform marker, rendered config)"
@@ -319,6 +327,8 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "theme plane" "the running tmux did not reload the light palette"
   [ "$("$tmux_bin" show -gv popup-style)" = 'fg=#181811,bg=#f5f2ea' ] \
     || fail "theme plane" "the tmux popup canvas did not follow the light pick"
+  [ "$("$tmux_bin" show -gv menu-selected-style)" = 'fg=#181811,bg=#e1d8c1' ] \
+    || fail "theme plane" "the tmux menu selection did not follow the light pick"
   [ "$("$tmux_bin" show -gwv 'pane-colours[6]')" = '#237277' ] \
     || fail "theme plane" "the light terminal colors did not reach the tmux panes"
   grep -qx 'set -gwu pane-colours' "$themes/dark/tmux.conf" \

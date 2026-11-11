@@ -13,6 +13,9 @@
 | Setting | Value |
 | --- | --- |
 | `status-position` | `bottom` |
+| `pane-border-status` | `top` — a label on every pane's top border |
+| `pane-border-format` | ` <index> <running command> <directory basename> `, bold on the active pane; colors from the pane border styles |
+| `popup-border-lines`, `menu-border-lines` | `rounded` |
 | `escape-time` | `10` |
 | `focus-events` | `on` |
 | `mouse` | `on` |
@@ -160,8 +163,9 @@ it and re-run tmux2k on a running server.
 | `@tmux2k-yellow`, `@tmux2k-light-yellow` | `warn` |
 | `@tmux2k-red`, `@tmux2k-light-red` | `err` |
 | `@tmux2k-purple`, `@tmux2k-light-purple` | `shortcut` |
-| `@tmux2k-bg-main`, `@tmux2k-bg-alt`, `@tmux2k-dark-blue`, `window-style`, `window-active-style`, `popup-style` | `default` on dark themes; `bg` (+ `text` foreground) on light themes |
-| `popup-border-style` | `chrome` over the canvas |
+| `@tmux2k-bg-main`, `@tmux2k-bg-alt`, `@tmux2k-dark-blue`, `window-style`, `window-active-style`, `popup-style`, `menu-style` | `default` on dark themes; `bg` (+ `text` foreground) on light themes |
+| `popup-border-style`, `menu-border-style` | `chrome` over the canvas |
+| `menu-selected-style` | `selected_fg` on `selected_bg` |
 | `pane-colours[0-15]` | the theme's `ansi`; unset on themes without it (the terminal's own) |
 
 The pin (`d8c5c292`) carries upstream's early return on an empty plugin
