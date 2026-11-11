@@ -262,7 +262,8 @@ and sorted, never hidden.
 ### `secrets`
 - `pkgs._1password-cli` (unfree — the
   acceptance is `nix/lib/license.nix`, named and scoped); the op env
-  (`/etc/pi/op.env`) sourced from the session variables.
+  (`workstation.secrets.envFile`, default `/etc/workstation/secrets.env`)
+  sourced from the session variables.
 - Verify: record + `--version` only, never account or vault state. Hosts:
   all supported.
 

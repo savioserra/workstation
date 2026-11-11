@@ -11,14 +11,13 @@ never manages the runtime.
 | Binary `0.9.0` (linux x86_64, macOS arm64; WSL uses the Linux asset) | the `herdr` pin declared in `modules/agent/agent.nix` — the ONE download pin that stays (no nixpkgs coverage: upstream ships release binaries only), an inline checksummed `fetchurl` in the owning module; the exact pinned binary lands in the store, linked straight to `.local/bin/herdr` |
 | Server, panes, sockets, `~/.config/herdr`, sessions, saved machines | Human/host; lifecycle commands never start, stop, attach or inspect them |
 
-Herdr works standalone; the substrate never provisions a Pi integration
+Herdr works standalone; the substrate provisions no agent integration
 hook.
 
 ## Compatibility gates
 
 Static install is verified automatically. Runtime behavior is
-deliberately **not** promised until the corresponding evidence exists (see the
-sourced specification, preserved in Git history as `backlog/docs/doc-1`):
+deliberately **not** promised until the corresponding evidence exists:
 
 | Surface | Status |
 | --- | --- |

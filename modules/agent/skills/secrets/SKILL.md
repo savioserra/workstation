@@ -52,7 +52,7 @@ Prefer creating an item schema without secret values and having the user populat
 Commit only references and non-secret schema. A reference file may contain entries such as:
 
 ```dotenv
-ANTHROPIC_API_KEY=op://Workstation/Pi/anthropic_api_key
+<UPPER_SNAKE_KEY>=op://Workstation/<item>/<field>
 ```
 
 Do not make the `secrets` lifecycle capability verify authentication or vault contents. It verifies the managed 1Password CLI only; interactive account state remains host-owned.

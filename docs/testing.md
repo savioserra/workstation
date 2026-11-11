@@ -16,7 +16,8 @@ nix is absent; the docker acceptance owns it there), and
 `git diff --check`. ShellCheck is required in Linux CI; report local
 absence.
 
-Verification beyond the battery is behavioral (docs/architecture.md decision 2):
+Verification beyond the battery is behavioral
+(docs/architecture.md):
 structural assertions live in the eval (module assertions), never as
 byte contracts.
 Never run fixtures directly against a switched home: they write fake Node/npm state.
@@ -81,8 +82,7 @@ Named residuals (the container lane cannot prove what a boot proved):
   (`bin/run-container-e2e` + the flake source it mounts) instead of
   running it — `nix flake check` (the check surface lives in `tests/nix/checks.nix`) proves the lane's whole surface
   evaluates and produces the entry; the behavioral run is the staged
-  entry on a docker host. The VM check's in-derivation boot has no
-  container equivalent; there is no VM lane anywhere.
+  entry on a docker host.
 - The container runs the persona proof as the container's root with the
   persona home (the nix image is single-user, no service manager): the
   service-manager probes (systemd's view of the user units) and

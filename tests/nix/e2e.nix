@@ -249,7 +249,7 @@ writeShellScriptBin "workstation-e2e" ''
   [ -n "$direnv_line" ] && [ "$direnv_line" -gt "$starship_line" ] \
     || fail "shell init" "the bash direnv hook does not follow the starship init"
   session_vars=$(grep -o '/nix/store/[^"]*hm-session-vars.sh' "$home/.profile" | head -n 1)
-  [ -n "$session_vars" ] && grep -q '/etc/pi/op.env' "$session_vars" \
+  [ -n "$session_vars" ] && grep -q '/etc/workstation/secrets.env' "$session_vars" \
     || fail "shell init" "the session variables .profile sources carry no op env"
   [ -r "$home/.config/starship.toml" ] \
     || fail "shell init" "the starship config did not deploy"

@@ -31,7 +31,7 @@ Unlock 1Password
   -> op whoami
 ```
 
-## Headless setup (servers)
+## Headless setup
 
 Interactive account sessions do not exist on headless hosts. Use a vault-scoped
 service account instead:
@@ -39,22 +39,23 @@ service account instead:
 1. Create a service account at 1Password.com (Developer tools -> Service
    accounts). Permissions are immutable after creation: grant the
    `Workstation` vault with read and write access at creation time.
-2. Place the token in `/etc/pi/op.env` (root-only, mode 0600):
+2. Place the token in a root-only env file (mode 0600) at the capability's
+   `workstation.secrets.envFile` (default `/etc/workstation/secrets.env`;
+   per-host override in the machine file's settings):
 
    ```bash
    read -rs OP_SA_TOKEN
-   printf 'OP_SERVICE_ACCOUNT_TOKEN=%s\n' "$OP_SA_TOKEN" > /etc/pi/op.env
-   chmod 600 /etc/pi/op.env && unset OP_SA_TOKEN
+   printf 'OP_SERVICE_ACCOUNT_TOKEN=%s\n' "$OP_SA_TOKEN" > /etc/workstation/secrets.env
+   chmod 600 /etc/workstation/secrets.env && unset OP_SA_TOKEN
    ```
 
-3. The managed `~/.profile` block (`# workstation: managed op env`) auto-exports
-   `/etc/pi/op.env` in login shells when the file exists. The same pattern
-   applies to `/etc/ntfy/notifier.env`, a host-owned file.
+3. The session env sources the file in login shells when it exists (the
+   source line is guarded with `[ -r … ]`; an absent file is inert).
 
 These are operator-run steps, not commands for an agent to execute. Values never
-enter Git, agent context or chat; `/etc` files stay the live mechanism and the
-vault is the recovery source of truth. Service account tokens cannot be rotated
-in place; revoke and recreate the account to change access.
+enter Git, agent context or chat; the root-only env file stays the live
+mechanism and the vault is the recovery source of truth. Service account tokens
+cannot be rotated in place; revoke and recreate the account to change access.
 
 ## Authentication recovery
 
@@ -62,35 +63,31 @@ Within an explicitly invoked secrets workflow, failed authentication/vault check
 stop further operations. Desktop users should unlock the app and restore CLI
 integration. Headless operators should restore their service-account environment
 and `Workstation` permissions out of band, recreating the account if necessary.
-Never ask for or inspect the token value, print account/vault details, or start an
-interactive sign-in flow. A missing `op` is an installation issue; use the
+Never ask for or inspect the token value, print account/vault details, or start
+an interactive sign-in flow. A missing `op` is an installation issue; use the
 [install guide](../README.md), not an implicit authentication-time install.
 Normal lifecycle verification remains version-only.
 
 ## Vault items
 
-| Item | Non-secret fields (managed) | Secret fields (populate in 1Password) |
-| --- | --- | --- |
-| `ntfy` | `server_url`, `phone_user`, `operator_user` | `phone_password`, `operator_password`, `admin_token`, `notifier_token` |
-| `dokploy` | `url` (public panel), `local_api_url` | `api_key` |
-| `dontstarve` | — | `cluster_token`, `server_password` (re-seed the host token files after reboot) |
-
-Fill secret fields from the corresponding root-only host files
-(`/etc/ntfy/credentials.env`, `/root/.config/pi/dokploy.env`) directly in the
-1Password application; agents never copy values between file and vault.
+Items are host inventory, not source: each host's items (its notification
+bridge, deploy panels, game servers, API keys) live in the `Workstation` vault
+with stable names, non-secret fields declared here only when a substrate
+surface consumes them, secret fields populated in the 1Password application.
+Agents never copy values between a host file and the vault.
 
 ## Reference form
 
 Use stable item and field names:
 
 ```dotenv
-ANTHROPIC_API_KEY=op://Workstation/Pi/anthropic_api_key
+<UPPER_SNAKE_KEY>=op://Workstation/<item>/<field>
 ```
 
 Consume references without exposing resolved values:
 
 ```bash
-op run --env-file ~/.config/workstation/secrets.env -- pi
+op run --env-file ~/.config/workstation/secrets.env -- <command>
 ```
 
 No consumer-specific secret reference is managed until its item schema and

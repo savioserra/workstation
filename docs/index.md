@@ -11,7 +11,7 @@
 | `hosts/` | `linux` (the linux leg; NixOS-WSL system plane), `mac` (nix-darwin); `template/` the machine-file template, `local/` the machine's copy written by `workstation init` (gitignored) |
 | `.github/workflows/ci.yml` | The static battery + the nix evaluation leg |
 | `.github/workflows/release.yml` | Tagged source archives |
-| `modules/` | Capability domains, one directory each — module + payload bytes co-located (adding a capability is adding one directory) — each domain owns its tools (nixpkgs via the overlay + floors) and its remaining pins |
+| `modules/` | Capability domains, one directory each — module + payload bytes co-located (adding a capability is adding one directory) — each domain owns its tools (the one nixpkgs input) and its remaining pins |
 
 ## Documentation map
 
@@ -22,11 +22,11 @@
 | [`tools.md`](tools.md) | Managed tool inventory and platform coverage |
 | [`testing.md`](testing.md) | Offline checks, the docker-nix acceptance and the container E2E |
 | [`architecture.md`](architecture.md) | Declared state + two clients, the read verbs, the write plane |
-| [`secrets.md`](secrets.md) | 1Password boundary, vault scope, Pi skill policy |
+| [`secrets.md`](secrets.md) | 1Password boundary, vault scope, secrets skill policy |
 | [`nvim.md`](nvim.md) | Editor entry points, profile, plugins, locks |
 | [`tmux.md`](tmux.md) | Settings, plugin pins, theme |
-| [`theme.md`](theme.md) | Shared color tokens, slot/palette layers, derived pi themes |
-| [`herdr.md`](herdr.md) | Pinned Herdr binary and official Pi hook, ownership and compatibility gates |
+| [`theme.md`](theme.md) | Shared color tokens, slot/palette layers, consumer surfaces |
+| [`herdr.md`](herdr.md) | Pinned Herdr binary, ownership and compatibility gates |
 
 ## Substrate law (binding)
 
