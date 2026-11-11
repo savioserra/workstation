@@ -22,6 +22,7 @@ Platforms: linux x86_64 (WSL counts as linux), macOS arm64.
 | eza | 0.23.5 | nixpkgs via Home Manager (`programs.eza`) | `ls` = `eza -lh` | linux-x86_64, darwin-arm64 |
 | starship | 1.27.0 | nixpkgs | on PATH; per-shell init + `.config/starship.toml` | linux-x86_64, darwin-arm64 |
 | fzf | 0.74.x | nixpkgs | on PATH via `home.packages` | linux-x86_64, darwin-arm64 |
+| mosh | 1.4.0 | nixpkgs | the terminal domain's `home.packages` | linux-x86_64, darwin-arm64 |
 | lazygit | 0.66.x | nixpkgs | on PATH via `home.packages` | linux-x86_64, darwin-arm64 |
 | tree-sitter (CLI) | 0.26.x | nixpkgs | on PATH via `home.packages` | linux-x86_64, darwin-arm64 |
 | harlequin + hsql | 2.16.2 | nixpkgs | harlequin + `hsql` in one derivation; the hsql agent skill generated from the derivation at build time | linux-x86_64, darwin-arm64 |

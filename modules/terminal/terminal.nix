@@ -2,14 +2,16 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 {
-  options.workstation.terminal.enable = lib.mkEnableOption "eza, starship, tmux and nunchux" // {
+  options.workstation.terminal.enable = lib.mkEnableOption "eza, starship, mosh, tmux and nunchux" // {
     default = true;
   };
 
   config = lib.mkIf config.workstation.terminal.enable {
+    home.packages = [ pkgs.mosh ];
     programs.eza = {
       enable = true;
       icons = "auto";

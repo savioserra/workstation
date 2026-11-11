@@ -295,7 +295,7 @@ and sorted, never hidden.
 
 ### `terminal`
 - `programs.eza` (`ls` = `eza -lh`) and `programs.starship` with
-  `.config/starship.toml`.
+  `.config/starship.toml`; mosh on PATH via `home.packages`.
 - Hosts: all.
 
 ### `tmux`

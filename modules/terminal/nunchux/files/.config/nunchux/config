@@ -5,3 +5,33 @@
 # names resolve through the theme capability's token layer.
 [settings]
 fzf_colors = fg+:{{ .theme.slots.text }}:bold,bg+:-1,hl:cyan,hl+:cyan:bold,pointer:cyan,marker:{{ .theme.slots.ok }},header:gray,border:gray
+
+[menu:system]
+desc = System tools
+status = load=$(cut -d' ' -f1 /proc/loadavg); ram=$(awk '/MemAvailable/{printf "%.0f", $2/1024/1024}' /proc/meminfo); disk=$(df /home --output=avail 2>/dev/null | tail -1 | awk '{printf "%.0f", $1/1024/1024}'); wifi=$(iwgetid -r 2>/dev/null); bat=$(acpi -b 2>/dev/null | head -1); if [[ "$bat" == *Discharging* ]]; then bstat="| 󱊣 $(echo "$bat" | grep -oP '\d+:\d+(?=:\d+)')"; elif [[ "$bat" == *Charging* ]]; then bstat="| 󱊣 $(echo "$bat" | grep -oP '\d+:\d+(?=:\d+)') ⚡"; else bstat=''; fi; wstat=""; [[ -n "$wifi" ]] && wstat="| 󰖩 $wifi "; echo "󰍛 $load | 󰘚 ${ram}GB | 󰋜 ${disk}GB $wstat$bstat"
+
+[app:system/btop]
+cmd = btop
+desc = Task manager
+
+[app:system/journal]
+cmd = journalctl -f
+desc = Follow system logs
+
+[app:sql]
+cmd = harlequin
+desc = SQL IDE
+primary_action = window
+primary_action = window
+
+[app:net]
+cmd = sh -c 'tailscale status | less -R'
+desc = Tailnet status
+
+[order]
+system
+sql
+net
+git/lazyvim
+substrate
+dotfiles
