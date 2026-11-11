@@ -18,6 +18,7 @@
         { config, lib, ... }:
         {
           workstation.enable = true;
+          programs.mosh.enable = true;
           nixpkgs.config.allowUnfreePredicate = import ../../nix/lib/license.nix { inherit lib; };
 
           workstation.host = {
