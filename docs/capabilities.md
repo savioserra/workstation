@@ -294,8 +294,8 @@ and sorted, never hidden.
 - Verify: token bytes against the tokens module. Hosts: all.
 
 ### `terminal`
-- `programs.eza` (`ls` = `eza -lh`) and `programs.starship` with
-  `.config/starship.toml`; mosh on PATH via `home.packages`.
+- `programs.eza` (`ls` = `eza -lh`), `programs.starship` + `.config/starship.toml`.
+- mosh: `home.packages` (all legs), `programs.mosh.enable` (NixOS legs).
 - Hosts: all.
 
 ### `tmux`

@@ -38,6 +38,7 @@ in
         services.tailscale.enable = lib.mkIf cfg.network.tailscale.enable true;
       }
       (lib.mkIf (!isDarwin) {
+        programs.mosh.enable = true;
         system.activationScripts.workstation = {
           deps = [ "users" ];
           text = ''

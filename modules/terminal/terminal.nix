@@ -6,9 +6,11 @@
   ...
 }:
 {
-  options.workstation.terminal.enable = lib.mkEnableOption "eza, starship, mosh, tmux and nunchux" // {
-    default = true;
-  };
+  options.workstation.terminal.enable =
+    lib.mkEnableOption "eza, starship, mosh, tmux and nunchux"
+    // {
+      default = true;
+    };
 
   config = lib.mkIf config.workstation.terminal.enable {
     home.packages = [ pkgs.mosh ];
