@@ -33,18 +33,19 @@
 ## Profile fields
 
 The deployed `languages/profile.lua` is **composed natively**: the editor
-capability's module (`modules/editor/editor.nix`) folds the language
-entries the language capabilities declare (`workstation.editor.languages`)
-through `lib.generators.toLua` in a build-time derivation. Entries compose in id order (the base/standard
-entry is the editor module's own). The declared fields:
+capability's module (`modules/editor/editor.nix`) folds the entries the
+language capabilities declare (`workstation.editor.languages.<id>`, a typed
+submodule: an unknown field or a wrong type fails the eval) through
+`lib.generators.toLua` in a build-time derivation. Entries compose in id
+order (the base/standard entry is the editor module's own).
 
-| Field | Shape / use |
-| --- | --- |
-| `id` | Required unique non-empty string |
-| `requires` | Optional list of non-empty host capability IDs |
-| `lazyvim_extras` | Optional list of non-empty module names; imported before base custom specs |
-| `plugin_module` | Optional non-empty module name; imported after base custom specs |
-| `mason_packages` | Optional list of non-empty package names; verification requires entries in `mason-lock.json` |
+| Option field | Profile field | Shape / use |
+| --- | --- | --- |
+| `<id>` (the attr name) | `id` | Unique profile id |
+| `requires` | `requires` | Host capability ids |
+| `extras` | `lazyvim_extras` | Names under `lazyvim.plugins.extras.` (`lang.go`); imported before base custom specs |
+| `plugin` | `plugin_module` = `languages.plugins.<id>` | The spec file, deployed as `lua/languages/plugins/<id>.lua`; imported after base custom specs |
+| `mason` | `mason_packages` | Package names; verification requires entries in `mason-lock.json` |
 
 The behavior cases (`language_cases`/`formatter_cases`) stay payload data:
 they feed the verify lane's parser/LSP and formatter checks, not the
@@ -59,8 +60,8 @@ languages and formatter cases wherever formatting is promised. See
 `modules/languages/typescript/files/languages/plugins/typescript.lua` returns lazy.nvim
 plugin specs — TypeScript/JavaScript LSP ownership, completion and editor
 commands — deployed as a plain runtime module. The `modules/languages/typescript/`
-capability owns it, declares the profile intent (`plugin_module =
-"languages.plugins.typescript"`) and verifies its own behavior through the
+capability owns it, declares the profile intent (`plugin =
+./files/languages/plugins/typescript.lua`) and verifies its own behavior through the
 nvim leaf helpers; `modules/editor/nvim/` owns editor sync, locks and
 base/standard/Go verification; `node` owns the host runtime. Deployed Neovim
 imports runtime configuration only, never capability modules.

@@ -13,15 +13,11 @@ ws.capability [ "languages" "elixir" ] {
   config = {
     home.packages = [ pkgs.beam.packages.erlang_28.elixir ];
     workstation.editor = ws.whenOn "editor" {
-      languages = [
-        {
-          id = "elixir";
-          lazyvim_extras = [ "lazyvim.plugins.extras.lang.elixir" ];
-          mason_packages = [ "elixir-ls" ];
-          plugin_module = "languages.plugins.elixir";
-        }
-      ];
-      languagePlugins = [ ./files/languages/plugins/elixir.lua ];
+      languages.elixir = {
+        extras = [ "lang.elixir" ];
+        mason = [ "elixir-ls" ];
+        plugin = ./files/languages/plugins/elixir.lua;
+      };
     };
   };
 }

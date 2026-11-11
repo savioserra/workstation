@@ -13,24 +13,20 @@ ws.capability [ "languages" "typescript" ] {
   config = {
     home.packages = [ pkgs.pnpm ];
     workstation.editor = ws.whenOn "editor" {
-      languages = [
-        {
-          id = "typescript";
-          requires = [ "node" ];
-          lazyvim_extras = [
-            "lazyvim.plugins.extras.lang.typescript"
-            "lazyvim.plugins.extras.linting.eslint"
-            "lazyvim.plugins.extras.formatting.prettier"
-          ];
-          mason_packages = [
-            "typescript-language-server"
-            "eslint-lsp"
-            "prettier"
-          ];
-          plugin_module = "languages.plugins.typescript";
-        }
-      ];
-      languagePlugins = [ ./files/languages/plugins/typescript.lua ];
+      languages.typescript = {
+        requires = [ "node" ];
+        extras = [
+          "lang.typescript"
+          "linting.eslint"
+          "formatting.prettier"
+        ];
+        mason = [
+          "typescript-language-server"
+          "eslint-lsp"
+          "prettier"
+        ];
+        plugin = ./files/languages/plugins/typescript.lua;
+      };
     };
   };
 }

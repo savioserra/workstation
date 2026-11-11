@@ -19,11 +19,11 @@ The profile is the source of truth for language composition.
 
 For each language contribution:
 
-- set a stable profile `id`;
+- key the entry `workstation.editor.languages.<id>` (a stable profile id);
 - declare host capability prerequisites in `requires`;
-- list LazyVim imports in `lazyvim_extras`;
-- reference custom specs with `plugin_module`;
-- add Mason packages to `mason_packages` and `mason-lock.json`;
+- list LazyVim extras in `extras` (names under `lazyvim.plugins.extras.`);
+- point `plugin` at the custom spec file;
+- add Mason packages to `mason` and `mason-lock.json`;
 - add parser/LSP behavior cases;
 - add formatter cases when formatting is promised.
 

@@ -13,15 +13,11 @@ ws.capability [ "languages" "go" ] {
   config = {
     home.packages = [ pkgs.go ];
     workstation.editor = ws.whenOn "editor" {
-      languages = [
-        {
-          id = "go";
-          requires = [ "go" ];
-          lazyvim_extras = [ "lazyvim.plugins.extras.lang.go" ];
-          plugin_module = "languages.plugins.go";
-        }
-      ];
-      languagePlugins = [ ./files/languages/plugins/go.lua ];
+      languages.go = {
+        requires = [ "go" ];
+        extras = [ "lang.go" ];
+        plugin = ./files/languages/plugins/go.lua;
+      };
     };
   };
 }

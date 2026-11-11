@@ -8,28 +8,41 @@
   ...
 }:
 let
+  ws = import ../../nix/lib/capability.nix { inherit config lib pkgs; };
   nvim = pkgs.neovim;
   cfg = config.workstation.editor;
 
   payloadNvim = ./nvim/files/.config/nvim;
   lazyLockBaseline = payloadNvim + "/lazy-lock.json";
 
+  extrasPrefix = "lazyvim.plugins.extras.";
+
   standardEntry = {
     id = "standard";
-    lazyvim_extras = [
-      "lazyvim.plugins.extras.lang.docker"
-      "lazyvim.plugins.extras.lang.json"
-      "lazyvim.plugins.extras.lang.markdown"
-      "lazyvim.plugins.extras.lang.tailwind"
-      "lazyvim.plugins.extras.lang.toml"
-      "lazyvim.plugins.extras.lang.yaml"
+    lazyvim_extras = map (e: extrasPrefix + e) [
+      "lang.docker"
+      "lang.json"
+      "lang.markdown"
+      "lang.tailwind"
+      "lang.toml"
+      "lang.yaml"
     ];
   };
 
-  entries = lib.sort (a: b: a.id < b.id) ([ standardEntry ] ++ cfg.languages);
+  languages = lib.mapAttrsToList (id: l: l // { inherit id; }) cfg.languages;
 
-  profileLua =
-    "return " + lib.generators.toLua { } (map (e: lib.filterAttrs (_: v: v != null) e) entries) + ";";
+  entryOf =
+    l:
+    lib.filterAttrs (_: v: v != null && v != [ ]) {
+      inherit (l) id requires;
+      lazyvim_extras = map (e: extrasPrefix + e) l.extras;
+      mason_packages = l.mason;
+      plugin_module = if l.plugin == null then null else "languages.plugins.${l.id}";
+    };
+
+  entries = lib.sort (a: b: a.id < b.id) ([ standardEntry ] ++ map entryOf languages);
+
+  profileLua = "return " + lib.generators.toLua { } entries + ";";
 
   mergeLua =
     builtins.replaceStrings
@@ -52,30 +65,45 @@ let
     mkdir -p "$out/lua/languages/plugins"
     cp ${pkgs.writeText "languages-profile.lua" profileLua} "$out/lua/languages/profile.lua"
     ${lib.concatMapStringsSep "\n" (
-      p: ''cp -a "${p}" "$out/lua/languages/plugins/${baseNameOf p}"''
-    ) cfg.languagePlugins}
+      l: ''cp -a "${l.plugin}" "$out/lua/languages/plugins/${l.id}.lua"''
+    ) (builtins.filter (l: l.plugin != null) languages)}
   '';
 in
-{
-  options.workstation.editor = {
-    enable = lib.mkEnableOption "neovim and the composed language profile" // {
-      default = true;
-    };
-    languages = lib.mkOption {
-      type = lib.types.listOf (
-        lib.types.attrsOf (lib.types.either lib.types.str (lib.types.listOf lib.types.str))
-      );
-      default = [ ];
-      description = "Language profile entries composed into lua/languages/profile.lua: { id, requires?, lazyvim_extras?, plugin_module?, mason_packages? }.";
-    };
-    languagePlugins = lib.mkOption {
-      type = lib.types.listOf lib.types.path;
-      default = [ ];
-      description = "Language plugin modules deployed to .config/nvim/lua/languages/plugins/.";
-    };
+ws.capability [ "editor" ] {
+  description = "neovim and the composed language profile";
+  default = true;
+  options.languages = lib.mkOption {
+    type = lib.types.attrsOf (
+      lib.types.submodule {
+        options = {
+          requires = lib.mkOption {
+            type = lib.types.listOf lib.types.nonEmptyStr;
+            default = [ ];
+            description = "Host capability ids the entry needs (the profile's `requires`).";
+          };
+          extras = lib.mkOption {
+            type = lib.types.listOf lib.types.nonEmptyStr;
+            default = [ ];
+            description = "LazyVim extras under lazyvim.plugins.extras (`lang.go`), imported before the base specs.";
+          };
+          mason = lib.mkOption {
+            type = lib.types.listOf lib.types.nonEmptyStr;
+            default = [ ];
+            description = "Mason packages (each pinned in mason-lock.json).";
+          };
+          plugin = lib.mkOption {
+            type = lib.types.nullOr lib.types.path;
+            default = null;
+            description = "The lazy.nvim spec module, deployed as lua/languages/plugins/<id>.lua and imported after the base specs.";
+          };
+        };
+      }
+    );
+    default = { };
+    description = "Language entries keyed by profile id, composed into lua/languages/profile.lua.";
   };
 
-  config = lib.mkIf cfg.enable {
+  config = {
     home.packages = [ pkgs.tree-sitter ];
 
     home.sessionVariables = {
