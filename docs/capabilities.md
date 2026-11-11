@@ -311,10 +311,12 @@ and sorted, never hidden.
 ### `terminal`
 - `programs.eza` (`ls` = `eza -lh`, `home.shellAliases`), `programs.starship` + `.config/starship.toml`.
 - mosh: `home.packages` (all legs), `programs.mosh.enable` (NixOS legs); the
-  `mosh` wrapper passes `--server` with `~/.nix-profile/bin`,
-  `/etc/profiles/per-user/$USER/bin` and `/run/current-system/sw/bin`
-  prepended to the remote PATH — an ssh command on a bash host carries no
-  profile PATH. Other clients (Termius): `--server=.nix-profile/bin/mosh-server`.
+  `mosh` wrapper's `--server` sources the remote home-manager session vars
+  (`~/.nix-profile/etc/profile.d/hm-session-vars.sh`, the per-user profile's
+  on NixOS/darwin: the profile PATH, `LOCALE_ARCHIVE_2_27` for non-C locales)
+  and prepends `~/.nix-profile/bin`, `/etc/profiles/per-user/$USER/bin`,
+  `/run/current-system/sw/bin` to PATH — an ssh command on a bash host
+  sources neither. Other clients (Termius): the same `--server` string.
 - btop: `home.packages` (all legs) — the nunchux system entry and the tmux2k ram popup.
 - Hosts: all.
 

@@ -274,8 +274,8 @@ writeShellScriptBin "workstation-e2e" ''
   "$go_bin" version >/dev/null 2>&1 \
     || fail "tools run" "go version failed at $go_bin"
   mosh_bin=$(find_client mosh) || fail "tools run" "mosh is not on PATH"
-  grep -q -- '--server=' "$mosh_bin" \
-    || fail "tools run" "mosh at $mosh_bin is not the wrapper carrying the remote profile PATH"
+  grep -q -- '--server=.*hm-session-vars.sh' "$mosh_bin" \
+    || fail "tools run" "mosh at $mosh_bin is not the wrapper carrying the remote session vars"
   "$mosh_bin" --version >/dev/null 2>&1 \
     || fail "tools run" "mosh --version failed through the wrapper"
   pass "tools run"
