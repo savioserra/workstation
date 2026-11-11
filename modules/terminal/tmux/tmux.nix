@@ -57,6 +57,53 @@ ws.capability [ "terminal" "tmux" ] {
   config = lib.mkMerge [
     (ws.shellInit drain)
     {
+      workstation.theme = ws.whenOn "theme" {
+        consumers.tmux = {
+          file = "tmux.conf";
+          render =
+            t:
+            let
+              p = t.palette;
+              light = t.appearance == "light";
+              canvas = if light then p.bg else "default";
+              ink = if light then p.text else "default";
+            in
+            ''
+              set -g window-style 'fg=${ink},bg=${canvas}'
+              set -g window-active-style 'fg=${ink},bg=${canvas}'
+              set -g @tmux2k-bg-main '${canvas}'
+              set -g @tmux2k-bg-alt '${canvas}'
+              set -g @tmux2k-dark-blue '${canvas}'
+              set -g @tmux2k-black '${p.bg}'
+              set -g @tmux2k-text '${p.bg}'
+              set -g @tmux2k-white '${p.inactive}'
+              set -g @tmux2k-gray '${p.chrome}'
+              set -g @tmux2k-dark-gray '${p.chrome}'
+              set -g @tmux2k-blue '${p.accent}'
+              set -g @tmux2k-light-blue '${p.accent}'
+              set -g @tmux2k-green '${p.ok}'
+              set -g @tmux2k-light-green '${p.ok}'
+              set -g @tmux2k-yellow '${p.warn}'
+              set -g @tmux2k-light-yellow '${p.warn}'
+              set -g @tmux2k-red '${p.err}'
+              set -g @tmux2k-light-red '${p.err}'
+              set -g @tmux2k-purple '${p.shortcut}'
+              set -g @tmux2k-light-purple '${p.shortcut}'
+              set -g @tmux2k-message-bg '${p.accent}'
+              set -g @tmux2k-message-fg '${p.bg}'
+              set -g @tmux2k-pane-border '${p.chrome}'
+              set -g @tmux2k-pane-active-border '${p.accent}'
+            '';
+          reload = ''
+            if ${pkgs.tmux}/bin/tmux has-session 2>/dev/null; then
+              ${pkgs.tmux}/bin/tmux source-file "$STATE/current/tmux.conf" 2>/dev/null || true
+              ${pkgs.tmux}/bin/tmux run-shell -b "$HOME/.tmux/plugins/tmux2k/2k.tmux" 2>/dev/null || true
+            fi
+          '';
+        };
+      };
+    }
+    {
       home.packages = [ pkgs.tmux ];
       home.file = lib.mkMerge (
         [

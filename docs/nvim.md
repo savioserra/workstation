@@ -131,14 +131,15 @@ Mason restore requirements:
 | Colorscheme | `oasis-starlight` — `uhs-robert/oasis.nvim` pinned at `main` `a3ef178fe47c69691e676a8da98ce5735c3013db` in `lazy-lock.json` |
 | Mechanism | `lua/plugins/theme.lua` runs `require("oasis").setup({ style = "starlight" })` then `vim.cmd.colorscheme("oasis-starlight")` at startup; LazyVim's `colorscheme` opt carries the same value |
 | Dark/light | oasis switches on `vim.o.background` — both appearances map to its dual-mode palette natively (`light_intensity` 3 is the upstream default) |
+| Follows | the workstation theme pick: `appearance` from `~/.local/state/workstation/theme/current/tokens.json` sets `vim.o.background` at startup; a `vim.uv` directory watch on the pick re-sets it live in every running instance |
 
 Rules:
 
 - oasis.nvim is the upstream port, deliberately NOT a colorscheme generated
-  from the workstation tokens: tokens.lua drives the terminal surfaces; editor
-  syntax rides the complete upstream palette.
-- Apply the colorscheme on the next Neovim start; running instances only get
-  the terminal-palette retint, so a colorscheme reload needs a restart.
+  from the workstation themes: the theme palettes drive the terminal
+  surfaces; editor syntax rides the complete upstream palette, the pick
+  chooses its appearance.
+- No pick (the theme domain off) leaves `vim.o.background` to Neovim.
 
 ## Headless sync
 

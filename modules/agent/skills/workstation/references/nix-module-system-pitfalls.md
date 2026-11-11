@@ -6,6 +6,26 @@ Re-run the harness when touching these surfaces.
 
 ## Proven idioms (use these)
 
+- **Module shape rides `nix/lib/capability.nix`**: `ws = import <rel>/nix/lib/capability.nix { inherit config lib pkgs; };`
+  then `ws.capability [ "<domain>" "<member>" ] { description; default; options; config; }`
+  (the enable option + `config` gated on every enclosing enable) and
+  `ws.whenOn "<domain>"` / `ws.whenOn [ "<domain>" "<member>" ]` for a
+  contribution to another domain's option. Delivery is the relative import:
+  `_module.args.ws` recurses the moment the helper shapes a module
+  (`infinite recursion … while evaluating the module argument 'ws'`), and a
+  specialArgs `ws` breaks every outside consumer of
+  `homeManagerModules.workstation`. Helpers called inside the member file
+  keep `definitionsWithLocations`/declarations on that file — the report's
+  attribution holds (proven by drvPath + report equality on every leg).
+- **Presets in an `attrsOf submodule` option merge per leaf**: define them
+  in `config` with `lib.mapAttrsRecursive (_: lib.mkDefault) { … }`. A
+  whole-value `lib.mkDefault { … }` is DROPPED entirely once any
+  normal-priority definition touches that entry (exercised: one overridden
+  role left every other role undefined). An option `default` for an
+  attrsOf is replaced by any definition — never put presets there.
+- **INI-shaped extension points**: a freeform submodule
+  (`freeformType = attrsOf str` + declared options like `rank`) keyed by
+  section header; render with `removeAttrs v [ "_module" "rank" ]`.
 - **Default-ON enable**: `enable = lib.mkEnableOption "…" // { default = true; }`
   — `mkEnableOption` is literally `mkOption { default = false; type =
   lib.types.bool; description = "Whether to enable ${name}."; }`, so the `//`

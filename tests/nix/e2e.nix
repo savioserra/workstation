@@ -287,7 +287,7 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "node runtime single-source" ".node-version ($nv) does not match the runtime ($runtime)"
   pass "node runtime single-source"
 
-  step "theme plane (rendered themes, the seeded pick, the switcher, the picker)"
+  step "theme plane (rendered themes, the seeded pick, the switcher, tmux and nvim following, the picker)"
   themes="$home/.local/share/workstation/themes"
   pick="$home/.local/state/workstation/theme/current"
   for t in dark light; do
@@ -299,10 +299,30 @@ writeShellScriptBin "workstation-e2e" ''
   [ "$(readlink "$pick")" = "$themes/dark" ] \
     || fail "theme plane" "the seeded pick is not the default (dark): $(readlink "$pick")"
   wt=$(find_client workstation-theme) || fail "theme plane" "workstation-theme is not on PATH"
+  tmux_bin=$(find_client tmux) || fail "theme plane" "tmux is not on PATH"
+  "$tmux_bin" -f /dev/null new-session -d -s e2e-theme \
+    || fail "theme plane" "a tmux server did not start"
   "$wt" light >/dev/null \
     || fail "theme plane" "workstation-theme light failed"
   [ "$("$wt" current)" = light ] \
     || fail "theme plane" "the pick did not move to light"
+  grep -q "@tmux2k-blue '#023c75'" "$themes/light/tmux.conf" \
+    || fail "theme plane" "the light tmux render carries no light accent"
+  [ "$("$tmux_bin" show -gv @tmux2k-blue)" = '#023c75' ] \
+    || fail "theme plane" "the running tmux did not reload the light palette"
+  "$tmux_bin" kill-server 2>/dev/null || true
+  out=$("$home/.local/bin/nvim" --headless -c "lua io.stdout:write('BG=' .. vim.o.background .. '\n')" -c 'qa!' 2>/dev/null)
+  case "$out" in
+    *BG=light*) ;;
+    *) fail "theme plane" "nvim did not start on the light pick ($out)" ;;
+  esac
+  out=$("$home/.local/bin/nvim" --headless -c "lua vim.fn.system({ '$wt', 'dark' }); vim.wait(5000, function() return vim.o.background == 'dark' end, 20); io.stdout:write('LIVE=' .. vim.o.background .. '\n')" -c 'qa!' 2>/dev/null)
+  case "$out" in
+    *LIVE=dark*) ;;
+    *) fail "theme plane" "a running nvim did not follow the dark pick ($out)" ;;
+  esac
+  "$wt" light >/dev/null \
+    || fail "theme plane" "workstation-theme light failed"
   rc=0
   "$wt" set nope 2>/dev/null || rc=$?
   [ "$rc" = 2 ] \

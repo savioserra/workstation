@@ -59,5 +59,7 @@ A domain contributes through `workstation.theme.consumers.<name>`, guarded by `w
 | Surface | Layer | Mechanism |
 | --- | --- | --- |
 | nunchux picker | — | `menu:theme` + one `app:theme/<name>` entry per theme (`workstation-theme set <name>`), the pick as the menu status |
+| tmux | palette | `consumers.tmux`: `tmux.conf` per theme — tmux2k colors, borders, messages; light themes paint the pane canvas ([tmux](tmux.md)) |
+| nvim | appearance | `tokens.json` through the pick sets `vim.o.background` for oasis.nvim, live via a directory watch ([nvim](nvim.md)) |
 | nunchux colors | slots | `workstation.terminal.nunchux.settings.fzf_colors` |
 | herdr | terminal-following | documented canonical choice only: `[theme] name = "terminal"`, `auto_switch = true` ([herdr](herdr.md)) |

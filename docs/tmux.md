@@ -4,7 +4,7 @@
 | --- | --- |
 | Hosts | Linux, macOS |
 | Main target | `~/.tmux.conf` and `~/.config/tmux/tmux.conf` symlink |
-| Status bar | tmux2k, upstream `onedark` theme |
+| Status bar | tmux2k; colors from the workstation theme pick ([theme](theme.md)), upstream `onedark` as the fallback |
 | Implementation | the terminal capability's module (`modules/terminal/terminal.nix`, payload `tmux/` co-located) |
 | Plugin root | `~/.tmux/plugins/` |
 
@@ -20,9 +20,10 @@
 | `terminal-features[100]` | `xterm-256color:RGB` |
 | `@tmux_navigator_disable_when_zoomed` | `1` |
 | `scroll-on-clear` | `off` inside `%if "#{>=:#{version},3.5}"` — the guard keeps the conf parse-safe on tmux releases without the option; limited mobile clients render scroll-style repaints as stacked lines |
-| `@tmux2k-theme` | `onedark` |
-| `@tmux2k-bg-main` / `@tmux2k-bg-alt` / `@tmux2k-dark-blue` | `default` — the window no-background slots; tmux2k's variable indirection turns them into `bg=default` |
-| `@tmux2k-white` | onedark comment gray — inactive window text |
+| `@tmux2k-theme` | `onedark` — the fallback palette when no theme pick exists |
+| `@tmux2k-bg-main` / `@tmux2k-bg-alt` / `@tmux2k-dark-blue` | `default` — the window no-background slots; tmux2k's variable indirection turns them into `bg=default`; the theme pick keeps `default` on dark themes and paints the palette `bg` on light ones |
+| `@tmux2k-white` | onedark comment gray — inactive window text; the theme pick's `inactive` |
+| Theme pick | `source-file -q ~/.local/state/workstation/theme/current/tmux.conf` after the tmux2k options |
 | `@tmux2k-window-list-colors` | `blue dark_blue` — active window = onedark blue text, no background |
 | `@tmux2k-window-list-left-sep` / `-right-sep` | empty — the window separator spans style zero characters, so they paint nothing (module segments keep upstream powerline pills) |
 | `@tmux2k-right-plugins` | `cpu ram time` — clicking cpu opens btop; ram's popup is pinned to btop too |
@@ -33,7 +34,8 @@ Load order:
 
 1. Base tmux settings and plugin declarations.
 2. tmux2k options — theme, right-side plugin list, the btop popup pin and the clock format.
-3. `~/.tmux/plugins/tpm/tpm`.
+3. The theme pick's `tmux.conf` (`source-file -q`; absent pick = the onedark fallback).
+4. `~/.tmux/plugins/tpm/tpm`.
 
 `~/.config/tmux/tmux.conf` is a managed symlink to `~/.tmux.conf` so tmux
 versions that load XDG config after `~/.tmux.conf` cannot let distribution or
@@ -127,10 +129,10 @@ or its verify lane.
 | --- | --- |
 | `tmux-fingers` | Unchecksummed bootstrap and no Intel macOS executable |
 
-## Status bar (tmux2k, onedark)
+## Status bar (tmux2k, the theme pick)
 
-The status bar is the pinned `tmux2k` plugin at the upstream `onedark`
-theme, rendered TEXT-ONLY: no segment backgrounds — the terminal's own
+The status bar is the pinned `tmux2k` plugin, colored by the theme pick
+(onedark as the fallback), rendered TEXT-ONLY: no segment backgrounds — the terminal's own
 background shows through and segments are highlighted by text color alone.
 `.tmux.conf` sets the `@plugin` pin, the
 theme, `@tmux2k-show-powerline false` (drops the separator paint), the
@@ -140,8 +142,25 @@ cwd blue, git green, cpu light-green, ram yellow, time light-blue; window
 list: active blue, inactive gray via `@tmux2k-white`), the right-side
 plugin list (`cpu ram time` — clicking cpu opens btop, ram's popup is
 pinned to btop via `@tmux2k-ram-popup-cmd`) and the clock format ahead of
-TPM init. Everything else stays upstream onedark — the accents ARE the
-theme, without background paint.
+TPM init. Without a theme pick everything else stays upstream onedark.
+
+### The theme consumer
+
+`modules/terminal/tmux` contributes `workstation.theme.consumers.tmux`
+(`tmux.conf` per theme); `workstation theme <name>` and every apply re-source
+it and re-run tmux2k on a running server.
+
+| tmux option | Theme role |
+| --- | --- |
+| `@tmux2k-black`, `@tmux2k-text`, `@tmux2k-message-fg` | `bg` |
+| `@tmux2k-white` | `inactive` |
+| `@tmux2k-gray`, `@tmux2k-dark-gray`, `@tmux2k-pane-border` | `chrome` |
+| `@tmux2k-blue`, `@tmux2k-light-blue`, `@tmux2k-message-bg`, `@tmux2k-pane-active-border` | `accent` |
+| `@tmux2k-green`, `@tmux2k-light-green` | `ok` |
+| `@tmux2k-yellow`, `@tmux2k-light-yellow` | `warn` |
+| `@tmux2k-red`, `@tmux2k-light-red` | `err` |
+| `@tmux2k-purple`, `@tmux2k-light-purple` | `shortcut` |
+| `@tmux2k-bg-main`, `@tmux2k-bg-alt`, `@tmux2k-dark-blue`, `window-style`, `window-active-style` | `default` on dark themes; `bg` (+ `text` foreground) on light themes |
 
 The pin (`d8c5c292`) carries upstream's early return on an empty plugin
 name in `get_plugin_colors`, which `main.sh` needs on bash 5.2.

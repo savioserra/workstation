@@ -45,7 +45,7 @@ peers (the A2A node's peers, hosts/local/peers.nix):
                   the apply. Fleet members pair on their own (fleet);
                   peers adds other agents and tunes any peer
 
-theme (the palette every theme consumer follows):
+theme (the palette tmux, nvim and every theme consumer follow):
   theme [<name>]  pick a theme — applied at once, kept across applies;
                   bare prints the current one; `theme list` shows them all
 
