@@ -25,7 +25,7 @@ Read the nearest scoped `AGENTS.md` and follow the owning reference:
 - Edit source, not deployed state. Every payload lives with its owning capability under `modules/<domain>/` (module and bytes co-located); home state is declared and linked from the store, never checked in as deployed state. Never implicitly overwrite a clone.
 - `workstation` is the sole public lifecycle interface (apply / rollback / update / sync / init / add / remove); the staged write-plane driver it execs is internal, never user-facing.
 - Keep domains self-contained: a domain declares its own options; it contributes to another only through an option that domain declares, guarded by its enable; no cross-domain imports.
-- Payload stays data: Lua appears only as deployed editor/theme data read as bytes, never executed.
+- Payload stays data: Lua appears only as deployed editor data read as bytes, never executed.
 - Tools come from the one nixpkgs input (`nixos-unstable`, the lock is the version surface), or an inline pin where nixpkgs lacks coverage (documented in the owning module). No unpinned downloads, no `sudo`, no OS-package-manager installation of managed tools.
 - Keep language composition in the Neovim profile. Go is an editor toolchain here (no root Go CLI, no services, no Makefiles).
 - Never commit generated plugin/Mason/parser/cache/session/history state or secret values. Secret-reference/vault work requires explicit user `/skill:secrets` invocation; authentication stays user-owned.
