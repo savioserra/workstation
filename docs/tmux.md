@@ -98,7 +98,7 @@ Nunchux (fzf popup launcher for apps, files and task runners) is ACTIVE:
   path.
 - The launcher payload (the checkout pin, `~/.config/nunchux/config`
   rendered from the `settings` + `entries` options — fzf colors from the
-  theme slots, [theme](theme.md) — and the `bin/.platform` marker) lives in
+  theme pick, [theme](theme.md) — and the `bin/.platform` marker) lives in
   the `nunchux` package.
 
 The marker is load-bearing: upstream's `nunchux.tmux`
@@ -160,7 +160,8 @@ it and re-run tmux2k on a running server.
 | `@tmux2k-yellow`, `@tmux2k-light-yellow` | `warn` |
 | `@tmux2k-red`, `@tmux2k-light-red` | `err` |
 | `@tmux2k-purple`, `@tmux2k-light-purple` | `shortcut` |
-| `@tmux2k-bg-main`, `@tmux2k-bg-alt`, `@tmux2k-dark-blue`, `window-style`, `window-active-style` | `default` on dark themes; `bg` (+ `text` foreground) on light themes |
+| `@tmux2k-bg-main`, `@tmux2k-bg-alt`, `@tmux2k-dark-blue`, `window-style`, `window-active-style`, `popup-style` | `default` on dark themes; `bg` (+ `text` foreground) on light themes |
+| `popup-border-style` | `chrome` over the canvas |
 
 The pin (`d8c5c292`) carries upstream's early return on an empty plugin
 name in `get_plugin_colors`, which `main.sh` needs on bash 5.2.

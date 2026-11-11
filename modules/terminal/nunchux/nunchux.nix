@@ -1,5 +1,7 @@
 # The nunchux member (linux): the pinned checkout with its .platform marker
-# and the launcher config rendered from the settings and entries options.
+# and the launcher config rendered from the settings and entries options;
+# with the theme on, one config per theme, fzf colors from its palette,
+# read through the pick.
 {
   config,
   lib,
@@ -9,7 +11,7 @@
 let
   ws = import ../../../nix/lib/capability.nix { inherit config lib pkgs; };
   cfg = config.workstation.terminal.nunchux;
-  slots = config.workstation.theme.slots;
+  home = config.home.homeDirectory;
 
   nunchuxTree =
     ws.overlayTree
@@ -51,11 +53,32 @@ let
   ) topLevel;
 
   nunchuxConfig =
+    settings:
     "# Rendered from workstation.terminal.nunchux (settings, entries).\n"
-    + section "settings" cfg.settings
+    + section "settings" settings
     + lib.concatMapStrings (h: section h (fieldsOf cfg.entries.${h})) (menus ++ apps)
     + "[order]\n"
     + lib.concatMapStrings (h: itemOf h + "\n") ordered;
+
+  # fzf --color from the palette roles; bg left to the tmux popup canvas
+  fzfColors =
+    p:
+    lib.concatStringsSep "," [
+      "fg+:${p.text}:bold"
+      "bg+:-1"
+      "hl:${p.accent}"
+      "hl+:${p.accent}:bold"
+      "pointer:${p.accent}"
+      "marker:${p.ok}"
+      "header:${p.muted}"
+      "border:${p.chrome}"
+      "label:${p.accent}"
+      "prompt:${p.accent}"
+      "info:${p.muted}"
+      "spinner:${p.accent}"
+      "separator:${p.chrome}"
+      "scrollbar:${p.chrome}"
+    ];
 in
 ws.capability [ "terminal" "nunchux" ] {
   description = "the nunchux launcher (linux)";
@@ -65,7 +88,7 @@ ws.capability [ "terminal" "nunchux" ] {
     settings = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
       default = { };
-      description = "The launcher's [settings] keys.";
+      description = "The launcher's [settings] keys; with the theme on, an unset `fzf_colors` takes the pick's palette.";
     };
     entries = lib.mkOption {
       type = lib.types.attrsOf (
@@ -90,8 +113,14 @@ ws.capability [ "terminal" "nunchux" ] {
       }
     ];
 
+    workstation.theme = ws.whenOn "theme" {
+      consumers.nunchux = {
+        file = "nunchux.conf";
+        render = t: nunchuxConfig ({ fzf_colors = fzfColors t.palette; } // cfg.settings);
+      };
+    };
+
     workstation.terminal.nunchux = {
-      settings.fzf_colors = lib.mkDefault "fg+:${slots.text}:bold,bg+:-1,hl:cyan,hl+:cyan:bold,pointer:cyan,marker:${slots.ok},header:gray,border:gray";
       entries = {
         "menu:system" = {
           desc = "System tools";
@@ -112,7 +141,13 @@ ws.capability [ "terminal" "nunchux" ] {
     home.packages = [ pkgs.fzf ];
     home.file = {
       ".tmux/plugins/nunchux".source = nunchuxTree;
-      ".config/nunchux/config".text = nunchuxConfig;
+      ".config/nunchux/config" =
+        if config.workstation.theme.enable then
+          {
+            source = config.lib.file.mkOutOfStoreSymlink "${home}/.local/state/workstation/theme/current/nunchux.conf";
+          }
+        else
+          { text = nunchuxConfig cfg.settings; };
     };
   };
 }

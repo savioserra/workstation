@@ -71,6 +71,8 @@ ws.capability [ "terminal" "tmux" ] {
             ''
               set -g window-style 'fg=${ink},bg=${canvas}'
               set -g window-active-style 'fg=${ink},bg=${canvas}'
+              set -g popup-style 'fg=${ink},bg=${canvas}'
+              set -g popup-border-style 'fg=${p.chrome},bg=${canvas}'
               set -g @tmux2k-bg-main '${canvas}'
               set -g @tmux2k-bg-alt '${canvas}'
               set -g @tmux2k-dark-blue '${canvas}'

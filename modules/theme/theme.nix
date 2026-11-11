@@ -1,6 +1,6 @@
 # The theme domain: the themes (a palette per role, dark and light ship
-# here), the terminal slot layer, the consumer registry, the rendered theme
-# tree and the runtime pick (`workstation theme`).
+# here), the consumer registry, the rendered theme tree and the runtime pick
+# (`workstation theme`).
 {
   config,
   lib,
@@ -29,30 +29,6 @@ let
     "bg"
     "muted"
   ];
-  slotRoles = lib.subtractLists [
-    "bg"
-    "muted"
-  ] paletteRoles;
-  ansiNames = [
-    "black"
-    "red"
-    "green"
-    "yellow"
-    "blue"
-    "magenta"
-    "cyan"
-    "white"
-    "brightblack"
-    "brightred"
-    "brightgreen"
-    "brightyellow"
-    "brightblue"
-    "brightmagenta"
-    "brightcyan"
-    "brightwhite"
-    "default"
-  ];
-  slotDefaults = import ./slots.nix;
 
   themeType = lib.types.submodule (
     { name, ... }:
@@ -89,7 +65,7 @@ let
       };
       render = lib.mkOption {
         type = lib.types.functionTo lib.types.lines;
-        description = "Theme to file text; the theme carries name, appearance, palette and slots.";
+        description = "Theme to file text; the theme carries name, appearance and palette.";
       };
       reload = lib.mkOption {
         type = lib.types.lines;
@@ -102,7 +78,6 @@ let
   themeOf = name: t: {
     inherit name;
     inherit (t) appearance palette;
-    inherit (cfg) slots;
   };
 
   themeTree = pkgs.linkFarm "workstation-themes" (
@@ -151,14 +126,6 @@ ws.capability [ "theme" ] {
       default = "dark";
       description = "The theme linked when no live pick exists (the first apply, or a pick the generation dropped).";
     };
-    slots = lib.genAttrs slotRoles (
-      role:
-      lib.mkOption {
-        type = lib.types.enum ansiNames;
-        default = slotDefaults.${role};
-        description = "The ${role} role as a terminal named color.";
-      }
-    );
     consumers = lib.mkOption {
       type = lib.types.attrsOf consumerType;
       default = { };

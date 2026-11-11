@@ -224,8 +224,10 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "nunchux plane" "the .platform marker did not compose into the checkout"
   [ -r "$home/.config/nunchux/config" ] \
     || fail "nunchux plane" "the rendered config did not deploy"
-  grep -q 'fzf_colors = fg+:white:bold' "$home/.config/nunchux/config" \
-    || fail "nunchux plane" "the theme slot substitution did not render (text=white missing)"
+  [ "$(readlink -f "$home/.config/nunchux/config")" = "$(readlink -f "$home/.local/state/workstation/theme/current/nunchux.conf")" ] \
+    || fail "nunchux plane" "the config does not read through the theme pick"
+  grep -q 'fzf_colors = fg+:#f5f5dc:bold' "$home/.config/nunchux/config" \
+    || fail "nunchux plane" "the dark pick's fzf colors did not render (text=#f5f5dc missing)"
   grep -qx '\[app:sql\]' "$home/.config/nunchux/config" \
     || fail "nunchux plane" "the database domain's sql entry did not render"
   grep -qx '\[app:net\]' "$home/.config/nunchux/config" \
@@ -292,7 +294,7 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "node runtime single-source" ".node-version ($nv) does not match the runtime ($runtime)"
   pass "node runtime single-source"
 
-  step "theme plane (rendered themes, the seeded pick, the switcher, tmux and nvim following, the picker)"
+  step "theme plane (rendered themes, the seeded pick, the switcher, tmux, nunchux and nvim following, the picker)"
   themes="$home/.local/share/workstation/themes"
   pick="$home/.local/state/workstation/theme/current"
   for t in dark light; do
@@ -315,6 +317,10 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "theme plane" "the light tmux render carries no light accent"
   [ "$("$tmux_bin" show -gv @tmux2k-blue)" = '#023c75' ] \
     || fail "theme plane" "the running tmux did not reload the light palette"
+  [ "$("$tmux_bin" show -gv popup-style)" = 'fg=#181811,bg=#f5f2ea' ] \
+    || fail "theme plane" "the tmux popup canvas did not follow the light pick"
+  grep -q 'hl:#023c75' "$home/.config/nunchux/config" \
+    || fail "theme plane" "the nunchux fzf colors did not follow the light pick"
   "$tmux_bin" set -g @tmux2k-blue unreloaded
   TERM=unknown ${pkgs.util-linux}/bin/script -qec "$wt reload" /dev/null >/dev/null 2>&1 || true
   [ "$("$tmux_bin" show -gv @tmux2k-blue)" = '#023c75' ] \

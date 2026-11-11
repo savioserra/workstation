@@ -298,7 +298,7 @@ and sorted, never hidden.
 
 ### `theme`
 - The themes (`modules/theme/themes/{dark,light}.nix`) typed by
-  `workstation.theme.themes`; the slot layer `workstation.theme.slots`.
+  `workstation.theme.themes`.
 - The consumer registry `workstation.theme.consumers.<name>` (`file`,
   `render`, `reload`); every theme rendered under
   `~/.local/share/workstation/themes/<name>/` with its `tokens.json`.
@@ -333,11 +333,12 @@ and sorted, never hidden.
   darwin fails an assertion): pinned checkout (`.tmux/plugins/nunchux` at
   the v3.1.3 commit, hash-pinned `fetchFromGitHub`, repo-tracked launcher
   binary) + the `.platform` marker composed in.
-- `.config/nunchux/config` rendered from two options:
+- `.config/nunchux/config` rendered from two options; with the theme on, a
+  link through the pick to the theme consumer's `nunchux.conf`:
 
   | Option | Renders |
   | --- | --- |
-  | `workstation.terminal.nunchux.settings` | `[settings]`; `fzf_colors` from the theme slot layer |
+  | `workstation.terminal.nunchux.settings` | `[settings]`; an unset `fzf_colors`: the pick's palette (theme on), fzf's defaults (theme off) |
   | `workstation.terminal.nunchux.entries."<header>"` | one section per header (`menu:<name>`, `app:<name>`, `app:<menu>/<name>`); every field but `rank` as `key = value`; `[order]` = the top-level items by `rank`, then name |
 
   | Entry | Owner | Guard |
