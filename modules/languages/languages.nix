@@ -30,7 +30,7 @@ ws.capability [ "languages" ] {
       # hook, so mise tools keep PATH precedence over later rc lines
       enableBashIntegration = false;
       enableZshIntegration = false;
-      globalConfig.tools = cfg.tools;
+      globalConfig = lib.mkIf (cfg.tools != { }) { tools = cfg.tools; };
     };
 
     programs.bash.initExtra = lib.mkOrder 1990 ''
