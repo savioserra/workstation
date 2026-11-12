@@ -26,12 +26,6 @@
 let
   activation = self.checks.x86_64-linux.e2e-home;
 
-  switchDriver = import ../../nix/workstation-switch.nix {
-    inherit pkgs;
-    homeAttr = "e2e@container";
-    systemAttr = null;
-  };
-
   homeActivateMinusGo = writeShellScript "workstation-e2e-home-activate-minus-go" ''
     set -eu
     ${activationMinusGo}/activate
@@ -449,10 +443,13 @@ writeShellScriptBin "workstation-e2e" ''
   pass "selection verbs live (a writable checkout copy: selected, add, dedup, refusals)"
 
   step "apply-driven switch (the removal apply: go deselected, next generation)"
-  export WORKSTATION_SWITCH_HOME_ACTIVATE="${homeActivateMinusGo}"
-  ${switchDriver}/bin/workstation-switch apply \
+  staged_switch=$(find_client workstation-switch) \
+    || fail "apply-driven switch" "the staged switch driver is not on PATH"
+  switch_out=$(WORKSTATION_SWITCH_HOME_ACTIVATE="${homeActivateMinusGo}" "$staged_switch" apply) \
     || fail "apply-driven switch" "the driver failed (switch or receipt)"
   unset WORKSTATION_SWITCH_HOME_ACTIVATE
+  printf '%s' "$switch_out" | grep -q 'tmux server check' \
+    || fail "apply-driven switch" "the after-apply routine did not run (no tmux server check line)"
   pass "apply-driven switch (the removal apply: go deselected, next generation)"
 
   step "the removal: go left the profile and the mise config, the rest rides"
@@ -520,6 +517,15 @@ writeShellScriptBin "workstation-e2e" ''
     || [ -x "/etc/profiles/per-user/e2e/bin/workstation-switch" ] \
     || fail "staged client" "the workstation-switch driver is not staged"
   pass "staged client (launcher, switch driver, no flake snapshot)"
+
+  step "rollback lane (the previous generation, the after-rollback routine)"
+  rb_out=$("$staged_switch" rollback) \
+    || fail "rollback lane" "workstation-switch rollback failed"
+  printf '%s' "$rb_out" | grep -q 'tmux server check' \
+    || fail "rollback lane" "the after-rollback routine did not run (no tmux server check line)"
+  PATH="$init_path" tail -n 1 "$home/.local/state/workstation/switch.log" | grep -Eq 'generation [0-9]+ applied \(' \
+    || fail "rollback lane" "the rollback wrote no receipt line"
+  pass "rollback lane (the previous generation, the after-rollback routine)"
 
   echo "workstation-e2e: OK"
 ''

@@ -50,12 +50,41 @@ let
       hash = "sha256-efqiRffnidYx+qjgsHyWshCFWgZp/ZrHl+Clt04pfpM=";
     };
   };
+  # the running server keeps serving after a switch moved the generation's
+  # binary (a switch never restarts it): report the skew, never restart —
+  # the server holds live sessions and the restart stays the operator's
+  skewRoutine = {
+    name = "tmux-server-skew";
+    text = ''
+      srv_pid=$(ps -eo pid,comm | awk '$0 ~ /tmux: server/ {print $1; exit}')
+      if [ -n "$srv_pid" ]; then
+        srv_exe=$(readlink "/proc/$srv_pid/exe" 2>/dev/null || ps -o command= -p "$srv_pid" | awk '{print $1}')
+        srv_ver=$(tmux display -p '#{version}' 2>/dev/null || echo '?')
+        gen_ver=$(tmux -V 2>/dev/null || echo '?')
+        gen_ver="''${gen_ver#tmux }"
+        if [ "$srv_ver" = "$gen_ver" ]; then
+          echo "workstation: tmux server check — current ($srv_ver at $srv_exe)"
+        else
+          echo "workstation: tmux server check — skew: running $srv_ver at $srv_exe, generation $gen_ver; your restart (the server holds live sessions)" >&2
+        fi
+      else
+        echo "workstation: tmux server check — none running"
+      fi
+    '';
+  };
 in
 ws.capability [ "terminal" "tmux" ] {
   description = "the tmux config and plugin set";
   default = true;
   config = lib.mkMerge [
     (ws.shellInit drain)
+    {
+      workstation.routines = {
+        after-apply = [ skewRoutine ];
+        after-rollback = [ skewRoutine ];
+        after-update = [ skewRoutine ];
+      };
+    }
     {
       workstation.theme = ws.whenOn "theme" {
         consumers.tmux = {

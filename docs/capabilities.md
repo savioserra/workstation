@@ -13,7 +13,7 @@ flake.nix
   -> nix/modules          (workstation-home imports modules/; workstation-system, host)
   -> modules/default.nix  (the domain and member modules, listed)
   -> nix/report.nix       (workstation.report.<verb>: one home eval)
-  -> nix/workstation-switch.nix  (the write plane: switch.log receipt)
+  -> nix/lib/switch.nix  (the composed write plane: verb scaffold + routine registry, switch.log receipt)
   -> hosts/{linux,mac}    (the system legs)
 
 bin/workstation (POSIX sh: flake resolution, verb dispatch)
@@ -106,7 +106,11 @@ option tree applied as a module.
     `lib.hm.sequence`;
   - **the switch driver** — the one system-ordered surface: its tail writes
     the receipt; the theme activation seeds the pick and reloads the
-    theme consumers.
+    theme consumers;
+  - **the routine registry** — `workstation.routines.<event>`
+    (after-apply, after-rollback, after-update): module-registered shell
+    routines the driver runs at the event, after the receipt; a failed
+    routine reports and never fails the switch.
 - No inter-capability ordering graph exists: store closure has no apply
   order. The only ordered surfaces are the ones above.
 
@@ -347,6 +351,9 @@ and sorted, never hidden.
   `fetchFromGitHub`.
 - `.tmux.conf`; the `.config/tmux` link; the reply-drain `tmux`
   function in bash and zsh.
+- The switch routine `tmux-server-skew` (after-apply, after-rollback,
+  after-update): the running server's version vs the generation's —
+  report-only, the restart stays the operator's.
 - Hosts: linux/macOS.
 
 ### `nunchux`

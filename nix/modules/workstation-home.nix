@@ -6,10 +6,41 @@
   pkgs,
   ...
 }:
+let
+  routine = lib.types.submodule {
+    options = {
+      name = lib.mkOption {
+        type = lib.types.str;
+        description = "A store-name-safe routine id (kebab-case).";
+      };
+      text = lib.mkOption {
+        type = lib.types.lines;
+        description = "The routine body: a shell fragment run by the switch driver at the owning event.";
+      };
+    };
+  };
+in
 {
   imports = [ ../../modules ];
 
   options.workstation = {
+    routines = {
+      after-apply = lib.mkOption {
+        type = lib.types.listOf routine;
+        default = [ ];
+        description = "Routines the switch driver runs after a successful apply (either plane), after the receipt; a failed routine reports and never fails the switch.";
+      };
+      after-rollback = lib.mkOption {
+        type = lib.types.listOf routine;
+        default = [ ];
+        description = "Routines the switch driver runs after a rollback's activation.";
+      };
+      after-update = lib.mkOption {
+        type = lib.types.listOf routine;
+        default = [ ];
+        description = "Routines the switch driver runs after a flake.lock update.";
+      };
+    };
     switch = {
       homeAttr = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
@@ -38,10 +69,11 @@
         ) "WORKSTATION_CHECKOUT=\${WORKSTATION_CHECKOUT:-${config.workstation.switch.checkout}}\n"
         + builtins.readFile ../../bin/workstation
       ))
-      (import ../workstation-switch.nix {
-        inherit pkgs;
+      (import ../lib/switch.nix {
+        inherit lib pkgs;
         homeAttr = config.workstation.switch.homeAttr;
         systemAttr = config.workstation.switch.systemAttr;
+        routines = config.workstation.routines;
       })
     ];
 

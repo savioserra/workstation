@@ -1,14 +1,47 @@
-# The write plane: workstation-switch apply|rollback|update|sync, with a
-# receipt line in ~/.local/state/workstation/switch.log. The flake ref and
-# the machine files come from the launcher (WORKSTATION_SWITCH_FLAKE,
-# WORKSTATION_SWITCH_MACHINE); the driver carries no copy of the repo.
+# The write plane, composed: the verb scaffold (apply|rollback|update|sync,
+# home and system planes, the detached system runner, the switch.log
+# receipt) plus the lifecycle routines the workstation modules register
+# (workstation.routines.<event>) — each routine runs at its event, reports,
+# and never fails the switch.
 {
+  lib,
   pkgs,
   homeAttr ? null,
   systemAttr ? null,
+  routines ? { },
 }:
 let
   rebuild = if pkgs.stdenv.hostPlatform.isDarwin then "darwin-rebuild" else "nixos-rebuild";
+
+  events = [
+    "after-apply"
+    "after-rollback"
+    "after-update"
+  ];
+
+  routineScript = event: r: pkgs.writeShellScript "ws-routine-${event}-${r.name}" r.text;
+
+  routine = event: r: ''
+    echo "workstation-switch: routine ${r.name} (${event})"
+    if ! ${routineScript event r}; then
+      echo "workstation-switch: routine ${r.name} (${event}) FAILED — the switch stands, the routine did not run clean" >&2
+    fi
+  '';
+
+  runRoutines = ''
+    run_routines() {
+      case "$1" in
+        ${lib.concatStringsSep "\n" (
+          map (event: ''
+            ${event})
+              ${lib.concatStringsSep "\n" (map (routine event) (routines.${event} or [ ]))}
+              ;;
+          '') events
+        )}
+        *) ;;
+      esac
+    }
+  '';
 
   readAndPublish = ''
     link="$(readlink "$profile" 2>/dev/null || true)"
@@ -112,14 +145,15 @@ pkgs.writeShellScriptBin "workstation-switch" ''
   system_attr="''${WORKSTATION_SWITCH_SYSTEM_ATTR:-${if systemAttr == null then "" else systemAttr}}"
   home_activate="''${WORKSTATION_SWITCH_HOME_ACTIVATE:-}"
   ${guards}
+  ${runRoutines}
 
   # System switches reload system services; one of them can be the
   # transport this very session rides (tailscaled) — a reload boots out
   # the daemon before the new one bootstraps, and a session death in that
   # window leaves the activation half-run and the daemon down. Run every
   # system switch inside a detached on-target runner so the activation
-  # always completes: the reloaded service bootstraps and the receipt
-  # lands even when the calling session dies mid-switch.
+  # always completes: the reloaded service bootstraps, the receipt lands
+  # and the routines run even when the calling session dies mid-switch.
   if [ "$plane" = system ] && [ "$cmd" != update ] && [ -z "''${WORKSTATION_SWITCH_DETACHED:-}" ]; then
     if [ "$cmd" != rollback ]; then
       need_system
@@ -149,6 +183,7 @@ pkgs.writeShellScriptBin "workstation-switch" ''
     exit 0
   fi
 
+  event=""
   case "$plane:$cmd" in
     home:apply|home:sync)
       need_home
@@ -160,11 +195,13 @@ pkgs.writeShellScriptBin "workstation-switch" ''
         "$gen/activate"
       fi
       ${resolveHomeProfile}
+      event=after-apply
       ;;
     home:rollback)
       ${resolveHomeProfile}
       nix-env --profile "$profile" --rollback
       "$profile/activate"
+      event=after-rollback
       ;;
     home:update|system:update)
       checkout="''${WORKSTATION_SWITCH_CHECKOUT:-}"
@@ -174,6 +211,7 @@ pkgs.writeShellScriptBin "workstation-switch" ''
       fi
       nix flake update --flake "$checkout"
       echo "workstation-switch: flake.lock updated in $checkout — commit it, then: workstation apply"
+      run_routines after-update
       exit 0
       ;;
     system:apply|system:sync)
@@ -181,12 +219,15 @@ pkgs.writeShellScriptBin "workstation-switch" ''
       need_flake
       ${rebuild} switch --flake "$flake#$system_attr" "''${override[@]}"
       profile=/nix/var/nix/profiles/system
+      event=after-apply
       ;;
     system:rollback)
       ${rebuild} switch --rollback
       profile=/nix/var/nix/profiles/system
+      event=after-rollback
       ;;
   esac
 
   ${readAndPublish}
+  run_routines "$event"
 ''
