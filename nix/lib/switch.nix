@@ -81,23 +81,17 @@ let
     user_nix_profiles="''${state_home}/nix/profiles"
     hm_gcroots="''${state_home}/home-manager/gcroots"
     global_profiles="''${NIX_STATE_DIR:-/nix/var/nix}/profiles/per-user/''${USER:-$(id -un 2>/dev/null || true)}"
-    if [ -d "$user_nix_profiles" ]; then
+    if [ -d "$user_nix_profiles" ] && [ -e "''${user_nix_profiles}/home-manager" ]; then
       profile="''${user_nix_profiles}/home-manager"
+    elif [ -e "''${global_profiles}/home-manager" ]; then
+      # determinate-nixd unifies profiles asynchronously: a numbered link
+      # lives here or in the XDG dir depending on when it last ran
+      profile="''${global_profiles}/home-manager"
     elif [ -d "$hm_gcroots" ]; then
       profile="''${hm_gcroots}/current-home"
-    elif [ -d "$global_profiles" ]; then
-      profile="''${global_profiles}/home-manager"
     else
-      echo "workstation-switch: no home-manager profile dir — tried $user_nix_profiles, $hm_gcroots and $global_profiles — nothing receipted" >&2
+      echo "workstation-switch: no home-manager profile dir — tried $user_nix_profiles, $global_profiles and $hm_gcroots — nothing receipted" >&2
       exit 1
-    fi
-    # the gcroot layout carries no numbered link: re-register the live
-    # generation into a numbered profile so receipts and rollback keep
-    # their shape
-    if [ "$profile" = "$hm_gcroots/current-home" ] && [ ! -e "''${user_nix_profiles}/home-manager" ]; then
-      mkdir -p "$user_nix_profiles"
-      nix-env --profile "''${user_nix_profiles}/home-manager" --set "$(readlink -f "$profile")" >/dev/null 2>&1 || true
-      profile="''${user_nix_profiles}/home-manager"
     fi
   '';
 
