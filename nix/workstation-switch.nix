@@ -113,6 +113,42 @@ pkgs.writeShellScriptBin "workstation-switch" ''
   home_activate="''${WORKSTATION_SWITCH_HOME_ACTIVATE:-}"
   ${guards}
 
+  # System switches reload system services; one of them can be the
+  # transport this very session rides (tailscaled) — a reload boots out
+  # the daemon before the new one bootstraps, and a session death in that
+  # window leaves the activation half-run and the daemon down. Run every
+  # system switch inside a detached on-target runner so the activation
+  # always completes: the reloaded service bootstraps and the receipt
+  # lands even when the calling session dies mid-switch.
+  if [ "$plane" = system ] && [ "$cmd" != update ] && [ -z "''${WORKSTATION_SWITCH_DETACHED:-}" ]; then
+    if [ "$cmd" != rollback ]; then
+      need_system
+      need_flake
+    fi
+    state_dir="''${XDG_STATE_HOME:-$HOME/.local/state}/workstation"
+    mkdir -p "$state_dir"
+    log="$state_dir/switch-driver.log"
+    # the runner payload carries its env explicitly: a tmux session on an
+    # existing server inherits the server's environment, not the caller's
+    inner="WORKSTATION_SWITCH_DETACHED=1 WORKSTATION_SWITCH_FLAKE=\"$flake\" WORKSTATION_SWITCH_MACHINE=\"''${WORKSTATION_SWITCH_MACHINE:-}\" WORKSTATION_SWITCH_HOME_ATTR=\"$home_attr\" WORKSTATION_SWITCH_SYSTEM_ATTR=\"$system_attr\" PATH=\"$PATH\" $0 $cmd --system"
+    if command -v tmux >/dev/null 2>&1; then
+      if tmux has-session -t ws-switch 2>/dev/null; then
+        echo "workstation-switch: the ws-switch session exists — a system switch is in flight; attach: tmux attach -t ws-switch (log: $log)" >&2
+        exit 1
+      fi
+      if tmux new-session -d -s ws-switch "sh -c '$inner 2>&1 | tee -a $log'"; then
+        echo "workstation-switch: system switch in tmux session ws-switch (attach: tmux attach -t ws-switch; log: $log)"
+        if [ -t 0 ]; then
+          exec tmux attach -t ws-switch
+        fi
+        exit 0
+      fi
+    fi
+    nohup setsid sh -c "$inner >> '$log' 2>&1" >/dev/null 2>&1 &
+    echo "workstation-switch: system switch detached (log: $log)"
+    exit 0
+  fi
+
   case "$plane:$cmd" in
     home:apply|home:sync)
       need_home
