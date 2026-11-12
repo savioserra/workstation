@@ -59,7 +59,9 @@ write plane (the generation's workstation-switch driver):
   apply|rollback|update|sync [--system]
                   inside a checkout (or with --flake / $WORKSTATION_FLAKE)
                   the switch builds that checkout; elsewhere it rebuilds
-                  the staged generation snapshot
+                  the staged generation snapshot; update is the rolling
+                  verb: pull the substrate (when origin exists), bump
+                  flake.lock, commit it, then switch
 
 other:
   help            this text

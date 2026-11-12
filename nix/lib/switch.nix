@@ -52,10 +52,8 @@ let
     gen="''${link%-link}"
     gen="''${gen##*-}"
     if [ -z "$gen" ] || [ "''${gen//[0-9]/}" != "" ]; then
-      echo "workstation-switch: no generation number in $link" >&2
-      exit 1
-    fi
-    if [ "$gen" -ge 2 ]; then
+      message="applied (unnumbered profile at $link)"
+    elif [ "$gen" -ge 2 ]; then
       message="generation $gen applied (rollback available at $((gen - 1)))"
     else
       message="generation $gen applied (no prior generation)"
@@ -81,14 +79,25 @@ let
   resolveHomeProfile = ''
     state_home="''${XDG_STATE_HOME:-$HOME/.local/state}"
     user_nix_profiles="''${state_home}/nix/profiles"
+    hm_gcroots="''${state_home}/home-manager/gcroots"
     global_profiles="''${NIX_STATE_DIR:-/nix/var/nix}/profiles/per-user/''${USER:-$(id -un 2>/dev/null || true)}"
     if [ -d "$user_nix_profiles" ]; then
       profile="''${user_nix_profiles}/home-manager"
+    elif [ -d "$hm_gcroots" ]; then
+      profile="''${hm_gcroots}/current-home"
     elif [ -d "$global_profiles" ]; then
       profile="''${global_profiles}/home-manager"
     else
-      echo "workstation-switch: no home-manager profile dir — tried $user_nix_profiles and $global_profiles — nothing receipted" >&2
+      echo "workstation-switch: no home-manager profile dir — tried $user_nix_profiles, $hm_gcroots and $global_profiles — nothing receipted" >&2
       exit 1
+    fi
+    # the gcroot layout carries no numbered link: re-register the live
+    # generation into a numbered profile so receipts and rollback keep
+    # their shape
+    if [ "$profile" = "$hm_gcroots/current-home" ] && [ ! -e "''${user_nix_profiles}/home-manager" ]; then
+      mkdir -p "$user_nix_profiles"
+      nix-env --profile "''${user_nix_profiles}/home-manager" --set "$(readlink -f "$profile")" >/dev/null 2>&1 || true
+      profile="''${user_nix_profiles}/home-manager"
     fi
   '';
 
@@ -209,10 +218,42 @@ pkgs.writeShellScriptBin "workstation-switch" ''
         echo "workstation-switch: update needs the checkout — run it through the launcher (workstation update)" >&2
         exit 2
       fi
+      # the rolling verb: pull the substrate, bump the lock, commit it
+      # (the build only sees committed HEAD), then switch — no git
+      # ceremony for the consumer; every step stops clean on conflict
+      if [ -n "$(git -C "$checkout" status --porcelain -- . ':!flake.lock')" ]; then
+        echo "workstation-switch: the checkout carries uncommitted changes — update moves only a clean tree (yours stays untouched):" >&2
+        git -C "$checkout" status --porcelain -- . ':!flake.lock' | head -5 >&2
+        exit 1
+      fi
+      if git -C "$checkout" remote get-url origin >/dev/null 2>&1; then
+        if ! git -C "$checkout" pull --ff-only --quiet 2>/dev/null; then
+          branch="$(git -C "$checkout" rev-parse --abbrev-ref HEAD)"
+          if git -C "$checkout" diff --quiet "origin/$branch...HEAD" -- . ':!flake.lock' 2>/dev/null \
+            && git -C "$checkout" rebase "origin/$branch" >/dev/null 2>&1; then
+            echo "workstation-switch: local lock commits rebased on origin"
+          else
+            echo "workstation-switch: pull failed (diverged from origin) — resolve by hand, then: workstation update" >&2
+            git -C "$checkout" rebase --abort >/dev/null 2>&1 || true
+            exit 1
+          fi
+        fi
+      fi
+      old_rev="$(jq -r '.nodes.nixpkgs.locked.rev' "$checkout/flake.lock" 2>/dev/null || echo unknown)"
       nix flake update --flake "$checkout"
-      echo "workstation-switch: flake.lock updated in $checkout — commit it, then: workstation apply"
+      new_rev="$(jq -r '.nodes.nixpkgs.locked.rev' "$checkout/flake.lock" 2>/dev/null || echo unknown)"
+      if ! git -C "$checkout" diff --quiet -- flake.lock; then
+        git -C "$checkout" add flake.lock
+        git -C "$checkout" -c user.name=workstation -c user.email=workstation@localhost \
+          commit --quiet -m "lock: nixpkgs ''${old_rev:0:7}..''${new_rev:0:7}"
+        echo "workstation-switch: lock committed (nixpkgs ''${old_rev:0:7}..''${new_rev:0:7})"
+      else
+        echo "workstation-switch: inputs already current"
+      fi
       run_routines after-update
-      exit 0
+      echo "workstation-switch: switching to the updated tree"
+      export WORKSTATION_SWITCH_FLAKE WORKSTATION_SWITCH_MACHINE WORKSTATION_SWITCH_HOME_ATTR WORKSTATION_SWITCH_SYSTEM_ATTR
+      exec "$0" apply $([ "$plane" = system ] && echo --system)
       ;;
     system:apply|system:sync)
       need_system

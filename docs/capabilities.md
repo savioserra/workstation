@@ -410,7 +410,7 @@ Fail-closed at eval:
 
 | Phase | Owner | Responsibility |
 | --- | --- | --- |
-| switch / rollback | `workstation apply` / `workstation rollback` | Build the generation from the flake, activate atomically, write the receipt to `switch.log`; the flake is the resolved checkout's committed `HEAD` (`--flake`, `$WORKSTATION_FLAKE`, the enclosing checkout, `$WORKSTATION_CHECKOUT`) with its working-tree machine files; `WORKSTATION_WORKTREE=1` builds the working tree; an explicit `WORKSTATION_SWITCH_FLAKE` wins; `update` moves `flake.lock` for a commit |
+| switch / rollback | `workstation apply` / `workstation rollback` | Build the generation from the flake, activate atomically, write the receipt to `switch.log`; the flake is the resolved checkout's committed `HEAD` (`--flake`, `$WORKSTATION_FLAKE`, the enclosing checkout, `$WORKSTATION_CHECKOUT`) with its working-tree machine files; `WORKSTATION_WORKTREE=1` builds the working tree; an explicit `WORKSTATION_SWITCH_FLAKE` wins; `update` is the rolling verb — pull the substrate (when an origin exists), bump `flake.lock`, commit the bump, then switch; a dirty checkout or a conflicted pull stops before touching anything |
 | `plan` / `status` / `capabilities` / `selected` | `nix eval` over `workstation.report` | Answer the declared state; mutate nothing |
 | select | `workstation add <path>...` / `workstation remove <path>...` | Validate against `selectable`, set or drop the flag in `hosts/local/machine.json`, offer the apply (idempotent; the baseline refuses) |
 | inquiry | `workstation init` (and `setup`, the full re-ask) | Capture the machine, offer the languages as a checklist pre-filled with the current selection, choose the fleet |
