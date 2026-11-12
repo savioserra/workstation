@@ -220,6 +220,11 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "tmux plane" "a tmux server did not start on the managed config"
   [ "$("$tmux_bin" -L e2e-conf show -gv pane-border-status)" = top ] \
     || fail "tmux plane" "the managed config set no pane labels"
+  fmt="$("$tmux_bin" -L e2e-conf show -gv pane-border-format)"
+  echo "$fmt" | grep -q '#{pane_title}' \
+    || fail "tmux plane" "the pane labels dropped the pane title (the hermes topic)"
+  echo "$fmt" | grep -q 'range=control' \
+    || fail "tmux plane" "the pane labels dropped the default float/zoom/close buttons"
   [ "$("$tmux_bin" -L e2e-conf show -gv menu-border-lines)" = rounded ] \
     || fail "tmux plane" "the managed config set no rounded menu borders"
   "$tmux_bin" -L e2e-conf kill-server 2>/dev/null || true

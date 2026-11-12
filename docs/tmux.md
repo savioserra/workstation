@@ -14,7 +14,7 @@
 | --- | --- |
 | `status-position` | `bottom` |
 | `pane-border-status` | `top` — a label on every pane's top border |
-| `pane-border-format` | ` <index> <running command> <directory basename> `, bold on the active pane; colors from the pane border styles |
+| `pane-border-format` | tmux's default — index (reversed on the active pane), the pane's terminal title in quotes (hermes shows the current topic), then the running command and directory; the default's float, zoom and close buttons anchor right with the mouse on |
 | `popup-border-lines`, `menu-border-lines` | `rounded` |
 | `escape-time` | `10` |
 | `focus-events` | `on` |
