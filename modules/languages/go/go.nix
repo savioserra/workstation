@@ -1,4 +1,4 @@
-# The go member: the toolchain and its editor profile entry.
+# The go member: the mise-pinned toolchain and its editor profile entry.
 {
   config,
   lib,
@@ -6,18 +6,14 @@
   ...
 }:
 let
-  ws = import ../../../nix/lib/capability.nix { inherit config lib pkgs; };
+  lang = import ../../../nix/lib/language.nix { inherit config lib pkgs; };
 in
-ws.capability [ "languages" "go" ] {
+lang.language [ "languages" "go" ] {
   description = "the go toolchain and its editor profile";
-  config = {
-    home.packages = [ pkgs.go ];
-    workstation.editor = ws.whenOn "editor" {
-      languages.go = {
-        requires = [ "go" ];
-        extras = [ "lang.go" ];
-        plugin = ./files/languages/plugins/go.lua;
-      };
-    };
+  tools.go = "1.27.3";
+  editor = {
+    requires = [ "go" ];
+    extras = [ "lang.go" ];
+    plugin = ./files/languages/plugins/go.lua;
   };
 }

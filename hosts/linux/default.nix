@@ -15,10 +15,20 @@
       ../../nix/modules/host.nix
       home-manager.nixosModules.home-manager
       (
-        { config, lib, ... }:
+        {
+          config,
+          lib,
+          pkgs,
+          ...
+        }:
         {
           workstation.enable = true;
           programs.mosh.enable = true;
+          # mise-managed prebuilt toolchains exec through nix-ld
+          programs.nix-ld = {
+            enable = true;
+            libraries = [ pkgs.stdenv.cc.cc ];
+          };
           nixpkgs.config.allowUnfreePredicate = import ../../nix/lib/license.nix { inherit lib; };
 
           workstation.host = {

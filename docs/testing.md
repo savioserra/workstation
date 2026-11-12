@@ -57,7 +57,8 @@ The lane map — which lane proves what:
   owns, the lazy-lock merge, the theme plane (rendered themes, the seeded
   pick, the switcher, the pick across an apply), the language profile,
   the shell init (eza, starship, the direnv hook after the prompt, the
-  op env, the editor env), the tools running, the agent
+  op env, the editor env), the tools running, the mise plane (the config
+  pins, the activation after the direnv hook, the go/pnpm installs), the agent
   skills at pinned versions, the tmux/nunchux/foundation planes, the
   init capture live against a writable checkout copy (the placeholders
   fill from detection, the settings survive, a converged re-init is

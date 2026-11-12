@@ -63,7 +63,8 @@ commands — deployed as a plain runtime module. The `modules/languages/typescri
 capability owns it, declares the profile intent (`plugin =
 ./files/languages/plugins/typescript.lua`) and verifies its own behavior through the
 nvim leaf helpers; `modules/editor/nvim/` owns editor sync, locks and
-base/standard/Go verification; `node` owns the host runtime. Deployed Neovim
+base/standard/Go verification; the node member owns the node pin (mise).
+Deployed Neovim
 imports runtime configuration only, never capability modules.
 
 `modules/languages/elixir/files/languages/plugins/elixir.lua` follows the same split

@@ -50,15 +50,17 @@ eval, and the container E2E lane's staged entry).
   tool ships the tool; verify smokes the consumer, not a fingerprint.
   Tools ride the one nixpkgs input; the
   remaining pins (herdr, the tmux/nunchux checkouts, the hermes checkout
-  input) are pinned declarations. No unpinned downloads, no `sudo`, no
+  input, the language toolchains as mise registry pins) are pinned
+  declarations. No unpinned downloads, no `sudo`, no
   OS-package-manager installation of managed tools.
 - **Foundation inventory.** bash and zsh through home-manager's
-  `programs.*` modules + fd, fzf, rg, lazygit, tree-sitter, node, pnpm, go, op,
+  `programs.*` modules + fd, fzf, rg, lazygit, tree-sitter, op,
   btop, the JetBrainsMono Nerd Font + eza, starship, harlequin+hsql
   (nixpkgs) + the tailscale transport (system legs: `services.tailscale`;
   standalone-HM linux legs: the CLI in `home.packages`, tailscaled the
   substrate's own systemd unit; another tailscale install stops the apply,
-  named).
+  named) + the language toolchains through mise (the languages domain's
+  global config + cd activation).
 - **Verification is behavioral.** Container activation runs, consumer
   smokes, HM idempotency/rollback. Structural assertions (counts, the
   fold's union checks) stay assertions — no byte-goldens, no re-record

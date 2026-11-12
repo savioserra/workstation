@@ -1,4 +1,4 @@
-# The node member: nodejs_24 and ~/.node-version derived from it.
+# The node member: the mise-pinned node runtime and ~/.node-version.
 {
   config,
   lib,
@@ -6,13 +6,13 @@
   ...
 }:
 let
-  ws = import ../../../nix/lib/capability.nix { inherit config lib pkgs; };
-  nodejs = pkgs.nodejs_24;
+  lang = import ../../../nix/lib/language.nix { inherit config lib pkgs; };
+  version = "24.22.2";
 in
-ws.capability [ "languages" "node" ] {
+lang.language [ "languages" "node" ] {
   description = "the node runtime";
+  tools.node = version;
   config = {
-    home.packages = [ nodejs ];
-    home.file.".node-version".source = pkgs.writeText "node-version" "${nodejs.version}\n";
+    home.file.".node-version".source = pkgs.writeText "node-version" "${version}\n";
   };
 }

@@ -1,4 +1,4 @@
-# The typescript member: pnpm and its editor profile entry.
+# The typescript member: the mise-pinned pnpm and its editor profile entry.
 {
   config,
   lib,
@@ -6,27 +6,23 @@
   ...
 }:
 let
-  ws = import ../../../nix/lib/capability.nix { inherit config lib pkgs; };
+  lang = import ../../../nix/lib/language.nix { inherit config lib pkgs; };
 in
-ws.capability [ "languages" "typescript" ] {
+lang.language [ "languages" "typescript" ] {
   description = "pnpm and the typescript editor profile";
-  config = {
-    home.packages = [ pkgs.pnpm ];
-    workstation.editor = ws.whenOn "editor" {
-      languages.typescript = {
-        requires = [ "node" ];
-        extras = [
-          "lang.typescript"
-          "linting.eslint"
-          "formatting.prettier"
-        ];
-        mason = [
-          "typescript-language-server"
-          "eslint-lsp"
-          "prettier"
-        ];
-        plugin = ./files/languages/plugins/typescript.lua;
-      };
-    };
+  tools.pnpm = "12.9.0";
+  editor = {
+    requires = [ "node" ];
+    extras = [
+      "lang.typescript"
+      "linting.eslint"
+      "formatting.prettier"
+    ];
+    mason = [
+      "typescript-language-server"
+      "eslint-lsp"
+      "prettier"
+    ];
+    plugin = ./files/languages/plugins/typescript.lua;
   };
 }

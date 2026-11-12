@@ -154,11 +154,26 @@ and sorted, never hidden.
   `Library/Fonts/JetBrainsMonoNerdFont`.
 - Verify: the deployed font dir (the container E2E asserts it). Hosts: all.
 
+### `languages`
+- The domain owns the mise plane: the global config
+  (`~/.config/mise/config.toml`, a read-only store link — the enabled
+  members' pins compose its `[tools]` table), the cd activation in
+  bash/zsh (after the direnv hook, before the operator extras) and the
+  `mise install` activation (best-effort; mise's auto-install on use is
+  the backstop).
+- Toolchains install from the pinned registry versions into
+  `~/.local/share/mise`; project-level pins belong to each repo's
+  `.mise.toml`/`.tool-versions`.
+- Prebuilt toolchain binaries need a glibc host; the linux system leg
+  enables nix-ld for them.
+- Verify: the config pins and the installed tools (the container E2E
+  asserts both). Hosts: all.
+
 ### `node`
-- `pkgs.nodejs_24` on PATH; `.node-version` derived from the runtime
-  (one source).
-- Verify: `node --version` vs the derived `.node-version` (the container
-  E2E asserts both). Hosts: all.
+- mise pin `node = "24.22.2"` in the global config; `.node-version`
+  derives from the pin (one source).
+- Verify: the config pin, the installed tool and `.node-version` (the
+  container E2E asserts all three). Hosts: all.
 
 ### `agent`
 - The hermes runtime pin: the flake's `hermes-agent` input (fetchGit rev,
@@ -255,17 +270,20 @@ and sorted, never hidden.
 - Verify: fingerprint + link record. Hosts: all.
 
 ### `go`
-- `pkgs.go`.
-- Verify: `go version` (the container E2E asserts it). Hosts: linux/macOS.
+- mise pin `go = "1.27.3"` in the global config.
+- Verify: the config pin and the installed tool (the container E2E
+  asserts both). Hosts: linux/macOS.
 
 ### `elixir`
-- nixpkgs toolchains via `home.packages` (erlang 28 + elixir 1.18).
-- Verify: own Mason expectations and the plugin module through nvim leaf
-  helpers. Hosts: all.
+- mise pins `elixir = "1.20.5-otp-28"` + `erlang = { 28.5.0.8, compile = false }`
+  (elixir pinned to an otp-28 prebuilt build — 1.18.x ships none; erlang
+  prebuilt platforms only, never a kerl source build).
+- Verify: the config pins (the container E2E); own Mason expectations and
+  the plugin module through nvim leaf helpers. Hosts: all.
 
 ### `typescript`
-- `pkgs.pnpm`.
-- Verify: `pnpm --version` (the container E2E asserts it); own Mason/plugin
+- mise pin `pnpm = "12.9.0"` in the global config.
+- Verify: the config pin (the container E2E asserts it); own Mason/plugin
   surface. Hosts: all.
 
 ### `secrets`

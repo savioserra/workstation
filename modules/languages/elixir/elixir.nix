@@ -1,4 +1,5 @@
-# The elixir member: the beam toolchain and its editor profile entry.
+# The elixir member: the mise-pinned beam toolchain and its editor profile
+# entry.
 {
   config,
   lib,
@@ -6,18 +7,21 @@
   ...
 }:
 let
-  ws = import ../../../nix/lib/capability.nix { inherit config lib pkgs; };
+  lang = import ../../../nix/lib/language.nix { inherit config lib pkgs; };
 in
-ws.capability [ "languages" "elixir" ] {
-  description = "the elixir toolchain and its editor profile";
-  config = {
-    home.packages = [ pkgs.beam.packages.erlang_28.elixir ];
-    workstation.editor = ws.whenOn "editor" {
-      languages.elixir = {
-        extras = [ "lang.elixir" ];
-        mason = [ "elixir-ls" ];
-        plugin = ./files/languages/plugins/elixir.lua;
-      };
+lang.language [ "languages" "elixir" ] {
+  description = "the beam toolchain and its editor profile";
+  tools = {
+    elixir = "1.20.5-otp-28";
+    erlang = {
+      version = "28.5.0.8";
+      # prebuilt platforms only — never a kerl source build
+      compile = false;
     };
+  };
+  editor = {
+    extras = [ "lang.elixir" ];
+    mason = [ "elixir-ls" ];
+    plugin = ./files/languages/plugins/elixir.lua;
   };
 }

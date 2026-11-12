@@ -4,19 +4,20 @@ Platforms: linux x86_64 (WSL counts as linux), macOS arm64.
 
 | Property | Value |
 | --- | --- |
-| Tool sourcing | the one nixpkgs input (`nixos-unstable`). The remaining pins declare inline in their owning modules: herdr, the tmux/nunchux checkouts (`fetchFromGitHub`), the hermes checkout (flake input) |
+| Tool sourcing | the one nixpkgs input (`nixos-unstable`). The remaining pins declare inline in their owning modules: herdr, the tmux/nunchux checkouts (`fetchFromGitHub`), the hermes checkout (flake input), the language toolchains (mise registry pins) |
 | Versions | The nixpkgs lock is the version surface (`nix flake update` moves the set). Inline pins move their owning module's row and consumer together |
-| Node version | `pkgs.nodejs_24`; `~/.node-version` derives from the runtime (one source) |
+| Node version | the mise pin in `modules/languages/node/node.nix`; `~/.node-version` derives from the pin (one source) |
 | Update unit | The lock (nixpkgs tools) or the owning module's pin row (inline pins), verification, this table |
 
 | Tool | Version | Source | Target | Platforms |
 | --- | --- | --- | --- | --- |
 | Neovim | 0.12.x | nixpkgs (`modules/editor/editor.nix`) | `.local/bin/nvim`; the language profile composes in the editor module | linux-x86_64, darwin-arm64 |
-| Go | 1.26.x | nixpkgs | on PATH via `home.packages` | linux-x86_64, darwin-arm64 |
+| Go | 1.27.3 | mise pin (`modules/languages/go/go.nix`) | the mise global config's `[tools]`; installed under `~/.local/share/mise`, on PATH through the cd activation | linux-x86_64, darwin-arm64 |
 | Homebrew | 7.0.x | github.com/Homebrew/brew via `nix-homebrew` (`flake.lock`) | the darwin leg installs and pins brew at the default prefix; `homebrew.*` declares its packages | darwin-arm64 |
 | Herdr | 0.9.0 | github.com/herdrdev/herdr | The one inline `fetchurl` pin (no nixpkgs coverage); `.local/bin/herdr` from the store derivation | linux-x86_64, darwin-arm64 |
-| Node.js | 24.x (`pkgs.nodejs_24`) | nixpkgs (`modules/languages/node/node.nix`) | on PATH via `home.packages`; `~/.node-version` derives from the runtime | linux-x86_64, darwin-arm64 |
-| pnpm | 12.x | nixpkgs | on PATH via `home.packages` | linux-x86_64, darwin-arm64 |
+| Node.js | 24.22.2 | mise pin (`modules/languages/node/node.nix`) | the mise global config's `[tools]`; `~/.node-version` derives from the pin | linux-x86_64, darwin-arm64 |
+| pnpm | 12.9.0 | mise pin (`modules/languages/typescript/typescript.nix`) | the mise global config's `[tools]`; installed under `~/.local/share/mise` | linux-x86_64, darwin-arm64 |
+| Elixir + Erlang | 1.20.5-otp-28 / 28.5.0.8 | mise pins (`modules/languages/elixir/elixir.nix`) | the mise global config's `[tools]`; elixir pinned to an otp-28 prebuilt build (1.18.x ships none); erlang prebuilt platforms only (`compile = false`, never a kerl build) | linux-x86_64, darwin-arm64 |
 | ripgrep | 15.2.x | nixpkgs | on PATH via `home.packages` | linux-x86_64, darwin-arm64 |
 | fd | 10.5.x | nixpkgs | on PATH via `home.packages` | linux-x86_64, darwin-arm64 |
 | eza | 0.23.5 | nixpkgs via Home Manager (`programs.eza`) | `ls` = `eza -lh` | linux-x86_64, darwin-arm64 |
@@ -26,7 +27,7 @@ Platforms: linux x86_64 (WSL counts as linux), macOS arm64.
 | lazygit | 0.66.x | nixpkgs | on PATH via `home.packages` | linux-x86_64, darwin-arm64 |
 | tree-sitter (CLI) | 0.26.x | nixpkgs | on PATH via `home.packages` | linux-x86_64, darwin-arm64 |
 | harlequin + hsql | 2.16.2 | nixpkgs | harlequin + `hsql` in one derivation; the hsql agent skill generated from the derivation at build time | linux-x86_64, darwin-arm64 |
-| mise | 2025.5.3 | nixpkgs | on PATH — the binary only: per-project runtime versioning (`mise use`, `.mise.toml`, `mise x`); no managed data dir, no launcher, no activation fragment | linux-x86_64, darwin-arm64 |
+| mise | 2026.10.17 | nixpkgs | the languages domain's runtime manager: the global config (`~/.config/mise/config.toml`, read-only — the members' pins compose `[tools]`), the cd activation in bash/zsh after the direnv hook, the tool installs under `~/.local/share/mise`; project-level pins belong to each repo's `.mise.toml` | linux-x86_64, darwin-arm64 |
 | direnv + nix-direnv | 2.36.0 / 3.0.7 | nixpkgs via Home Manager (`programs.direnv`) | `use flake`/`use nix` with the evaluation cache and GC roots; the bash hook follows the prompt init; complements mise: direnv owns repos with a flake/shell.nix, mise owns repos without nix awareness | linux-x86_64, darwin-arm64 |
 | 1Password CLI | 2.41.x | nixpkgs (`modules/secrets/secrets.nix`; unfree — the acceptance is `nix/lib/license.nix`) | `op` on PATH via `home.packages` | linux-x86_64, darwin-arm64 |
 | Hermes Agent | rev `3b4215785` (v0.23.1) + interpreter `pkgs.python314` | github.com/NousResearch/hermes-agent; nixpkgs (python 3.14.10, the interpreter floor) | Pinned checkout `~/.hermes/hermes-agent` (activation ensure); interpreter at `.local/opt/hermes/python`; launcher at `.local/bin/hermes`; skills as store entry symlinks (`programs.hermes.skills`); extensions into `~/.hermes/plugins`; verify anchor `.local/opt/hermes/pin.json` | linux-x86_64, darwin-arm64 |

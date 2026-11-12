@@ -280,14 +280,11 @@ writeShellScriptBin "workstation-e2e" ''
   pass "shell init"
 
   step "tools run (nixpkgs)"
-  for t in fd fzf rg lazygit tree-sitter node pnpm op; do
+  for t in fd fzf rg lazygit tree-sitter op mise; do
     t_bin=$(find_client "$t") || fail "tools run" "$t is not on PATH"
     "$t_bin" --version >/dev/null 2>&1 \
       || fail "tools run" "$t --version failed at $t_bin"
   done
-  go_bin=$(find_client go) || fail "tools run" "go is not on PATH"
-  "$go_bin" version >/dev/null 2>&1 \
-    || fail "tools run" "go version failed at $go_bin"
   mosh_bin=$(find_client mosh) || fail "tools run" "mosh is not on PATH"
   grep -q -- '--server=.*hm-session-vars.sh' "$mosh_bin" \
     || fail "tools run" "mosh at $mosh_bin is not the wrapper carrying the remote session vars"
@@ -295,17 +292,35 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "tools run" "mosh --version failed through the wrapper"
   pass "tools run"
 
-  step "node runtime single-source (.node-version derived from the nixpkgs runtime)"
+  step "mise plane (config pins, activation after the direnv hook, installed tools)"
+  mise_cfg="$home/.config/mise/config.toml"
+  [ -r "$mise_cfg" ] \
+    || fail "mise plane" "$mise_cfg missing"
+  for pin in 'node = "24.22.2"' 'pnpm = "12.9.0"' 'go = "1.27.3"' 'elixir = "1.20.5-otp-28"'; do
+    grep -qF "$pin" "$mise_cfg" \
+      || fail "mise plane" "$pin missing from $mise_cfg"
+  done
+  grep -qF 'version = "28.5.0.8"' "$mise_cfg" \
+    || fail "mise plane" "the erlang pin missing from $mise_cfg"
   nv=$(cat "$home/.node-version" 2>/dev/null || true)
-  [ -n "$nv" ] || fail "node runtime single-source" ".node-version missing"
-  node_bin=$(find_client node) || fail "node runtime single-source" "node is not on PATH"
-  # the version strip is pure shell: the container lane runs in the
-  # minimal nix image, where sed does not exist
-  runtime=$("$node_bin" --version)
-  runtime=''${runtime#v}
-  [ "$nv" = "$runtime" ] \
-    || fail "node runtime single-source" ".node-version ($nv) does not match the runtime ($runtime)"
-  pass "node runtime single-source"
+  [ "$nv" = "24.22.2" ] \
+    || fail "mise plane" ".node-version carries '$nv', expected the node pin"
+  grep -q 'mise activate bash' "$home/.bashrc" \
+    || fail "mise plane" ".bashrc carries no mise activation"
+  grep -q 'mise activate zsh' "$home/.zshrc" \
+    || fail "mise plane" ".zshrc carries no mise activation"
+  mise_line=$(grep -n 'mise activate bash' "$home/.bashrc" | head -n 1 | cut -d: -f1)
+  [ -n "$mise_line" ] && [ "$mise_line" -gt "$direnv_line" ] \
+    || fail "mise plane" "the mise activation must follow the direnv hook"
+  # exec of the prebuilt toolchains needs a glibc host (nix-ld on NixOS
+  # legs) — the lane proves provisioning of the tools whose binaries run
+  # here (go, pnpm: static); node's mise probe cannot exec on this image,
+  # beam rides prebuilt platforms only (no Ubuntu build answers here)
+  [ -x "$home/.local/share/mise/installs/go/1.27.3/bin/go" ] \
+    || fail "mise plane" "the mise go install did not provision"
+  [ -d "$home/.local/share/mise/installs/pnpm/12.9.0" ] \
+    || fail "mise plane" "the mise pnpm install did not provision"
+  pass "mise plane (config pins, activation after the direnv hook, installed tools)"
 
   step "theme plane (rendered themes, the seeded pick, the switcher, tmux, nunchux, hermes and nvim following, the picker)"
   themes="$home/.local/share/workstation/themes"
@@ -440,7 +455,7 @@ writeShellScriptBin "workstation-e2e" ''
   unset WORKSTATION_SWITCH_HOME_ACTIVATE
   pass "apply-driven switch (the removal apply: go deselected, next generation)"
 
-  step "the removal: go left the profile and the PATH, the rest rides"
+  step "the removal: go left the profile and the mise config, the rest rides"
   grep -q 'lazyvim.plugins.extras.lang.go' "$prof" \
     && fail "the removal" "the go profile entry survived the go-deselected generation"
   grep -q 'lazyvim.plugins.extras.lang.elixir' "$prof" \
@@ -450,14 +465,14 @@ writeShellScriptBin "workstation-e2e" ''
   # managed-path prune must take it from the live tree
   [ ! -e "$home/.config/nvim/lua/languages/plugins/go.lua" ] \
     || fail "the removal" "the go plugin module survived the go-deselected apply (the managed-path prune died)"
-  if go_gone=$(find_client go); then
-    fail "the removal" "go is still on PATH at $go_gone after the go-deselected generation"
+  if grep -qF 'go = "1.27.3"' "$mise_cfg"; then
+    fail "the removal" "the go pin survived the go-deselected generation"
   fi
-  find_client node >/dev/null \
-    || fail "the removal" "node must ride the go-deselected generation"
+  grep -qF 'node = "24.22.2"' "$mise_cfg" \
+    || fail "the removal" "the node pin must ride the go-deselected generation"
   [ -r "$home/.node-version" ] \
     || fail "the removal" ".node-version must ride the go-deselected generation"
-  pass "the removal: go left the profile and the PATH, the rest rides"
+  pass "the removal: go left the profile and the mise config, the rest rides"
 
   step "nvim still boots after the removal"
   nvim_boot >/dev/null 2>"$home/.cache/e2e-nvim-boot-removal.err" \
