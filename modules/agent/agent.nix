@@ -413,25 +413,24 @@ in
       url=${lib.escapeShellArg (if hermes.pin != null then hermes.pin.url else "")}
       rev=${lib.escapeShellArg (if hermes.pin != null then hermes.pin.rev else "")}
       checkout="$HOME/.hermes/hermes-agent"
+      git_=${pkgs.git}/bin/git
       if [ -z "$rev" ]; then
         echo "workstation: hermes checkout ensure deferred — programs.hermes.pin is unset (the module's assertion names the fix)"
-      elif ! command -v git >/dev/null 2>&1; then
-        echo "workstation: hermes checkout ensure deferred — git unavailable on PATH"
       elif [ ! -d "$checkout/.git" ]; then
-        if git clone --quiet "$url" "$checkout" && git -C "$checkout" checkout --quiet --detach "$rev"; then
+        if "$git_" clone --quiet "$url" "$checkout" && "$git_" -C "$checkout" checkout --quiet --detach "$rev"; then
           echo "workstation: hermes checkout cloned at the pinned commit $rev"
         else
           echo "workstation: hermes checkout ensure deferred — clone failed (offline or unreachable)"
         fi
       else
-        head=$(git -C "$checkout" rev-parse HEAD 2>/dev/null || true)
-        dirty=$(git -C "$checkout" status --porcelain 2>/dev/null | head -n 1)
+        head=$("$git_" -C "$checkout" rev-parse HEAD 2>/dev/null || true)
+        dirty=$("$git_" -C "$checkout" status --porcelain 2>/dev/null | head -n 1)
         if [ -n "$dirty" ]; then
           echo "workstation: hermes checkout dirty — runtime state untouched"
         elif [ "$head" = "$rev" ]; then
           echo "workstation: hermes checkout already at the pinned commit"
-        elif git -C "$checkout" merge-base --is-ancestor "$head" "$rev" 2>/dev/null; then
-          if git -C "$checkout" fetch --quiet origin "$rev" && git -C "$checkout" checkout --quiet --detach "$rev"; then
+        elif "$git_" -C "$checkout" merge-base --is-ancestor "$head" "$rev" 2>/dev/null; then
+          if "$git_" -C "$checkout" fetch --quiet origin "$rev" && "$git_" -C "$checkout" checkout --quiet --detach "$rev"; then
             echo "workstation: hermes checkout fetched to the pinned commit $rev"
           else
             echo "workstation: hermes checkout ensure deferred — fetch failed (offline or unreachable)"
