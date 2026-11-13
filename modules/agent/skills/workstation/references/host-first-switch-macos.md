@@ -1,8 +1,8 @@
 # First switch on a darwin host (the darwin leg)
 
-The darwin leg's first switch differs from the linux/home-plane flow: the
-operator surface stays `workstation init`, but the plane behind it is
-nix-darwin, and the bootstrap has its own ordering.
+- Difference from the linux/home plane: the operator surface stays
+  `workstation init`, the plane behind it is nix-darwin, and the bootstrap
+  has its own ordering.
 
 ## Sequence
 
@@ -48,14 +48,14 @@ nix-darwin, and the bootstrap has its own ordering.
   with `--print-out-paths` and activate the printed path (the same
   single-invocation rule as the linux leg).
 - **Interactive sudo over ssh**: every system-plane step prompts; the
-  operator stays at the pane and types. Poll the pane between steps; do
-  not batch a sudo prompt with other commands.
+  operator types each password. One step per prompt; never batch a sudo
+  prompt with other commands.
 
 ## The lived-in home gauntlet (first switch on a lived-in mac)
 
 A lived-in mac fails the first darwin switch in a fixed order of gates.
-Each fix below is a real landed change — do not skip ahead: fix, re-run,
-read the NEXT gate.
+Each fix is a landed change; never skip ahead — fix, re-run, read the
+NEXT gate.
 
 1. **Determinate vs nix-darwin Nix management.** A Determinate-installed
    mac dies at eval: nix-darwin's native Nix management conflicts with the
@@ -85,11 +85,11 @@ read the NEXT gate.
    conflicts (the old plugin checkouts, fonts) log in the cmp form that a
    file-only extraction misses.
 5. **The PATH shadowing follow-up.** After a green switch, stale
-   `~/.local/bin` links still shadow the substrate's tools
-   (`nvim` 0.12.4 vs 0.12.6, mise/eza/starship from `~/.local/opt`): the
-   stale-link cleanup pass (drop the superseded `~/.local/bin` links and
-   `~/.local/opt` trees, preserving the operator's own tools) is what
-   actually puts the substrate's versions on PATH. Verify with
+   `~/.local/bin` links still shadow the substrate's tools (an older
+   nvim/mise/eza from `~/.local/opt`): the stale-link cleanup pass (drop
+   the superseded `~/.local/bin` links and `~/.local/opt` trees,
+   preserving locally-installed tools outside the substrate's surface) is
+   what actually puts the substrate's versions on PATH. Verify with
    `nvim --version` and `which <tool>` after the cleanup, not before.
 
 ## Repo state on a converging host
@@ -100,31 +100,12 @@ read the NEXT gate.
   `git checkout --` the tracked copies, pull, copy them into the new place
   (never `git stash` — the stash ref is shared across worktrees).
 - A mac whose staged `workstation-switch` predates a launcher-contract
-  change needs one direct `sudo darwin-rebuild switch --flake <ref>#<key>
+  change needs one direct `sudo darwin-rebuild switch --flake <ref>#<key>`
   --override-input machine-files path:$PWD/hosts/local` (SKILL.md, driver
   contract rule); every later switch is `workstation apply --system`.
 - Pulling main mid-landing (a card worker is committing a restructure)
   leaves the checkout in a state whose eval fails with phantom paths —
   check the card status and re-pull only after the landing card completes.
-- Driving the mac over Tailscale SSH: each new session may require the
-  browser 'additional check'; the link expires within minutes. Trigger the
-  ssh only when the operator says they are at the browser, hand them the
-  fresh link, and read the pane once after.
-- When the operator says 'authenticated', READ THE PANE (with scrollback,
-  `capture-pane -S -60`) before sending anything: the session may already
-  be open, or the host may have rebooted ('System going down'). After a
-  disconnect, `tailscale ping -c 1 <host>` from the other host before
-  reconnecting.
-- An unexpected host-key prompt (sshd answering instead of Tailscale SSH):
-  verify the offered fingerprint against the coordination server before
-  accepting — `tailscale status --json` → the peer's `sshHostKeys`, each
-  piped through `ssh-keygen -lf -`. Capture the pane IMMEDIATELY before
-  typing the answer: a prompt already answered turns `yes` into the `yes`
-  command (an endless 'y' stream — Ctrl-C at once).
-- Delivering files to the mac without an ssh key: serve a scratch dir
-  (only the files needed) with `python3 -m http.server <port> --bind
-  <the other host's tailnet IP>` as a background process, `curl -fsS` from the mac pane,
-  then kill the server right after the fetch.
 
 ## Homebrew as a managed dependency
 
@@ -148,13 +129,11 @@ enables `services.tailscale`; removing an existing Tailscale.app, its CLI
 shim or a brew formula is a host-local one-off — an out-of-repo runner,
 never a system activation hook. A stopped removal leaves the app serving.
 
-1. Deliver one runner and start it in tmux ON the mac (`tmux new-session
-   -s hostswitch 'sh runner | tee ~/log'`): the sysext removal drops the
-   tailnet the ssh session rides. Serve the runner from the other host over
-   the tailnet (a temporary `python3 -m http.server` bound to its tailnet
-   IP; stop it after) when no ssh key exists. Inside: `sudo -v` once plus a
-   keepalive loop, GUI steps through `sudo launchctl asuser <uid> sudo -u
-   <user> open|osascript`.
+1. Deliver one runner and start it in a tmux session ON the target
+   (`tmux new-session -s hostswitch 'sh runner | tee <log>'`): the sysext
+   removal drops the tailnet an ssh session may ride. Inside: `sudo -v`
+   once plus a keepalive loop, GUI steps through `sudo launchctl asuser
+   <uid> sudo -u <user> open|osascript`.
 2. The switch deactivates the sysext as the CONSOLE user
    (`/Applications/Tailscale.app/Contents/MacOS/tailscale configure sysext
    deactivate`, bounded with `perl -e 'alarm shift; exec @ARGV' 300`):
@@ -165,7 +144,8 @@ never a system activation hook. A stopped removal leaves the app serving.
    every peer reference breaks.
 4. Then a second `apply --system` (A2A_HOST re-binds to the new IP), then
    the fleet join.
-5. Verify from the other host while the pane is down: `tailscale status`
-   (same name, new IP, same user), the fleet marker and A2A card on the new
-   node, the audit log. `systemextensionsctl list` shows the old extensions
-   'terminated waiting to uninstall on reboot' — normal.
+5. Verify from another host while the target's session is down:
+   `tailscale status` (same node name, new IP, same user), the fleet
+   marker and A2A card on the new node, the audit log.
+   `systemextensionsctl list` shows the old extensions 'terminated
+   waiting to uninstall on reboot' — normal.

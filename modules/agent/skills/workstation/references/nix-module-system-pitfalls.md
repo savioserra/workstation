@@ -1,8 +1,7 @@
 # Nix module system: exercised pitfalls and proven idioms
 
-Every shape here was verified by live `nix eval` against the real module system
-(the pattern harness attached to the selections card) — not read from prose.
-Re-run the harness when touching these surfaces.
+- Provenance: every shape verified by live `nix eval` against the real module system (the selections-card pattern harness), not read from prose.
+- Rule: re-run the harness when touching these surfaces.
 
 ## Proven idioms (use these)
 

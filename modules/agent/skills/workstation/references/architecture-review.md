@@ -1,10 +1,10 @@
 # Architecture review of the substrate (critique against nixpkgs-native)
 
-The operator's target: per-machine flags (`network = true`,
-`languages.go = true`) select domains; nixpkgs and the module system resolve
-everything else; domains are self-contained and never reach into each other.
-A review measures the tree against that, with evidence, and proposes — it
-never implements before the operator rules.
+- Target: per-machine flags (`network = true`, `languages.go = true`)
+  select domains; nixpkgs and the module system resolve everything else;
+  domains self-contained, no cross-domain reach.
+- Rule: a review measures the tree against that with evidence and
+  PROPOSES — never implements before the operator rules.
 
 ## Procedure
 

@@ -1,8 +1,8 @@
 # First switch on a host (converging onto the substrate)
 
-The procedure for converging a real host onto the nixpkgs-native substrate
-(local or remote). The remote-host pane mechanics live in the swarm skill's
-tmux section; this file is the substrate-specific sequence and its traps.
+- Scope: the substrate-specific sequence and its traps for converging a
+  host (local or remote). Remote-host pane mechanics: the swarm skill's
+  tmux section.
 
 ## Sequence
 
@@ -48,8 +48,7 @@ tmux section; this file is the substrate-specific sequence and its traps.
    headless boot with the real language set is the only smoke that catches
    generated-profile defects), theme tokens resolve, the shell fragments
    source in a fresh interactive shell, hermes launcher `--version`, skills
-   count, and the operator's own services (docker stacks, dashboards)
-   verified untouched.
+   count, and any pre-existing host services verified untouched.
 9. **Stale leftovers** (stray tool trees, stale `.local/bin`
    links): drop only on explicit operator consent, naming the exact list —
    check every link with `readlink -f` first; dangling links into dropped

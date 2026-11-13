@@ -1,13 +1,13 @@
 # Hermes A2A in the agent domain — mechanics and pitfalls
 
-The surface: `programs.hermes.a2a` (modules/agent/agent.nix), the
-activation `converge-hermes-a2a` (files/a2a-converge.sh), `workstation
-peers` (files/a2a-peers.sh), the fleet (files/a2a-fleet.sh, `workstation
-fleet`, the member service), the token store (files/a2a-token.sh), all
-built in modules/agent/packages.nix and exported as flake `packages`; the
-machine-local `hosts/peers.nix` and the identity's `fleet` field.
-docs/capabilities.md (agent) is the contract; this file carries what cost
-debug cycles.
+- Surface: `programs.hermes.a2a` (modules/agent/agent.nix), the activation
+  `converge-hermes-a2a` (files/a2a-converge.sh), `workstation peers`
+  (files/a2a-peers.sh), the fleet (files/a2a-fleet.sh, `workstation
+  fleet`, the member service), the token store (files/a2a-token.sh), all
+  built in modules/agent/packages.nix and exported as flake `packages`;
+  the machine-local `hosts/peers.nix` and the identity's `fleet` field.
+- Contract: docs/capabilities.md (agent). This file: what cost debug
+  cycles.
 
 ## The hermes CLI as an activation writer
 
@@ -112,17 +112,19 @@ debug cycles.
   env` on darwin).
 - macOS leg: `sudo env NIX_CONFIG="extra-experimental-features =
   nix-command flakes" "$(command -v workstation)" apply --system` (sudo per
-  apply; the operator types the password in the pane). Check `command -v
+  apply; the operator types the password). Check `command -v
   workstation` resolves to the substrate shim first — a stale
   `~/.local/bin/workstation` shadows it (move it to a dated backup dir).
-- macOS has no `timeout(1)` — don't use it in pane commands.
+- macOS has no `timeout(1)` — don't use it in remote-session commands.
 - Testing a branch on a host whose checkout carries uncommitted machine
   files (identity, peers, selections, evaluation-only edits): `tar -cf` them
   to scratch, `git checkout -- <files>`, `git checkout --detach
   origin/<branch>` (a branch checked out in another worktree cannot be
   checked out again), `tar -xf` back, verify `git status`.
-- The activation PATH has no git: every switch prints `hermes checkout
-  ensure deferred — git unavailable on PATH` — pre-existing, harmless.
+- The activation PATH has no host git: the agent module's checkout ensure
+  runs git from the store (`git` in runtimeInputs), never the host's —
+  a `git unavailable` deferral line means the staged activation predates
+  that fix.
 - A fleet join restarts the gateway on BOTH ends; `hermes gateway restart`
   exits and systemd restarts it (journal 'Scheduled restart job, restart
   counter is at N' — a lifetime counter, not a crash loop). Checks right

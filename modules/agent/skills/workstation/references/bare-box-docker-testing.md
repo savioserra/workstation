@@ -1,8 +1,8 @@
 # Container testing of installs
 
-The container lanes: the committed tree's behavioral proof, and the
-one-liner installer's dialog UX. Both run in throwaway containers —
-fresh state per run, never a committed image.
+- Lanes: the committed tree's behavioral proof (container E2E), and the
+  one-liner installer's dialog UX (interactive lane). Both in throwaway
+  containers — fresh state per run, never a committed image.
 
 ## Lane 1 — the container E2E (the behavioral gate)
 
