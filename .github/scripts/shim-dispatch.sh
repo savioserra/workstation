@@ -295,6 +295,7 @@ case $prompt in
 *hostname*) printf 'newhost\n' >&2 ;;
 *operator\ user*) printf 'testuser\n' >&2 ;;
 *home\ directory*) printf '/home/testuser\n' >&2 ;;
+*vault*) printf 'Ops\n' >&2 ;;
 *) exit 1 ;;
 esac
 STUB
@@ -303,6 +304,8 @@ WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$sp "$shim" setup >/dev/null 2>&1 ||
 	fail 'setup must rerun the inquiry'
 [ "$(q "$sp" .host)" = newhost ] ||
 	fail "setup must re-ask a captured field (got host: $(q "$sp" .host))"
+[ "$(q "$sp" .vault)" = Ops ] ||
+	fail "setup must re-ask the vault (got: $(q "$sp" .vault))"
 [ "$(q "$sp" .settings.workstation.languages.elixir.enable)" = true ] ||
 	fail 'setup must record a checked language'
 [ "$(q "$sp" .settings.workstation.languages.go.enable)" = true ] ||
@@ -427,7 +430,7 @@ mkdir -p "$fl/bin"
 : >"$fl/flake.nix"
 fleet_state() { q "$fl" '[.settings.programs.hermes.a2a.enable, .settings.workstation.network.enable] | map(tostring) | join(" ")'; }
 machine "$fl" "$template"
-printf '%s\n' "$(uname -n | cut -d. -f1)" "${USER:-$(id -un)}" "$HOME" yes join >"$root/wt-queue"
+printf '%s\n' "$(uname -n | cut -d. -f1)" "${USER:-$(id -un)}" "$HOME" Workstation yes join >"$root/wt-queue"
 WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$fl "$shim" init >/dev/null 2>&1 || fail 'init with the fleet join must succeed'
 [ "$(fleet_state)" = 'true true' ] || fail "Join must turn the A2A node and the network on (got: $(fleet_state))"
 cp "$fl/hosts/local/machine.json" "$root/fleet-before"
@@ -435,7 +438,7 @@ cp "$fl/hosts/local/machine.json" "$root/fleet-before"
 WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$fl "$shim" init >/dev/null 2>&1 || fail 'a converged re-init must succeed'
 cmp -s "$root/fleet-before" "$fl/hosts/local/machine.json" || fail 'a re-init must keep the fleet choice byte for byte'
 machine "$fl" "$template"
-printf '%s\n' "$(uname -n | cut -d. -f1)" "${USER:-$(id -un)}" "$HOME" no >"$root/wt-queue"
+printf '%s\n' "$(uname -n | cut -d. -f1)" "${USER:-$(id -un)}" "$HOME" Workstation no >"$root/wt-queue"
 WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$fl "$shim" init >/dev/null 2>&1 || fail 'init with Not now must succeed'
 [ "$(fleet_state)" = 'false false' ] || fail "Not now must turn both off (got: $(fleet_state))"
 : >"$root/stub.log"

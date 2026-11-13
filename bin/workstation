@@ -11,9 +11,9 @@ workstation — the nixpkgs-native workstation substrate
 
 install (once per machine):
   init            capture this machine into hosts/local/machine.json (whiptail
-                  dialogs prefilled with the detected values; a re-run
-                  keeps every field you set), choose the languages and
-                  the fleet, and run the first activation:
+                  dialogs prefilled from the detected values; a re-run
+                  keeps every field you set), choose the languages, the
+                  secrets vault and the fleet, and run the first activation:
                     clone && workstation init
                   every later update is
                   `workstation apply` (WORKSTATION_NO_APPLY=1 skips the
@@ -361,6 +361,7 @@ init | setup)
 	host=${host%%.*}
 	user=${USER:-$(id -un)}
 	home_dir=$HOME
+	vault=${WORKSTATION_VAULT:-Workstation}
 	case "$(uname -m)" in
 	arm64 | aarch64) arch=aarch64 ;;
 	*) arch=x86_64 ;;
@@ -442,6 +443,7 @@ init | setup)
 	capture_field host 'machine name (hostname)' "$host"
 	capture_field user 'operator user' "$user"
 	capture_field home 'home directory' "$home_dir"
+	capture_field vault '1Password vault for secret references' "$vault"
 	if [ -z "$(jqx -r '.system // ""' "$machine")" ]; then
 		machine_edit '.system = $s' --arg s "$system"
 	fi

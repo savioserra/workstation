@@ -5,7 +5,7 @@
 | Component | Contract |
 | --- | --- |
 | `secrets` capability | Verify the 1Password CLI (nixpkgs-owned); do not inspect authentication or vault state |
-| `Workstation` vault | Dedicated scope for this workstation's secrets |
+| Configured vault | `$WORKSTATION_VAULT` — dedicated scope for this workstation's secrets |
 | `/skill:secrets` | Explicit-only policy for safe metadata, references, and approved mutations |
 | Declared source | Store `op://` references and non-secret schema only |
 
@@ -19,7 +19,7 @@ host-owned mutable state.
 - Never commit or render secret values into persistent configuration.
 - Prefer `op run` or `op inject` over retrieving values into agent context.
 - Enter secret-reference/vault work only when the user explicitly invokes `/skill:secrets`; other skills must request that invocation, not invoke it automatically.
-- Scope every operation to the `Workstation` vault.
+- Scope every operation to `$WORKSTATION_VAULT`.
 - Require explicit user approval for each create, edit, archive, or delete.
 - Use a vault-scoped service account when technical enforcement is required on a headless host.
 
@@ -37,8 +37,8 @@ Interactive account sessions do not exist on headless hosts. Use a vault-scoped
 service account instead:
 
 1. Create a service account at 1Password.com (Developer tools -> Service
-   accounts). Permissions are immutable after creation: grant the
-   `Workstation` vault with read and write access at creation time.
+   accounts). Permissions are immutable after creation: grant
+   `$WORKSTATION_VAULT` with read and write access at creation time.
 2. Place the token in a root-only env file (mode 0600) at the capability's
    `workstation.secrets.envFile` (default `/etc/workstation/secrets.env`;
    per-host override in the machine file's settings):
@@ -62,7 +62,7 @@ cannot be rotated in place; revoke and recreate the account to change access.
 Within an explicitly invoked secrets workflow, failed authentication/vault checks
 stop further operations. Desktop users should unlock the app and restore CLI
 integration. Headless operators should restore their service-account environment
-and `Workstation` permissions out of band, recreating the account if necessary.
+and vault permissions out of band, recreating the account if necessary.
 Never ask for or inspect the token value, print account/vault details, or start
 an interactive sign-in flow. A missing `op` is an installation issue; use the
 [install guide](../README.md), not an implicit authentication-time install.
@@ -71,17 +71,17 @@ Normal lifecycle verification remains version-only.
 ## Vault items
 
 Items are host inventory, not source: each host's items (its notification
-bridge, deploy panels, game servers, API keys) live in the `Workstation` vault
+bridge, deploy panels, game servers, API keys) live in the configured vault
 with stable names, non-secret fields declared here only when a substrate
 surface consumes them, secret fields populated in the 1Password application.
 Agents never copy values between a host file and the vault.
 
 ## Reference form
 
-Use stable item and field names:
+`<vault>` = `$WORKSTATION_VAULT`. Use stable item and field names:
 
 ```dotenv
-<UPPER_SNAKE_KEY>=op://Workstation/<item>/<field>
+<UPPER_SNAKE_KEY>=op://<vault>/<item>/<field>
 ```
 
 Consume references without exposing resolved values:

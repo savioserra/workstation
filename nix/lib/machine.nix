@@ -15,12 +15,15 @@ in
 
   homeModules = [
     { config = settings; }
-    {
-      home.username = m.user;
-      home.homeDirectory = m.home;
-      workstation.switch.checkout = m.checkout or null;
-      programs.hermes.a2a.name = m.host;
-      programs.hermes.a2a.peers = import (root + "/peers.nix");
-    }
+    (
+      {
+        home.username = m.user;
+        home.homeDirectory = m.home;
+        workstation.switch.checkout = m.checkout or null;
+        programs.hermes.a2a.name = m.host;
+        programs.hermes.a2a.peers = import (root + "/peers.nix");
+      }
+      // lib.optionalAttrs (m ? vault) { workstation.secrets.vault = m.vault; }
+    )
   ];
 }

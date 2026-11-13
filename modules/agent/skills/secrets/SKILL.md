@@ -1,19 +1,19 @@
 ---
 name: secrets
-description: Safely manages this workstation's secret references and explicitly approved 1Password metadata or mutations in the dedicated Workstation vault. Use only when the user invokes /skill:secrets.
-compatibility: Requires the 1Password CLI and an authenticated account with access to the Workstation vault.
+description: Safely manages this workstation's secret references and explicitly approved 1Password metadata or mutations in the configured vault ($WORKSTATION_VAULT). Use only when the user invokes /skill:secrets.
+compatibility: Requires the 1Password CLI and an authenticated account with access to $WORKSTATION_VAULT.
 disable-model-invocation: true
 ---
 
 # Secrets
 
-Use only the 1Password vault named `Workstation`. This skill is a handling policy, not a permission boundary.
+Use only `$WORKSTATION_VAULT`. This skill is a handling policy, not a permission boundary.
 
 ## Start
 
 1. Confirm `op --version` succeeds.
 2. Confirm authentication with `op whoami` without printing account details.
-3. Confirm `op vault get Workstation` succeeds without displaying its JSON.
+3. Confirm `op vault get "$WORKSTATION_VAULT"` succeeds without displaying its JSON.
 4. If any check fails, stop. For a missing CLI, refer to the repository install guide; do not install it implicitly. On desktop, ask the user to unlock 1Password/enable CLI integration. On headless hosts, ask the operator to restore the vault-scoped service-account environment and access. Follow `docs/secrets.md` from the located repository root, not relative to this deployed skill. Never inspect/request token values or start an interactive sign-in flow.
 
 Never enumerate, inspect, or modify another vault. Desktop CLI authentication may technically grant broader access, but that access is out of scope.
@@ -21,7 +21,7 @@ Never enumerate, inspect, or modify another vault. Desktop CLI authentication ma
 ## Default workflow
 
 1. Ask what application, item, and field schema the user intends to manage.
-2. Prefer stable `op://Workstation/<item>/<field>` references in the declared source tree.
+2. Prefer stable `op://$WORKSTATION_VAULT/<item>/<field>` references in the declared source tree.
 3. Prefer `op run` or `op inject` so values flow directly to the consuming process.
 4. Keep normal `workstation apply`, sync, tests, and verification independent of vault authentication.
 5. Inspect only titles, field labels, categories, and other non-secret metadata when diagnosing schema.
@@ -40,7 +40,7 @@ Creating, editing, archiving, or deleting an item requires explicit user approva
 
 Before a mutation:
 
-1. State the target as `Workstation/<item>`.
+1. State the target as `$WORKSTATION_VAULT/<item>`.
 2. List field labels and types, never values.
 3. Explain whether the operation creates, replaces, archives, or deletes data.
 4. Wait for confirmation.
@@ -52,7 +52,7 @@ Prefer creating an item schema without secret values and having the user populat
 Commit only references and non-secret schema. A reference file may contain entries such as:
 
 ```dotenv
-<UPPER_SNAKE_KEY>=op://Workstation/<item>/<field>
+<UPPER_SNAKE_KEY>=op://<vault>/<item>/<field>   # <vault> = $WORKSTATION_VAULT
 ```
 
 Do not make the `secrets` lifecycle capability verify authentication or vault contents. It verifies the managed 1Password CLI only; interactive account state remains host-owned.
