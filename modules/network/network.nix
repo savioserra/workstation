@@ -33,6 +33,8 @@ in
         entries."app:net" = {
           cmd = "sh -c 'tailscale status | less -R'";
           desc = "Tailnet status";
+          # a window: the report's lines fill the pager, a popup cannot size to them
+          primary_action = "window";
           rank = 30;
         };
       };

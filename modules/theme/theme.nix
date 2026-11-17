@@ -210,6 +210,8 @@ ws.capability [ "theme" ] {
         lib.nameValuePair "app:theme/${name}" {
           cmd = "workstation-theme set ${name}";
           desc = t.description;
+          # the pick runs unseen: a popup would draw over the theme's own reload
+          primary_action = "background_window";
         }
       ) cfg.themes;
     };
