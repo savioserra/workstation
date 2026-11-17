@@ -91,7 +91,9 @@ else
 fi
 
 step 'whitespace (git diff --check)'
-git diff --check || fail=1
+# a .patch file is a unified diff: its context lines carry the space-before-tab
+# the gate hunts, so the artifact itself stays out of the scan
+git diff --check -- . ':!*.patch' || fail=1
 
 [ "$fail" -eq 0 ] || { printf '\ncheck.sh: FAILED\n' >&2; exit 1; }
 printf '\ncheck.sh: OK\n'

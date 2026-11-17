@@ -376,8 +376,8 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "theme plane" "an unknown theme must exit 2 (got $rc)"
   grep -qx '\[app:theme/light\]' "$home/.config/nunchux/config" \
     || fail "theme plane" "the nunchux picker carries no light entry"
-  grep -qx 'primary_action = background_window' "$home/.config/nunchux/config" \
-    || fail "theme plane" "the theme pick drew a popup instead of applying unseen"
+  grep -qx 'primary_action = run' "$home/.config/nunchux/config" \
+    || fail "theme plane" "the theme pick must run silently, no tmux surface"
   pass "theme plane"
 
   step "init capture live (placeholders fill, settings survive, the re-init is byte-identical)"

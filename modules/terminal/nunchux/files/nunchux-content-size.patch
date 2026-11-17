@@ -1,5 +1,17 @@
+diff --git a/internal/config/types.go b/internal/config/types.go
+index 9760eb4..e70d62f 100644
+--- a/internal/config/types.go
++++ b/internal/config/types.go
+@@ -7,6 +7,7 @@ const (
+ 	ActionPopup            Action = "popup"
+ 	ActionWindow           Action = "window"
+ 	ActionBackgroundWindow Action = "background_window"
++	ActionRun              Action = "run"
+ 	ActionPaneRight        Action = "pane_right"
+ 	ActionPaneLeft         Action = "pane_left"
+ 	ActionPaneAbove        Action = "pane_above"
 diff --git a/internal/tmux/actions.go b/internal/tmux/actions.go
-index d50fb8b..3903cb0 100644
+index d50fb8b..e03971f 100644
 --- a/internal/tmux/actions.go
 +++ b/internal/tmux/actions.go
 @@ -40,6 +40,10 @@ func (c *Client) Launch(opts LaunchOptions) error {
@@ -28,7 +40,29 @@ index d50fb8b..3903cb0 100644
  
  	// Clamp dimensions to max values if set
  	opts.Width, opts.Height = c.clampDimensions(opts.Width, opts.Height, opts.MaxWidth, opts.MaxHeight)
-@@ -266,13 +264,18 @@ func (c *Client) createPopupScript(opts LaunchOptions) (string, error) {
+@@ -62,6 +60,8 @@ func (c *Client) Launch(opts LaunchOptions) error {
+ 	switch opts.Action {
+ 	case config.ActionPopup:
+ 		return c.launchPopup(opts)
++	case config.ActionRun:
++		return c.launchRun(opts)
+ 	case config.ActionWindow:
+ 		return c.launchWindow(opts, false)
+ 	case config.ActionBackgroundWindow:
+@@ -79,6 +79,12 @@ func (c *Client) Launch(opts LaunchOptions) error {
+ 	}
+ }
+ 
++// launchRun executes the command through tmux's background run-shell: no
++// window, no pane, no popup is ever created.
++func (c *Client) launchRun(opts LaunchOptions) error {
++	return exec.Command("tmux", "run-shell", "-b", c.WrapCommand(opts.Cmd)).Run()
++}
++
+ func (c *Client) launchPopup(opts LaunchOptions) error {
+ 	script, err := c.createPopupScript(opts)
+ 	if err != nil {
+@@ -266,13 +272,18 @@ func (c *Client) createPopupScript(opts LaunchOptions) (string, error) {
  	return script, nil
  }
  
