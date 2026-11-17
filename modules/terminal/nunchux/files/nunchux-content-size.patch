@@ -11,7 +11,7 @@ index 9760eb4..e70d62f 100644
  	ActionPaneLeft         Action = "pane_left"
  	ActionPaneAbove        Action = "pane_above"
 diff --git a/internal/tmux/actions.go b/internal/tmux/actions.go
-index d50fb8b..e03971f 100644
+index d50fb8b..bb1825c 100644
 --- a/internal/tmux/actions.go
 +++ b/internal/tmux/actions.go
 @@ -40,6 +40,10 @@ func (c *Client) Launch(opts LaunchOptions) error {
@@ -49,20 +49,21 @@ index d50fb8b..e03971f 100644
  	case config.ActionWindow:
  		return c.launchWindow(opts, false)
  	case config.ActionBackgroundWindow:
-@@ -79,6 +79,12 @@ func (c *Client) Launch(opts LaunchOptions) error {
+@@ -79,6 +79,13 @@ func (c *Client) Launch(opts LaunchOptions) error {
  	}
  }
  
 +// launchRun executes the command through tmux's background run-shell: no
-+// window, no pane, no popup is ever created.
++// window, no pane, no popup is ever created. tmux paints a run-shell's
++// output as a view, so the output is discarded — run is silent by contract.
 +func (c *Client) launchRun(opts LaunchOptions) error {
-+	return exec.Command("tmux", "run-shell", "-b", c.WrapCommand(opts.Cmd)).Run()
++	return exec.Command("tmux", "run-shell", "-b", c.WrapCommand(opts.Cmd)+" >/dev/null 2>&1").Run()
 +}
 +
  func (c *Client) launchPopup(opts LaunchOptions) error {
  	script, err := c.createPopupScript(opts)
  	if err != nil {
-@@ -266,13 +272,18 @@ func (c *Client) createPopupScript(opts LaunchOptions) (string, error) {
+@@ -266,13 +273,18 @@ func (c *Client) createPopupScript(opts LaunchOptions) (string, error) {
  	return script, nil
  }
  
