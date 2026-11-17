@@ -237,8 +237,8 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "nunchux plane" "the dark pick's fzf colors did not render (text=#f5f5dc missing)"
   grep -qx '\[app:sql\]' "$home/.config/nunchux/config" \
     || fail "nunchux plane" "the database domain's sql entry did not render"
-  grep -qx '\[app:net\]' "$home/.config/nunchux/config" \
-    && fail "nunchux plane" "the net entry rendered with the network domain off"
+  grep -qx '\[app:tailscale\]' "$home/.config/nunchux/config" \
+    && fail "nunchux plane" "the tailscale entry rendered with the network domain off"
   grep -qx '\[app:system/btop\]' "$home/.config/nunchux/config" \
     || fail "nunchux plane" "the system menu's btop entry did not render"
   btop_bin=$(find_client btop) || fail "nunchux plane" "btop (the system entry's command) is not on PATH"

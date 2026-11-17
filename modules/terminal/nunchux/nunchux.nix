@@ -13,20 +13,34 @@ let
   cfg = config.workstation.terminal.nunchux;
   home = config.home.homeDirectory;
 
-  nunchuxTree =
-    ws.overlayTree
-      (pkgs.fetchFromGitHub {
-        owner = "datamadsen";
-        repo = "nunchux";
-        rev = "1546eaa980d834c331496ea9d51942be07ea9fdd";
-        hash = "sha256-C7sXigf8qB5umoZSU8nsqj6vPdd8NMhmTg8B64rysUw=";
-      })
-      [
-        {
-          path = "bin/.platform";
-          source = ./files/.tmux/plugins/nunchux/bin/.platform;
-        }
-      ];
+  nunchuxSrc = pkgs.fetchFromGitHub {
+    owner = "datamadsen";
+    repo = "nunchux";
+    rev = "1546eaa980d834c331496ea9d51942be07ea9fdd";
+    hash = "sha256-C7sXigf8qB5umoZSU8nsqj6vPdd8NMhmTg8B64rysUw=";
+  };
+
+  # the pinned tree's launcher binary rebuilt with files/nunchux-content-size.patch:
+  # absolute sizes are cells (as documented) and a `!command` size runs at launch
+  nunchuxBin = pkgs.buildGoModule {
+    pname = "nunchux";
+    version = "3.1.3";
+    src = nunchuxSrc;
+    patches = [ ./files/nunchux-content-size.patch ];
+    vendorHash = "sha256-zsCA2e0dk/1ByA4TVyfrotkqGmMLJuyfZkOUMq+tkuo=";
+    doCheck = false;
+  };
+
+  nunchuxTree = ws.overlayTree nunchuxSrc [
+    {
+      path = "bin/.platform";
+      source = ./files/.tmux/plugins/nunchux/bin/.platform;
+    }
+    {
+      path = "bin/nunchux";
+      source = "${nunchuxBin}/bin/nunchux";
+    }
+  ];
 
   fieldsOf =
     e:

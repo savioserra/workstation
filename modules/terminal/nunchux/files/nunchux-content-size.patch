@@ -1,0 +1,55 @@
+diff --git a/internal/tmux/actions.go b/internal/tmux/actions.go
+index d50fb8b..3903cb0 100644
+--- a/internal/tmux/actions.go
++++ b/internal/tmux/actions.go
+@@ -40,6 +40,10 @@ func (c *Client) Launch(opts LaunchOptions) error {
+ 		}
+ 	}
+ 
++	// Dynamic dimensions: a `!command` runs now, its stdout is the size in cells
++	opts.Width = c.resolveDim(opts.Width)
++	opts.Height = c.resolveDim(opts.Height)
++
+ 	// Default dimensions
+ 	if opts.Width == "" {
+ 		opts.Width = "90%"
+@@ -48,13 +52,7 @@ func (c *Client) Launch(opts LaunchOptions) error {
+ 		opts.Height = "90%"
+ 	}
+ 
+-	// Add % suffix if just a number
+-	if !strings.HasSuffix(opts.Width, "%") && isNumeric(opts.Width) {
+-		opts.Width = opts.Width + "%"
+-	}
+-	if !strings.HasSuffix(opts.Height, "%") && isNumeric(opts.Height) {
+-		opts.Height = opts.Height + "%"
+-	}
++	// A bare number is absolute cells (as documented); only a % suffix is relative
+ 
+ 	// Clamp dimensions to max values if set
+ 	opts.Width, opts.Height = c.clampDimensions(opts.Width, opts.Height, opts.MaxWidth, opts.MaxHeight)
+@@ -266,13 +264,18 @@ func (c *Client) createPopupScript(opts LaunchOptions) (string, error) {
+ 	return script, nil
+ }
+ 
+-func isNumeric(s string) bool {
+-	for _, c := range s {
+-		if c < '0' || c > '9' {
+-			return false
+-		}
++// resolveDim expands a `!command` dimension; its stdout (trimmed) is the size
++// in cells. Anything else passes through; a failed command answers empty and
++// the caller's default applies.
++func (c *Client) resolveDim(dim string) string {
++	if !strings.HasPrefix(dim, "!") {
++		return dim
++	}
++	out, err := exec.Command("sh", "-c", dim[1:]).Output()
++	if err != nil {
++		return ""
+ 	}
+-	return len(s) > 0
++	return strings.TrimSpace(string(out))
+ }
+ 
+ // clampDimensions clamps width/height to max values if set

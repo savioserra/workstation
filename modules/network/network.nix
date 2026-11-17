@@ -20,21 +20,35 @@ let
     prelude = "TAILSCALE_PKG=${pkgs.tailscale}\n";
     file = ./files/tailscaled-ensure.sh;
   };
+  report = ws.script {
+    name = "tailscale-report";
+    inputs = [
+      pkgs.coreutils
+      pkgs.gawk
+      pkgs.jq
+      pkgs.tailscale
+    ];
+    file = ./files/tailscale-report;
+  };
 in
 {
   options.workstation.network.enable = lib.mkEnableOption "tailscale, the fleet transport";
 
   config = lib.mkMerge [
     (lib.mkIf (on && pkgs.stdenv.hostPlatform.isLinux) {
-      home.packages = [ pkgs.tailscale ];
+      home.packages = [
+        pkgs.tailscale
+        report
+      ];
     })
     (lib.mkIf on {
       workstation.terminal.nunchux = ws.whenOn [ "terminal" "nunchux" ] {
-        entries."app:net" = {
-          cmd = "sh -c 'tailscale status | less -R'";
+        entries."app:tailscale" = {
+          cmd = "tailscale-report view | less -R";
           desc = "Tailnet status";
-          # a window: the report's lines fill the pager, a popup cannot size to them
-          primary_action = "window";
+          # the popup sizes itself to the rendered report (`!command` dims)
+          width = "!tailscale-report width";
+          height = "!tailscale-report height";
           rank = 30;
         };
       };

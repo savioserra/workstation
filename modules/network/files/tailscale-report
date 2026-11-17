@@ -1,0 +1,70 @@
+# tailscale-report: the tailnet status report for the launcher popup
+#
+# | verb | effect |
+# | --- | --- |
+# | width | the popup width in cells (layout is fixed-width) |
+# | height | the popup height in cells (content rows + borders + slack) |
+# | view | the report: summary header, then one row per device |
+#
+# row layout: dot (online green ●, offline gray ○) + name + os + note; color
+# pairs with the dot and dim text, never color alone. offline sorts last.
+# shellcheck shell=bash
+set -eu
+
+mode=${1:-view}
+
+rows() {
+	status=$(tailscale status --json 2>/dev/null)
+	printf '%s' "$status" | jq -r '
+		def seen: (.LastSeen | sub("\\.[0-9]+"; "") | fromdateiso8601);
+		def since: ((now - seen) | floor) as $s
+			| if $s >= 86400 then "\($s / 86400 | floor)d ago"
+			elif $s >= 3600 then "\($s / 3600 | floor)h ago"
+			elif $s >= 60 then "\($s / 60 | floor)m ago"
+			else "just now" end;
+		[ .Self ] + [ .Peer[] ]
+		| sort_by([(if .Online then 0 else 1 end), .HostName])
+		| .[]
+		| [ .HostName, .OS,
+			(if .Online then
+				(if ((.CurAddr // "") != "") then "direct " + (.CurAddr | sub("^\\[|\\]:[0-9]+$"; ""))
+				else "relayed" end)
+			else "offline · " + since end),
+			.Online ]
+		| @tsv'
+}
+
+g=$'\033[32m'
+gr=$'\033[90m'
+b=$'\033[1m'
+d=$'\033[2m'
+o=$'\033[0m'
+
+case $mode in
+width) echo 66 ;;
+height)
+	n=$(rows | wc -l)
+	echo $((n + 4))
+	;;
+view)
+	list=$(rows)
+	total=$(printf '%s\n' "$list" | wc -l)
+	on=$(printf '%s\n' "$list" | awk -F'\t' '$NF == "true"' | wc -l)
+	printf '%stailscale%s · %s● %d online%s · %s○ %d offline%s\n\n' "$b" "$o" "$g" "$on" "$o" "$gr" "$((total - on))" "$o"
+	printf '%s\n' "$list" |
+		while IFS=$'\t' read -r name os note online; do
+			name=${name:0:14}
+			os=${os:0:7}
+			note=${note:0:34}
+			if [ "$online" = true ]; then
+				printf '%s●%s %s%-14s%s %s%-7s%s %s%s%s\n' "$g" "$o" "$b" "$name" "$o" "$d" "$os" "$o" "$d" "$note" "$o"
+			else
+				printf '%s○%s %s%-14s%s %s%-7s%s %s%s%s\n' "$gr" "$o" "$gr" "$name" "$o" "$gr" "$os" "$o" "$gr" "$note" "$o"
+			fi
+		done
+	;;
+*)
+	echo "usage: tailscale-report width|height|view" >&2
+	exit 2
+	;;
+esac
