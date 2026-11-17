@@ -27,7 +27,7 @@ rows() {
 		| .[]
 		| [ .HostName, .OS,
 			(if .Online then
-				(if ((.CurAddr // "") != "") then "direct " + (.CurAddr | sub("^\\[|\\]:[0-9]+$"; ""))
+				(if ((.CurAddr // "") != "") then "direct " + (.CurAddr | sub("\\]:[0-9]+$"; "") | sub("^\\["; ""))
 				else "relayed" end)
 			else "offline · " + since end),
 			.Online ]
@@ -44,7 +44,8 @@ case $mode in
 width) echo 66 ;;
 height)
 	n=$(rows | wc -l)
-	echo $((n + 4))
+	# content + header + blank + the pager's status row + the two border rows
+	echo $((n + 5))
 	;;
 view)
 	list=$(rows)
