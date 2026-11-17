@@ -42,6 +42,18 @@ in
       programs.bash.initExtra = lib.mkOrder 1950 ''
         eval "$(${lib.getExe config.programs.direnv.package} hook bash)"
       '';
+
+      # the UTF-8 session default: bare shells (ssh commands, launchers) start
+      # with no locale and pagers render multibyte glyphs as hex bytes;
+      # C.UTF-8 is builtin to glibc and needs no archive generation
+      home.sessionVariables = {
+        LANG = lib.mkDefault "C.UTF-8";
+        # a nix host outside NixOS resolves locales from the host's archive;
+        # NixOS owns its own path and its own environment
+        LOCALE_ARCHIVE = lib.mkIf (pkgs.stdenv.hostPlatform.isLinux && !builtins.pathExists /etc/NIXOS) (
+          lib.mkDefault "/usr/lib/locale/locale-archive"
+        );
+      };
     }
     (lib.mkIf (extras != "") {
       programs.bash.initExtra = lib.mkOrder 2000 extras;
