@@ -246,7 +246,8 @@ _RUN = {
         "(ssh, REPLs): run 'ssh host' with await 'password:|\\$' and act "
         "while the session stays live; full-session wait also works (the "
         "marker fires at logout). no_wait=true submits and returns "
-        "immediately. timeout caps the wait (default 180s, rc 124)."
+        "immediately. timeout caps the wait (default 180s, rc 124). rc 5: the "
+        "command finished in a pane without the marker helpers, exit code unknown."
     ),
     "parameters": {
         "type": "object",

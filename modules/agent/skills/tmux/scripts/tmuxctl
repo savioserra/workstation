@@ -157,25 +157,66 @@ def cmd_run(args):
     run_wait(args)
 
 
+HELPERS_OPT = "@tmuxctl_helpers"
+
+
+def _miss(name):
+    # the shell's own complaint that a marker helper is not on its PATH:
+    # a line of its own, never the echoed command text
+    return re.compile(
+        rf"(?m)^\r?(?:(?:[-\w./]+: )?(?:\d+: )?{name}: (?:command )?not found"
+        rf"|[-\w./]+: command not found: {name}"
+        rf"|Command '{name}' not found"
+        rf"|'{name}' is not recognized"
+        rf"|(?:fish: )?Unknown command:? {name})"
+    )
+
+
+# the distro's suggestions after a missing command
+_SUGGEST = re.compile(r"did you mean|^\s*command '.*' from |^See 'snap info")
+
+
+def helpers_state(socket, pane):
+    r = subprocess.run(
+        base_cmd(socket) + ["display-message", "-p", "-t", pane, "#{" + HELPERS_OPT + "}"],
+        capture_output=True,
+    )
+    return r.stdout.decode(errors="replace").strip()
+
+
+def set_helpers(socket, pane, value):
+    subprocess.run(
+        base_cmd(socket) + ["set-option", "-p", "-t", pane, HELPERS_OPT, value],
+        capture_output=True,
+    )
+
+
 def run_wait(args):
     """Type the command, submit, ride %output until the shell prints the
     completion marker (an OSC escape — invisible on screen), yield the
     transcript slice and the command's exit code. --await returns on a
-    readiness pattern instead, while the command keeps running."""
+    readiness pattern instead, while the command keeps running.
+
+    The pane echoes the short ws-go/ws-done tokens. A pane whose shell
+    lacks them is remembered (a pane option) and gets inline markers."""
     nonce = f"{os.getpid():x}{time.monotonic_ns() % 0xFFFF:x}"
     marker = f"tmuxctl:{nonce}"
-    # prefer the PATH tokens (short echo); fall back to the inline printf
-    # until the host's generation carries the helpers
-    start = (
-        f"command -v ws-go >/dev/null 2>&1 && ws-go {nonce} "
-        f"|| printf '\\033]7777;{marker}:start\\007' ; "
-    )
-    wrap = (
-        f" ; rc=$?; command -v ws-done >/dev/null 2>&1 && ws-done {nonce} $rc "
-        f"|| printf '\\033]7777;{marker}:end:%s\\007' $rc"
-    )
-    start_rx = re.compile("\x1b\\]7777;" + re.escape(marker) + ":start\\007")
+    state = helpers_state(args.socket, args.pane)
+    if state == "absent":
+        start = (
+            f"command -v ws-go >/dev/null 2>&1 && ws-go {nonce} "
+            f"|| printf '\\033]7777;{marker}:start:i\\007' ; "
+        )
+        wrap = (
+            f" ; rc=$?; command -v ws-done >/dev/null 2>&1 && ws-done {nonce} $rc "
+            f"|| printf '\\033]7777;{marker}:end:%s\\007' $rc"
+        )
+    else:
+        start = f"ws-go {nonce} ; "
+        wrap = f" ; ws-done {nonce} $?"
+    start_rx = re.compile("\x1b\\]7777;" + re.escape(marker) + ":start(:i)?\\007")
     marker_rx = re.compile("\x1b\\]7777;" + re.escape(marker) + r":end:(\d+)")
+    miss_go, miss_done = _miss("ws-go"), _miss("ws-done")
     await_rx = re.compile(args.await_re) if args.await_re else None
     session = pane_session(args.socket, args.pane)
     cc = ControlClient(args.socket, session)
@@ -183,6 +224,8 @@ def run_wait(args):
     code = None
     awaited = False
     started = False
+    degraded = False
+    finished = False
     rc = 124
     deadline = time.monotonic() + (args.timeout or 180)
     try:
@@ -207,10 +250,23 @@ def run_wait(args):
                 # matching activates only at the shell's own start marker —
                 # the echo and any zle redraw of the typed line precede it
                 sm = start_rx.search(payload)
-                if not sm:
-                    continue
-                started = True
-                payload = payload[sm.end() :]
+                if sm:
+                    started = True
+                    seen = "absent" if sm.group(1) else "present"
+                    if seen != state:
+                        set_helpers(args.socket, args.pane, seen)
+                    payload = payload[sm.end() :]
+                else:
+                    cleaned = clean(payload, False)
+                    mg = miss_go.search(cleaned)
+                    if not mg:
+                        continue
+                    # no helpers in this shell: the command still runs, its
+                    # end shows as the shell's complaint about ws-done
+                    started = True
+                    degraded = True
+                    set_helpers(args.socket, args.pane, "absent")
+                    payload = cleaned[mg.end() :]
                 if not payload:
                     continue
             m = marker_rx.search(payload)
@@ -219,10 +275,18 @@ def run_wait(args):
             if m:
                 hit = m
                 pre = clean(payload[: m.start()], False)
-            elif await_rx:
+            else:
                 cleaned = clean(payload, False)
-                hit = await_rx.search(cleaned)
+                md = miss_done.search(cleaned) if degraded else None
+                if md:
+                    hit = md
+                    finished = True
+                elif await_rx:
+                    hit = await_rx.search(cleaned)
                 pre = cleaned[: hit.start()] if hit else ""
+                if finished:
+                    # drop the shell-name prefix of the complaint line
+                    pre = pre.rsplit("\n", 1)[0] if "\n" in pre else ""
             if hit:
                 for ln in pre.splitlines():
                     if ln.strip() and "]7777;tmuxctl:" not in ln:
@@ -230,6 +294,8 @@ def run_wait(args):
                 if m:
                     code = int(m.group(1))
                     rc = 0 if code == 0 else 1
+                elif finished:
+                    rc = 5
                 else:
                     awaited = True
                     rc = 0
@@ -240,12 +306,19 @@ def run_wait(args):
                     out.append(ln)
     finally:
         cc.close()
+    if degraded:
+        out = [ln for ln in out if not _SUGGEST.search(ln)]
     if out:
         print("\n".join(out)[-4000:])
     if awaited:
         print("--- await matched (still running) ---")
     elif code is not None:
         print(f"--- exit {code} ---")
+    elif finished:
+        print(
+            "--- finished, exit code unknown: this pane's shell has no "
+            "ws-go/ws-done; later runs here use inline markers ---"
+        )
     sys.exit(rc)
 
 

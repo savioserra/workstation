@@ -88,7 +88,7 @@ if command -v tmux >/dev/null 2>&1; then
   tmux -L "$sock" new-session -d -s verify -x 80 -y 20 ||
     fail "tmux verify: scratch session did not start"
   pane=$(tmux -L "$sock" list-panes -t verify -F '#{pane_id}')
-  timeout 20 "$tmuxctl" -L "$sock" run "$pane" 'sleep 1; echo verify-$$-ran' ||
+  timeout 20 "$tmuxctl" -L "$sock" run "$pane" 'sleep 1; echo verify-$$-ran' --no-wait ||
     fail "tmuxctl run failed on the scratch pane"
   out=$(timeout 20 "$tmuxctl" -L "$sock" watch "$pane" --until 'verify-.*-ran' --timeout 10) ||
     fail "tmuxctl watch did not observe the run output (rc=$?, got: $out)"
