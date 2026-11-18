@@ -405,6 +405,13 @@ in
       package = tmuxSkill;
     };
 
+    # the tmuxctl run markers ride the user PATH (pane shells echo the
+    # tokens; the markers themselves are invisible OSC output)
+    home.packages = [
+      helpers.ws-go
+      helpers.ws-done
+    ];
+
     home.file = lib.mkMerge [
       (
         builtins.listToAttrs (map (entry: lib.nameValuePair entry.path { source = entry.source; }) entries)

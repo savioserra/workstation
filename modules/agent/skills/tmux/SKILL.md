@@ -17,7 +17,7 @@ description: Drive tmux panes — list, read, type, paste and watch pane output 
 | `key` | `tmuxctl key %3 Enter` / `C-c` / `Escape` | named keys; the only submit path |
 | `paste` | `tmuxctl paste %3 < block` | bracketed paste from stdin — multiline blocks into REPLs/shells |
 | `hex` | `tmuxctl hex %3 1b 5b 31 3b 32 75` | raw byte sequences key names cannot express |
-| `run` | `tmuxctl run %3 'cmd' [--timeout N] [--await RE] [--no-wait]` | submit and wait: yields output tail + `--- exit N ---` at the invisible completion marker; `--await RE` returns when the pane prints RE (session keeps running — the interactive-launch path); `--no-wait` fires and forgets |
+| `run` | `tmuxctl run %3 'cmd' [--timeout N] [--await RE] [--no-wait]` | submit and wait: yields output tail + `--- exit N ---` at the `ws-done` completion marker (invisible OSC output; the pane echoes the short `ws-go`/`ws-done` tokens); `--await RE` returns when the pane prints RE (session keeps running — the interactive-launch path); `--no-wait` fires and forgets; POSIX panes only (cmd.exe: `--no-wait` + read) |
 | `split` | `tmuxctl split %3 [-H] [-l SIZE]` | split the pane's window, prints the new pane id |
 | `kill` | `tmuxctl kill %3 [%4 ...]` | kill panes — refuses this agent's own pane |
 | `watch` | `tmuxctl watch %3 --until REGEX [--idle N] [--timeout N] [--all] [--raw]` | streams pane output by tmux control-mode push — zero polling |
