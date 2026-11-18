@@ -399,6 +399,12 @@ in
       inherit source;
     }) authoredSkills;
 
+    # the tmux skill tree is also a gateway plugin (tmux_* pane tools)
+    programs.hermes.extensions.tmux = {
+      enable = true;
+      package = tmuxSkill;
+    };
+
     home.file = lib.mkMerge [
       (
         builtins.listToAttrs (map (entry: lib.nameValuePair entry.path { source = entry.source; }) entries)

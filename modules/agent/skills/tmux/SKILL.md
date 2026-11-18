@@ -27,6 +27,7 @@ description: Drive tmux panes — list, read, type, paste and watch pane output 
 - exit `124` — `--timeout` elapsed
 - `--all` covers every pane of the session (lines carry the `%id` prefix); the watch rides one control-mode client attached to the target pane's session
 - tmux's own copy/choose-mode output is not delivered by control mode — leave copy mode before watching
+- a control client receives output from attach onward: attach the watcher before submitting the command whose output you await (`type` → `watch` → `key Enter`), or build a delay into the command
 
 ## Laws
 

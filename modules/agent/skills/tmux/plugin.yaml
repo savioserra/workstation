@@ -1,0 +1,17 @@
+name: tmux
+version: 1.0.0
+description: >
+  tmux pane tools: ps/read/type/key/paste/hex/run/watch on any tmux server
+  (default socket or -L scratch). watch streams pane output by tmux
+  control-mode push (%output) — no polling.
+requires_hermes: ">=0.21.6"
+provides_tools:
+  - tmux_ps
+  - tmux_read
+  - tmux_type
+  - tmux_key
+  - tmux_paste
+  - tmux_hex
+  - tmux_run
+  - tmux_watch
+provides_hooks: []
