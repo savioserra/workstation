@@ -148,9 +148,10 @@ pkgs.writeShellScriptBin "workstation-switch" ''
   home_attr="''${WORKSTATION_SWITCH_HOME_ATTR:-${if homeAttr == null then "" else homeAttr}}"
   system_attr="''${WORKSTATION_SWITCH_SYSTEM_ATTR:-${if systemAttr == null then "" else systemAttr}}"
   home_activate="''${WORKSTATION_SWITCH_HOME_ACTIVATE:-}"
-  # the staged machine file is the live identity — its capture overrides the
-  # generation-baked attr default; the system plane keys by user@host on
-  # darwin and by host on linux (the host modules' convention)
+  # the staged machine file is the live identity: its capture corrects a
+  # stale baked key on legs that carry the plane (an empty baked attr is a
+  # leg without the plane — never fabricated); the system plane keys by
+  # user@host on darwin and by host on linux (the host modules' convention)
   machine_home=""
   machine_system=""
   if [ -f "''${WORKSTATION_SWITCH_MACHINE:-/nonexistent}/machine.json" ]; then
@@ -160,8 +161,8 @@ pkgs.writeShellScriptBin "workstation-switch" ''
       *) machine_system=$(jq -r 'select(.host != null) | .host' "$WORKSTATION_SWITCH_MACHINE/machine.json" 2>/dev/null || true) ;;
     esac
   fi
-  [ -n "''${WORKSTATION_SWITCH_HOME_ATTR:-}" ] || [ -z "$machine_home" ] || home_attr=$machine_home
-  [ -n "''${WORKSTATION_SWITCH_SYSTEM_ATTR:-}" ] || [ -z "$machine_system" ] || system_attr=$machine_system
+  [ -n "''${WORKSTATION_SWITCH_HOME_ATTR:-}" ] || [ -z "$machine_home" ] || [ -z "$home_attr" ] || home_attr=$machine_home
+  [ -n "''${WORKSTATION_SWITCH_SYSTEM_ATTR:-}" ] || [ -z "$machine_system" ] || [ -z "$system_attr" ] || system_attr=$machine_system
   ${guards}
   ${runRoutines}
 
@@ -209,7 +210,7 @@ pkgs.writeShellScriptBin "workstation-switch" ''
         "$home_activate"
       else
         need_flake
-        gen="$(nix build --no-link --print-out-paths "$flake#homeConfigurations.\"$home_attr\".activationPackage" "''${override[@]}" | tail -n 1)"
+        gen="$(nix build --no-link --print-out-paths "$flake#homeConfigurations.\"$home_attr\".activationPackage" "''${override[@]}")"
         "$gen/activate"
       fi
       ${resolveHomeProfile}
@@ -227,6 +228,8 @@ pkgs.writeShellScriptBin "workstation-switch" ''
         echo "workstation-switch: update needs the checkout — run it through the launcher (workstation update)" >&2
         exit 2
       fi
+      # the plane answers before the checkout moves
+      if [ "$plane" = system ]; then need_system; else need_home; fi
       # the rolling verb: pull the substrate, bump the lock, commit it
       # (the build only sees committed HEAD), then switch — no git
       # ceremony for the consumer; every step stops clean on conflict
@@ -260,6 +263,13 @@ pkgs.writeShellScriptBin "workstation-switch" ''
         echo "workstation-switch: inputs already current"
       fi
       run_routines after-update
+      # the pinned ref follows the checkout's new HEAD
+      case "$flake" in
+        "git+file://$checkout?rev="*)
+          flake="git+file://$checkout?rev=$(git -C "$checkout" rev-parse HEAD)"
+          WORKSTATION_SWITCH_FLAKE=$flake
+          ;;
+      esac
       echo "workstation-switch: switching to the updated tree"
       export WORKSTATION_SWITCH_FLAKE WORKSTATION_SWITCH_MACHINE WORKSTATION_SWITCH_HOME_ATTR WORKSTATION_SWITCH_SYSTEM_ATTR
       exec "$0" apply $([ "$plane" = system ] && echo --system)
