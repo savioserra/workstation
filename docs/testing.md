@@ -79,7 +79,7 @@ The lane map — which lane proves what:
 - **The switch driver** — `checks.<system>.switch-driver` runs the real
   `workstation-switch` (`tests/nix/switch-driver.sh`) over a scratch
   checkout, a stubbed nix and a staged profile: plane guards, the
-  machine-file key, the update re-pin, a failed build.
+  flake's keys over the baked ones, the update re-pin, a failed build.
 
 Named residuals (the container lane cannot prove what a boot proved):
 

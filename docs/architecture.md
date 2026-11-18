@@ -25,10 +25,12 @@ switch.log receipt).
 
 `workstation.report` (the read verbs: `status`, `plan` — with the
 machine's selection pins —, `capabilities` — scope with an attrpath,
-`selectable`, `selections`), `homeManagerModules.workstation`,
-`homeConfigurations` (the linux leg + the e2e container persona),
-`darwinConfigurations` (the mac leg), `nixosConfigurations.<host>` (the
-linux system plane), `workstationE2E` (the container lane's inputs: the
+`selectable`, `selections`), `workstation.keys` (the machine's `home` and
+`system` flake keys, the switch driver's targets),
+`homeManagerModules.workstation`,
+`homeConfigurations` and `nixosConfigurations.<host>` (a linux machine's
+home and system planes), `darwinConfigurations` (a mac's leg),
+`workstationE2E` (the container lane's inputs: the
 persona home + the proof driver), `checks.<system>` (`nix flake check` is
 the canonical validation entry: the declared-state reads, every host leg's
 eval, and the container E2E lane's staged entry).

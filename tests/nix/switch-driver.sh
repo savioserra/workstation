@@ -4,11 +4,13 @@
 # usage: switch-driver.sh <driver without a home plane> <driver with a stale home key>
 #
 # | # | case | holds |
-# | 1 | no home plane, apply | refuses, builds nothing |
-# | 2 | no home plane, update | refuses, the checkout stays |
-# | 3 | stale baked key, apply | builds the machine file's key, activates, receipts the commit |
+# | 1 | the flake answers no home key, apply | refuses, builds nothing |
+# | 2 | the flake answers no home key, update | refuses, the checkout stays |
+# | 3 | stale baked key, apply | builds the flake's key, activates, receipts the commit |
 # | 4 | update | the lock commits, the build names the new HEAD |
 # | 5 | the build fails | the switch stops, nothing activates |
+# | 6 | the flake answers no keys | the baked key builds |
+# | 7 | no baked home key, the flake answers none | refuses |
 set -eu
 
 nohome=$1
@@ -45,13 +47,17 @@ fresh() {
 	: >"$work/log"
 }
 
-# stub <ok|fail> — nix: logs its arguments, rewrites the lock, answers a build
+# stub <ok|fail> [keys json] — nix: logs its arguments, rewrites the lock,
+# answers a build and workstation.keys (no json: the eval fails)
 stub() {
 	if [ "$1" = ok ]; then build="echo $work/gen"; else build='exit 1'; fi
+	rm -f "$work/keys"
+	[ -z "${2:-}" ] || printf '%s\n' "$2" >"$work/keys"
 	cat >"$work/bin/nix" <<EOF
 #!/bin/sh
 echo "NIX: \$*" >>"$work/log"
 case "\$*" in
+*"#workstation.keys"*) cat "$work/keys" 2>/dev/null || exit 1 ;;
 "flake update"*) printf '%s\n' '{"nodes":{"nixpkgs":{"locked":{"rev":"bbbbbbb2222"}}}}' >"$work/co/flake.lock" ;;
 build*) $build ;;
 esac
@@ -73,34 +79,37 @@ logged() {
 	grep -q -- "$1" "$work/log"
 }
 
+linux_keys='{"home":"op@corrhos","system":"corrhos"}'
+darwin_keys='{"home":null,"system":"op@corrhos"}'
+
 # 1
 fresh
-stub ok
-drive "$nohome" apply
+stub ok "$darwin_keys"
+drive "$stale" apply
 [ "$rc" = 2 ] || fail "1: a leg without a home plane must refuse apply with rc 2 (rc $rc)"
 ! logged '^NIX: build' || fail '1: a refused apply must build nothing'
 
 # 2
 fresh
-stub ok
-drive "$nohome" update
+stub ok "$darwin_keys"
+drive "$stale" update
 [ "$rc" = 2 ] || fail "2: a leg without a home plane must refuse update with rc 2 (rc $rc)"
 [ "$(g rev-parse HEAD)" = "$head" ] || fail '2: a refused update must leave the checkout at its commit'
-[ ! -s "$work/log" ] || fail '2: a refused update must run no nix'
+! logged '^NIX: \(build\|flake update\)' || fail '2: a refused update must neither bump the lock nor build'
 
 # 3
 fresh
-stub ok
+stub ok "$linux_keys"
 drive "$stale" apply
 [ "$rc" = 0 ] || fail "3: apply over a stale baked key must succeed (rc $rc)"
-logged 'homeConfigurations."op@corrhos"' || fail '3: the build must name the machine file key'
+logged 'homeConfigurations."op@corrhos"' || fail '3: the build must name the key the flake answers'
 logged 'activate-ran' || fail '3: the built generation must activate'
 grep -q "generation 3 applied .* at $head" "$work/state/workstation/switch.log" ||
 	fail '3: the receipt must name the generation and the commit'
 
 # 4
 fresh
-stub ok
+stub ok "$linux_keys"
 drive "$stale" update
 [ "$rc" = 0 ] || fail "4: update must succeed (rc $rc)"
 new=$(g rev-parse HEAD)
@@ -110,10 +119,23 @@ grep '^NIX: build' "$work/log" | grep -q "rev=$new" || fail '4: the build must n
 
 # 5
 fresh
-stub fail
+stub fail "$linux_keys"
 drive "$stale" apply
 [ "$rc" != 0 ] || fail '5: a failed build must fail the switch'
 ! logged 'activate-ran' || fail '5: a failed build must activate nothing'
 ! grep -q '/activate' "$work/err" || fail '5: a failed build must stop before the activate path'
 
-printf 'switch-driver.sh: OK (plane guards, machine-file key, update re-pin, failed build)\n'
+# 6
+fresh
+stub ok
+drive "$stale" apply
+[ "$rc" = 0 ] || fail "6: apply must succeed on the baked key (rc $rc)"
+logged 'homeConfigurations."old@key"' || fail '6: the baked key must build where the flake answers none'
+
+# 7
+fresh
+stub ok
+drive "$nohome" apply
+[ "$rc" = 2 ] || fail "7: no home key anywhere must refuse apply with rc 2 (rc $rc)"
+
+printf 'switch-driver.sh: OK (plane guards, the flake keys, the baked keys, update re-pin, failed build)\n'

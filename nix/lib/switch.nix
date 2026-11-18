@@ -148,21 +148,15 @@ pkgs.writeShellScriptBin "workstation-switch" ''
   home_attr="''${WORKSTATION_SWITCH_HOME_ATTR:-${if homeAttr == null then "" else homeAttr}}"
   system_attr="''${WORKSTATION_SWITCH_SYSTEM_ATTR:-${if systemAttr == null then "" else systemAttr}}"
   home_activate="''${WORKSTATION_SWITCH_HOME_ACTIVATE:-}"
-  # the staged machine file is the live identity: its capture corrects a
-  # stale baked key on legs that carry the plane (an empty baked attr is a
-  # leg without the plane — never fabricated); the system plane keys by
-  # user@host on darwin and by host on linux (the host modules' convention)
-  machine_home=""
-  machine_system=""
-  if [ -f "''${WORKSTATION_SWITCH_MACHINE:-/nonexistent}/machine.json" ]; then
-    machine_home=$(jq -r 'select(.user != null and .host != null) | "\(.user)@\(.host)"' "$WORKSTATION_SWITCH_MACHINE/machine.json" 2>/dev/null || true)
-    case "$(uname -s)" in
-      Darwin) machine_system=$machine_home ;;
-      *) machine_system=$(jq -r 'select(.host != null) | .host' "$WORKSTATION_SWITCH_MACHINE/machine.json" 2>/dev/null || true) ;;
-    esac
+  # the keys come from the flake being built (workstation.keys: the machine
+  # file's identity, a null key = the leg carries no such plane); the baked
+  # attrs answer where the flake does not; the env wins
+  if [ "$cmd" != rollback ] && [ -n "$flake" ]; then
+    if keys=$(nix eval --json "$flake#workstation.keys" "''${override[@]}" 2>/dev/null); then
+      [ -n "''${WORKSTATION_SWITCH_HOME_ATTR:-}" ] || home_attr=$(printf '%s' "$keys" | jq -r '.home // ""')
+      [ -n "''${WORKSTATION_SWITCH_SYSTEM_ATTR:-}" ] || system_attr=$(printf '%s' "$keys" | jq -r '.system // ""')
+    fi
   fi
-  [ -n "''${WORKSTATION_SWITCH_HOME_ATTR:-}" ] || [ -z "$machine_home" ] || [ -z "$home_attr" ] || home_attr=$machine_home
-  [ -n "''${WORKSTATION_SWITCH_SYSTEM_ATTR:-}" ] || [ -z "$machine_system" ] || [ -z "$system_attr" ] || system_attr=$machine_system
   ${guards}
   ${runRoutines}
 

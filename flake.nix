@@ -51,9 +51,13 @@
         }
       );
 
-      machine = import ./nix/lib/machine.nix {
-        inherit lib;
-        root = machine-files;
+      machineOf = args: import ./nix/lib/machine.nix ({ inherit lib; } // args);
+      machine = machineOf { root = machine-files; };
+      # the check legs: the template machine, one per platform
+      templateMachine = machineOf { root = ./hosts/template; };
+      templateDarwin = machineOf {
+        root = ./hosts/template;
+        overrides.system = "aarch64-darwin";
       };
 
       home =
@@ -63,33 +67,26 @@
           modules = modules ++ [ ./nix/modules/workstation-home.nix ];
         };
 
-      machineHome = home machine.system (
-        machine.homeModules
-        ++ [
-          {
-            workstation.switch.homeAttr = machine.key;
-            workstation.switch.systemAttr = machine.host;
-          }
-        ]
-      );
+      homeOf = m: home m.system m.homeModules;
+      machineHome = homeOf machine;
 
-      linuxHost = import ./hosts/linux/default.nix {
-        inherit
-          nixpkgs
-          home-manager
-          nixos-wsl
-          machine
-          ;
-      };
-      macHost = import ./hosts/mac/default.nix {
-        inherit
-          nixpkgs
-          home-manager
-          nix-darwin
-          nix-homebrew
-          machine
-          ;
-      };
+      linuxHost =
+        m:
+        (import ./hosts/linux/default.nix {
+          inherit nixpkgs home-manager nixos-wsl;
+          machine = m;
+        }).nixosConfig;
+      macHost =
+        m:
+        (import ./hosts/mac/default.nix {
+          inherit
+            nixpkgs
+            home-manager
+            nix-darwin
+            nix-homebrew
+            ;
+          machine = m;
+        }).darwinConfig;
 
       report = import ./nix/report.nix {
         inherit lib;
@@ -103,13 +100,22 @@
       workstation = {
         inherit report;
         rev = self.rev or self.dirtyRev or "unknown";
+        keys = {
+          home = machine.homeKey;
+          system = machine.systemKey;
+        };
       };
 
-      homeConfigurations = lib.optionalAttrs (lib.hasSuffix "-linux" machine.system) {
-        ${machine.key} = machineHome;
+      # the machine's legs: the home and NixOS planes on linux, darwin on a mac
+      homeConfigurations = lib.optionalAttrs (!machine.isDarwin) {
+        ${machine.homeKey} = machineHome;
       };
-      darwinConfigurations.${machine.key} = macHost.darwinConfig;
-      nixosConfigurations.${machine.host} = linuxHost.nixosConfig;
+      nixosConfigurations = lib.optionalAttrs (!machine.isDarwin) {
+        ${machine.systemKey} = linuxHost machine;
+      };
+      darwinConfigurations = lib.optionalAttrs machine.isDarwin {
+        ${machine.systemKey} = macHost machine;
+      };
 
       homeManagerModules.workstation = ./nix/modules/workstation-home.nix;
 
@@ -126,9 +132,9 @@
           report
           ;
         legs = {
-          linux = linuxHost.nixosConfig;
-          mac = macHost.darwinConfig;
-          home = machineHome;
+          linux = linuxHost templateMachine;
+          mac = macHost templateDarwin;
+          home = homeOf templateMachine;
         };
       };
     };

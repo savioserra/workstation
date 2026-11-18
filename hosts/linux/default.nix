@@ -48,10 +48,6 @@
             useGlobalPkgs = true;
             useUserPackages = true;
             users.${machine.user}.imports = machine.homeModules ++ [
-              {
-                workstation.switch.homeAttr = machine.key;
-                workstation.switch.systemAttr = machine.host;
-              }
               ../../nix/modules/workstation-home.nix
             ];
           };

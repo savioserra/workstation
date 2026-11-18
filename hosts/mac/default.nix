@@ -8,11 +8,9 @@
   machine,
 }:
 let
-  system = "aarch64-darwin";
+  inherit (machine) system;
 in
 {
-  inherit system;
-
   darwinConfig = nix-darwin.lib.darwinSystem {
     inherit system;
     modules = [
@@ -49,7 +47,6 @@ in
             useGlobalPkgs = true;
             useUserPackages = true;
             users.${machine.user}.imports = machine.homeModules ++ [
-              { workstation.switch.systemAttr = machine.key; }
               ../../nix/modules/workstation-home.nix
             ];
           };
