@@ -164,8 +164,16 @@ def run_wait(args):
     readiness pattern instead, while the command keeps running."""
     nonce = f"{os.getpid():x}{time.monotonic_ns() % 0xFFFF:x}"
     marker = f"tmuxctl:{nonce}"
-    start = f"ws-go {nonce} ; "
-    wrap = f" ; ws-done {nonce} \"$?\""
+    # prefer the PATH tokens (short echo); fall back to the inline printf
+    # until the host's generation carries the helpers
+    start = (
+        f"command -v ws-go >/dev/null 2>&1 && ws-go {nonce} "
+        f"|| printf '\\033]7777;{marker}:start\\007' ; "
+    )
+    wrap = (
+        f" ; rc=$?; command -v ws-done >/dev/null 2>&1 && ws-done {nonce} $rc "
+        f"|| printf '\\033]7777;{marker}:end:%s\\007' $rc"
+    )
     start_rx = re.compile("\x1b\\]7777;" + re.escape(marker) + ":start\\007")
     marker_rx = re.compile("\x1b\\]7777;" + re.escape(marker) + r":end:(\d+)")
     await_rx = re.compile(args.await_re) if args.await_re else None
