@@ -80,6 +80,18 @@
 
 ## Traps (exercised — each cost a debug cycle)
 
+- **`//` on module config is shallow.** `{ workstation.switch.checkout = x; }
+  // lib.optionalAttrs c { workstation.secrets.vault = y; }` keeps only the
+  right-hand `workstation` attr: the left one vanishes without an error
+  (exercised: every machine carrying a vault lost its checkout). Conditional
+  parts are separate modules or `lib.mkMerge [ … (lib.mkIf c { … }) ]`;
+  optional values are nullable options a consumer reads.
+- **The machine file sets identity, the domains read it.**
+  `workstation.machine.{host,checkout,vault,peers}` is declared by the home
+  plane and set by `nix/lib/machine.nix`; a domain derives its own option
+  from it (`default = …machine.vault`, `lib.mkDefault …machine.host`) — the
+  lib never names a domain's option.
+
 - **A module with `options`/`config` keys must put every definition inside
   `config`.** `{ options = …; home.packages = …; config = mkIf … }` mixes
   module keys with plain config keys; tool packages go INSIDE the gated
