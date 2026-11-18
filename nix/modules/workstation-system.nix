@@ -1,5 +1,4 @@
-# The system plane on NixOS and nix-darwin: system packages and the
-# tailscale service.
+# The system plane on NixOS and nix-darwin: system packages.
 {
   config,
   lib,
@@ -19,12 +18,6 @@ in
       default = [ ];
       description = "Additional system packages for this host's workstation plane.";
     };
-
-    network.tailscale.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "tailscale, the fleet transport.";
-    };
   };
 
   config = lib.mkIf cfg.enable (
@@ -35,7 +28,6 @@ in
           pkgs.btop
         ]
         ++ cfg.extraPackages;
-        services.tailscale.enable = lib.mkIf cfg.network.tailscale.enable true;
       }
       (lib.mkIf (!isDarwin) {
         system.activationScripts.workstation = {

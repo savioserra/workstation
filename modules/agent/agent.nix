@@ -332,8 +332,8 @@ in
         description = ''
           This node's MagicDNS name: the Agent Card name (A2A_AGENT_NAME)
           and the advertised URL http://<name>:<port> (A2A_PUBLIC_URL, set
-          with the tailnet bind). The legs set the captured identity's
-          host; null leaves hermes' hostname-derived default.
+          with the tailnet bind). Defaults to workstation.machine.host;
+          null leaves hermes' hostname-derived default.
         '';
       };
 
@@ -392,14 +392,21 @@ in
           The peers this node calls, keyed by MagicDNS name — the name is
           also the peer's inbound identity (a2a.trusted_peers, the name in
           its A2A_PEER_TOKENS row). Each renders an a2a_agents entry whose
-          bearer token is the env reference A2A_PEER_TOKEN_<NAME>. The
-          legs import hosts/local/peers.nix.
+          bearer token is the env reference A2A_PEER_TOKEN_<NAME>. Read
+          from workstation.machine.peers.
         '';
       };
     };
   };
 
   config = lib.mkIf config.workstation.agent.enable {
+    programs.hermes.a2a = {
+      name = lib.mkIf (config.workstation.machine.host != null) (
+        lib.mkDefault config.workstation.machine.host
+      );
+      peers = config.workstation.machine.peers;
+    };
+
     assertions = [
       {
         assertion = hermes.pin != null;

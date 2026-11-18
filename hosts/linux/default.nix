@@ -13,6 +13,7 @@
       nixos-wsl.nixosModules.default
       ../../nix/modules/workstation-system.nix
       ../../nix/modules/host.nix
+      ../../modules/network/system.nix
       home-manager.nixosModules.home-manager
       (
         {
@@ -36,7 +37,6 @@
             inherit (machine) user;
             homeDirectory = machine.home;
           };
-          workstation.network.tailscale.enable = machine.networkEnable;
 
           wsl = {
             enable = true;

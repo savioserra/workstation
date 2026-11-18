@@ -18,6 +18,7 @@ in
     modules = [
       ../../nix/modules/workstation-system.nix
       ../../nix/modules/host.nix
+      ../../modules/network/system.nix
       home-manager.darwinModules.home-manager
       nix-homebrew.darwinModules.nix-homebrew
       (
@@ -33,7 +34,6 @@ in
             homeDirectory = machine.home;
           };
           workstation.enable = true;
-          workstation.network.tailscale.enable = machine.networkEnable;
           networking.hostName = config.workstation.host.name;
           users.users.${machine.user}.home = machine.home;
           system.primaryUser = machine.user;

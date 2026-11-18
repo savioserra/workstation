@@ -143,8 +143,8 @@ and sorted, never hidden.
   in the machine file), the last lines of `.bashrc` and `.zshrc`.
 - Tools, all nixpkgs: fd, ripgrep, lazygit, mise, newt (whiptail, the
   shim's install-time UI).
-- The tailscale transport (`workstation.network.tailscale.*`;
-  `services.tailscale` on the system legs; on standalone linux the
+- The tailscale transport (`workstation.network.enable`;
+  `services.tailscale` on the system legs through `modules/network/system.nix`; on standalone linux the
   `workstation-tailscaled` activation: the substrate's systemd unit; a
   package, snap or foreign unit already owning tailscaled stops the
   provision, named; off retracts the unit only). The

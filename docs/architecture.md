@@ -13,7 +13,7 @@ switch.log receipt).
 | Path | Role |
 | --- | --- |
 | `flake.nix`, `flake.lock` | The entry point: one nixpkgs input, home-manager, nix-darwin, NixOS-WSL; the machine's legs, the report verbs, the checks |
-| `modules/<domain>/` | One directory per capability domain: the module (options + declarations) and the bytes it deploys. `modules/default.nix` lists the modules |
+| `modules/<domain>/` | One directory per capability domain: the module (options + declarations), the bytes it deploys, `system.nix` where the domain carries a system plane. `modules/default.nix` lists the modules |
 | `nix/` | Shared infrastructure: `report.nix` (the read verbs), `lib/machine.nix` (the machine file), `lib/license.nix` (the unfree acceptance), `lib/capability.nix` (the module helpers), `lib/switch.nix` (the composed write plane: verb scaffold + routine registry), `modules/` (the home plane, the system plane, the host options) |
 | `hosts/` | `linux/` and `mac/` (the system legs); `template/` (`machine.json`, `peers.nix`); `local/` (gitignored): the machine's copies, written by `workstation init` / `add|remove` / `fleet` / `peers` |
 | `bin/workstation` | The launcher (POSIX sh): reads are `nix eval`s over `workstation.report.<verb>`; `add|remove|fleet` edit `hosts/local/machine.json` (jq); `peers` runs `workstation-peers` on `hosts/local/peers.nix`; writes exec the staged switch driver |

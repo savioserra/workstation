@@ -21,7 +21,12 @@ ws.capability [ "secrets" ] {
     };
     vault = lib.mkOption {
       type = lib.types.str;
-      default = "Workstation";
+      default =
+        if config.workstation.machine.vault != null then
+          config.workstation.machine.vault
+        else
+          "Workstation";
+      defaultText = lib.literalExpression ''workstation.machine.vault, else "Workstation"'';
       description = "1Password vault named in secret references (op://<vault>/<item>/<field>); exported as WORKSTATION_VAULT.";
     };
   };

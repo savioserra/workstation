@@ -24,6 +24,28 @@ in
   imports = [ ../../modules ];
 
   options.workstation = {
+    machine = {
+      host = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "The machine's captured host name (machine.json).";
+      };
+      checkout = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "The workstation checkout: the launcher's flake outside a checkout (machine.json).";
+      };
+      vault = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "The machine's 1Password vault (machine.json).";
+      };
+      peers = lib.mkOption {
+        type = lib.types.attrsOf lib.types.anything;
+        default = { };
+        description = "The machine's A2A peers (peers.nix).";
+      };
+    };
     routines = {
       after-apply = lib.mkOption {
         type = lib.types.listOf routine;
@@ -47,11 +69,6 @@ in
         default = null;
         description = "The flake attr of this host's homeConfiguration: the switch driver's home-plane target.";
       };
-      checkout = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-        description = "The workstation checkout: the launcher's flake outside a checkout.";
-      };
       systemAttr = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
         default = null;
@@ -65,8 +82,8 @@ in
       (pkgs.writeShellScriptBin "workstation" (
         "WORKSTATION_JQ=\${WORKSTATION_JQ:-${pkgs.jq}/bin/jq}\n"
         + lib.optionalString (
-          config.workstation.switch.checkout != null
-        ) "WORKSTATION_CHECKOUT=\${WORKSTATION_CHECKOUT:-${config.workstation.switch.checkout}}\n"
+          config.workstation.machine.checkout != null
+        ) "WORKSTATION_CHECKOUT=\${WORKSTATION_CHECKOUT:-${config.workstation.machine.checkout}}\n"
         + builtins.readFile ../../bin/workstation
       ))
       (import ../lib/switch.nix {
