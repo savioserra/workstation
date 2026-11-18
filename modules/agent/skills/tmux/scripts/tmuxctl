@@ -12,7 +12,23 @@ import threading
 import queue
 import time
 
-TMUX = shutil.which("tmux") or "tmux"
+
+def _find_tmux():
+    # the substrate's tmux first: gateway environments carry no nix PATH and a
+    # distro tmux answers a newer server with 'server exited unexpectedly'
+    cands = [
+        os.environ.get("TMUXCTL_TMUX"),
+        os.path.expanduser("~/.nix-profile/bin/tmux"),
+        "/run/current-system/sw/bin/tmux",
+        shutil.which("tmux"),
+    ]
+    for cand in cands:
+        if cand and os.path.isfile(cand) and os.access(cand, os.X_OK):
+            return cand
+    return "tmux"
+
+
+TMUX = _find_tmux()
 
 
 def die(msg, code=2):
