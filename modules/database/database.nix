@@ -29,11 +29,11 @@ let
       "})"
     ];
   harlequinStarlight = pkgs.harlequin.overrideAttrs (old: {
-    # the injected starlight names diverge from upstream's theme set on purpose:
-    # the upstream consistency test cannot hold
-    doCheck = false;
     postPatch = (old.postPatch or "") + ''
       cat ${pkgs.writeText "starlight-harlequin-themes.py" themesPy} >> src/harlequin/colors.py
+      # the injected starlight pair is ours; the upstream consistency test keeps
+      # guarding every theme harlequin ships
+      ${pkgs.gnused}/bin/sed -i 's|assert IDE_THEMES == frozenset(VALID_THEMES)|assert IDE_THEMES == frozenset(VALID_THEMES) - {"starlight-dark", "starlight-light"}|' tests/unit_tests/test_hsql.py
     '';
   });
   hsqlSkill =
