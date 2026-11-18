@@ -73,6 +73,7 @@ in
         nativeBuildInputs = [
           pkgs.git
           pkgs.jq
+          pkgs.tmux
         ];
       }
       ''

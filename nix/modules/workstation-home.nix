@@ -60,7 +60,7 @@ in
       after-update = lib.mkOption {
         type = lib.types.listOf routine;
         default = [ ];
-        description = "Routines the switch driver runs after a flake.lock update.";
+        description = "Routines the switch driver runs after update moves the checkout, before its switch.";
       };
     };
     switch = {

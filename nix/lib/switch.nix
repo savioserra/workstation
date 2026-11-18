@@ -23,7 +23,7 @@ let
 
   routine = event: r: ''
     echo "workstation-switch: routine ${r.name} (${event})"
-    if ! ${routineScript event r}; then
+    if ! as_invoker ${routineScript event r}; then
       echo "workstation-switch: routine ${r.name} (${event}) FAILED — the switch stands, the routine did not run clean" >&2
     fi
   '';
@@ -74,6 +74,7 @@ let
     state_dir="''${XDG_STATE_HOME:-$HOME/.local/state}/workstation"
     mkdir -p "$state_dir"
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $message" >> "$state_dir/switch.log"
+    own "$state_dir" "$state_dir/switch.log"
   '';
 
   resolveHomeProfile = ''
@@ -160,6 +161,27 @@ pkgs.writeShellScriptBin "workstation-switch" ''
   ${guards}
   ${runRoutines}
 
+  # under sudo the invoking user owns the checkout, the state dir and the
+  # routines: as_invoker runs a command as that user, own hands files back
+  under_sudo() {
+    [ "$(id -u)" = 0 ] && [ -n "''${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]
+  }
+  as_invoker() {
+    if under_sudo; then
+      sudo -H -u "$SUDO_USER" env "PATH=$PATH" "$@"
+    else
+      "$@"
+    fi
+  }
+  own() {
+    if under_sudo; then
+      chown "$SUDO_USER" "$@" 2>/dev/null || true
+    fi
+  }
+  repo() {
+    as_invoker git -C "$checkout" "$@"
+  }
+
   # System switches reload system services; one of them can be the
   # transport this very session rides (tailscaled) — a reload boots out
   # the daemon before the new one bootstraps, and a session death in that
@@ -175,25 +197,55 @@ pkgs.writeShellScriptBin "workstation-switch" ''
     state_dir="''${XDG_STATE_HOME:-$HOME/.local/state}/workstation"
     mkdir -p "$state_dir"
     log="$state_dir/switch-driver.log"
-    # the runner payload carries its env explicitly: a tmux session on an
-    # existing server inherits the server's environment, not the caller's
-    inner="WORKSTATION_SWITCH_DETACHED=1 WORKSTATION_SWITCH_FLAKE=\"$flake\" WORKSTATION_SWITCH_MACHINE=\"''${WORKSTATION_SWITCH_MACHINE:-}\" WORKSTATION_SWITCH_HOME_ATTR=\"$home_attr\" WORKSTATION_SWITCH_SYSTEM_ATTR=\"$system_attr\" PATH=\"$PATH\" $0 $cmd --system"
+    status="$state_dir/switch-driver.rc"
+    rm -f "$status"
+    touch "$log"
+    own "$state_dir" "$log"
+    seen=$(wc -c < "$log")
+    # the runner carries its env explicitly (a tmux session on an existing
+    # server inherits the server's environment), every value shell-quoted
+    inner=$(printf 'WORKSTATION_SWITCH_DETACHED=1 WORKSTATION_SWITCH_FLAKE=%q WORKSTATION_SWITCH_MACHINE=%q WORKSTATION_SWITCH_HOME_ATTR=%q WORKSTATION_SWITCH_SYSTEM_ATTR=%q HOME=%q XDG_STATE_HOME=%q SUDO_USER=%q PATH=%q %q %q --system' \
+      "$flake" "''${WORKSTATION_SWITCH_MACHINE:-}" "$home_attr" "$system_attr" "$HOME" "''${XDG_STATE_HOME:-$HOME/.local/state}" "''${SUDO_USER:-}" "$PATH" "$0" "$cmd")
+    payload=$(printf '%s 2>&1 | tee -a %q; echo "''${PIPESTATUS[0]}" > %q' "$inner" "$log" "$status")
+    # finish — the runner's output since launch, its exit code
+    finish() {
+      tail -c "+$((seen + 1))" "$log"
+      own "$log" "$status"
+      rc=$(cat "$status" 2>/dev/null || echo 1)
+      exit "$rc"
+    }
     if command -v tmux >/dev/null 2>&1; then
       if tmux has-session -t ws-switch 2>/dev/null; then
         echo "workstation-switch: the ws-switch session exists — a system switch is in flight; attach: tmux attach -t ws-switch (log: $log)" >&2
         exit 1
       fi
-      if tmux new-session -d -s ws-switch "sh -c '$inner 2>&1 | tee -a $log'"; then
-        echo "workstation-switch: system switch in tmux session ws-switch (attach: tmux attach -t ws-switch; log: $log)"
+      if tmux new-session -d -s ws-switch "${pkgs.runtimeShell} -c $(printf '%q' "$payload")"; then
         if [ -t 0 ]; then
-          exec tmux attach -t ws-switch
+          echo "workstation-switch: system switch in tmux session ws-switch (log: $log)"
+          tmux attach -t ws-switch || true
+          if tmux has-session -t ws-switch 2>/dev/null; then
+            echo "workstation-switch: the switch runs on in ws-switch (attach: tmux attach -t ws-switch; log: $log)"
+            exit 0
+          fi
+          rc=$(cat "$status" 2>/dev/null || echo 1)
+          own "$log" "$status"
+          exit "$rc"
         fi
-        exit 0
+        echo "workstation-switch: system switch in tmux session ws-switch — waiting (log: $log)"
+        while tmux has-session -t ws-switch 2>/dev/null; do
+          sleep 1
+        done
+        finish
       fi
     fi
-    nohup setsid sh -c "$inner >> '$log' 2>&1" >/dev/null 2>&1 &
-    echo "workstation-switch: system switch detached (log: $log)"
-    exit 0
+    echo "workstation-switch: system switch detached — waiting (log: $log)"
+    if command -v setsid >/dev/null 2>&1; then
+      nohup setsid ${pkgs.runtimeShell} -c "$payload" >/dev/null 2>&1 &
+    else
+      nohup ${pkgs.runtimeShell} -c "$payload" >/dev/null 2>&1 &
+    fi
+    wait $! || true
+    finish
   fi
 
   event=""
@@ -224,43 +276,39 @@ pkgs.writeShellScriptBin "workstation-switch" ''
       fi
       # the plane answers before the checkout moves
       if [ "$plane" = system ]; then need_system; else need_home; fi
-      # the rolling verb: pull the substrate, bump the lock, commit it
-      # (the build only sees committed HEAD), then switch — no git
-      # ceremony for the consumer; every step stops clean on conflict
-      if [ -n "$(git -C "$checkout" status --porcelain -- . ':!flake.lock')" ]; then
+      # update: the checkout follows origin, then the switch; the lock
+      # moves with origin's commits
+      if [ -n "$(repo status --porcelain)" ]; then
         echo "workstation-switch: the checkout carries uncommitted changes — update moves only a clean tree (yours stays untouched):" >&2
-        git -C "$checkout" status --porcelain -- . ':!flake.lock' | head -5 >&2
+        repo status --porcelain | head -5 >&2
         exit 1
       fi
-      if git -C "$checkout" remote get-url origin >/dev/null 2>&1; then
-        if ! git -C "$checkout" pull --ff-only --quiet 2>/dev/null; then
-          branch="$(git -C "$checkout" rev-parse --abbrev-ref HEAD)"
-          if git -C "$checkout" diff --quiet "origin/$branch...HEAD" -- . ':!flake.lock' 2>/dev/null \
-            && git -C "$checkout" rebase "origin/$branch" >/dev/null 2>&1; then
-            echo "workstation-switch: local lock commits rebased on origin"
+      if repo remote get-url origin >/dev/null 2>&1; then
+        before="$(repo rev-parse HEAD)"
+        if ! repo pull --ff-only --quiet; then
+          branch="$(repo rev-parse --abbrev-ref HEAD)"
+          ahead="$(repo rev-list --count "origin/$branch..HEAD" 2>/dev/null || echo 0)"
+          if [ "$ahead" != 0 ]; then
+            echo "workstation-switch: the checkout carries $ahead commit(s) origin does not — keep them: git pull --rebase; drop them: git reset --hard origin/$branch; then: workstation update" >&2
           else
-            echo "workstation-switch: pull failed (diverged from origin) — resolve by hand, then: workstation update" >&2
-            git -C "$checkout" rebase --abort >/dev/null 2>&1 || true
-            exit 1
+            echo "workstation-switch: the pull from origin failed — the checkout stays at its commit" >&2
           fi
+          exit 1
         fi
-      fi
-      old_rev="$(jq -r '.nodes.nixpkgs.locked.rev' "$checkout/flake.lock" 2>/dev/null || echo unknown)"
-      nix flake update --flake "$checkout"
-      new_rev="$(jq -r '.nodes.nixpkgs.locked.rev' "$checkout/flake.lock" 2>/dev/null || echo unknown)"
-      if ! git -C "$checkout" diff --quiet -- flake.lock; then
-        git -C "$checkout" add flake.lock
-        git -C "$checkout" -c user.name=workstation -c user.email=workstation@localhost \
-          commit --quiet -m "lock: nixpkgs ''${old_rev:0:7}..''${new_rev:0:7}"
-        echo "workstation-switch: lock committed (nixpkgs ''${old_rev:0:7}..''${new_rev:0:7})"
+        after="$(repo rev-parse HEAD)"
+        if [ "$before" = "$after" ]; then
+          echo "workstation-switch: the checkout is current with origin"
+        else
+          echo "workstation-switch: the checkout moved ''${before:0:7}..''${after:0:7}"
+        fi
       else
-        echo "workstation-switch: inputs already current"
+        echo "workstation-switch: the checkout has no origin — switching to its commit"
       fi
       run_routines after-update
       # the pinned ref follows the checkout's new HEAD
       case "$flake" in
         "git+file://$checkout?rev="*)
-          flake="git+file://$checkout?rev=$(git -C "$checkout" rev-parse HEAD)"
+          flake="git+file://$checkout?rev=$(repo rev-parse HEAD)"
           WORKSTATION_SWITCH_FLAKE=$flake
           ;;
       esac
@@ -272,12 +320,12 @@ pkgs.writeShellScriptBin "workstation-switch" ''
       need_system
       need_flake
       ${rebuild} switch --flake "$flake#$system_attr" "''${override[@]}"
-      profile=/nix/var/nix/profiles/system
+      profile="''${WORKSTATION_SWITCH_SYSTEM_PROFILE:-/nix/var/nix/profiles/system}"
       event=after-apply
       ;;
     system:rollback)
       ${rebuild} switch --rollback
-      profile=/nix/var/nix/profiles/system
+      profile="''${WORKSTATION_SWITCH_SYSTEM_PROFILE:-/nix/var/nix/profiles/system}"
       event=after-rollback
       ;;
   esac

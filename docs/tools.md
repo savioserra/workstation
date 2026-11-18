@@ -40,7 +40,9 @@ Platforms: linux x86_64 (WSL counts as linux), macOS arm64.
 
 ## Pin maintenance
 
-The nixpkgs lock is the version surface: `nix flake update` moves the set.
+The nixpkgs lock is the version surface: `nix flake update` moves the set
+as a commit on origin (`nix flake update && git commit flake.lock && git
+push`); hosts follow it with `workstation update`.
 Inline pins declare in their owning
 modules — one pin, one owner, one surface; a bump moves the row, its hash
 and the consumer together. The agent's verify lane anchors on the

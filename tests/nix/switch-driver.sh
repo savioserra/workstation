@@ -7,10 +7,16 @@
 # | 1 | the flake answers no home key, apply | refuses, builds nothing |
 # | 2 | the flake answers no home key, update | refuses, the checkout stays |
 # | 3 | stale baked key, apply | builds the flake's key, activates, receipts the commit |
-# | 4 | update | the lock commits, the build names the new HEAD |
+# | 4 | update, origin ahead | the checkout fast-forwards, the build names the new HEAD, the lock stays origin's |
 # | 5 | the build fails | the switch stops, nothing activates |
 # | 6 | the flake answers no keys | the baked key builds |
 # | 7 | no baked home key, the flake answers none | refuses |
+# | 8 | update, a local commit origin lacks | refuses, the checkout stays, builds nothing |
+# | 9 | update, no origin | switches at the checkout's commit |
+# | 10 | system apply, tmux runner | waits, relays the receipt, exits with the switch's code |
+# | 11 | system apply, the rebuild fails | the failure reaches the caller |
+# | 12 | system apply, no tmux | the detached fallback waits and receipts |
+# | 13 | a flake ref with quotes and spaces | reaches the rebuild verbatim |
 set -eu
 
 nohome=$1
@@ -30,7 +36,7 @@ g() {
 
 # fresh — a committed checkout, its machine file, a profile at generation 3
 fresh() {
-	rm -rf "${work:?}/co" "${work:?}/state" "${work:?}/gen" "${work:?}/home"
+	rm -rf "${work:?}/co" "${work:?}/state" "${work:?}/gen" "${work:?}/home" "${work:?}/origin.git" "${work:?}/other" "${work:?}/sys"
 	mkdir -p "$work/co/hosts/local" "$work/gen" "$work/bin" "$work/home" "$work/state/nix/profiles"
 	printf '%s\n' '{"host":"corrhos","user":"op","home":"/home/op","system":"x86_64-linux","settings":{}}' \
 		>"$work/co/hosts/local/machine.json"
@@ -44,7 +50,27 @@ fresh() {
 	chmod +x "$work/gen/activate"
 	ln -s "$work/gen" "$work/state/nix/profiles/home-manager-3-link"
 	ln -s home-manager-3-link "$work/state/nix/profiles/home-manager"
+	mkdir -p "$work/sys" "$work/tmux"
+	ln -s "$work/gen" "$work/sys/system-7-link"
+	ln -s system-7-link "$work/sys/system"
+	flake_ref="git+file://$work/co?rev=$head"
+	printf '#!/bin/sh\necho "REBUILD: $*" >>"%s"\n' "$work/log" >"$work/bin/nixos-rebuild"
+	chmod +x "$work/bin/nixos-rebuild"
+	rm -f "$work/bin/tmux"
 	: >"$work/log"
+}
+
+# with_origin — a bare origin at the checkout's commit, then one commit ahead
+with_origin() {
+	git clone -q --bare "$work/co" "$work/origin.git"
+	g remote add origin "$work/origin.git"
+	g fetch -q origin
+	g branch -q --set-upstream-to=origin/main
+	git clone -q "$work/origin.git" "$work/other"
+	printf '%s\n' '{"nodes":{"nixpkgs":{"locked":{"rev":"ccccccc3333"}}}}' >"$work/other/flake.lock"
+	git -C "$work/other" -c user.name=gate -c user.email=gate@localhost commit -q -am 'lock: origin'
+	git -C "$work/other" push -q origin main
+	ahead=$(git -C "$work/other" rev-parse HEAD)
 }
 
 # stub <ok|fail> [keys json] — nix: logs its arguments, rewrites the lock,
@@ -65,14 +91,16 @@ EOF
 	chmod +x "$work/bin/nix"
 }
 
-# drive <driver> <verb> — rc in \$rc, stderr in \$work/err
+# drive <driver> <verb> [--system] — rc in \$rc, stdout in \$work/out, stderr in \$work/err
 drive() {
 	rc=0
 	env -i PATH="$work/bin:$PATH" HOME="$work/home" USER=op XDG_STATE_HOME="$work/state" \
-		WORKSTATION_SWITCH_FLAKE="git+file://$work/co?rev=$head" \
+		TMUX_TMPDIR="$work/tmux" \
+		WORKSTATION_SWITCH_SYSTEM_PROFILE="$work/sys/system" \
+		WORKSTATION_SWITCH_FLAKE="$flake_ref" \
 		WORKSTATION_SWITCH_MACHINE="$work/co/hosts/local" \
 		WORKSTATION_SWITCH_CHECKOUT="$work/co" \
-		"$1" "$2" >"$work/out" 2>"$work/err" || rc=$?
+		"$@" >"$work/out" 2>"$work/err" </dev/null || rc=$?
 }
 
 logged() {
@@ -109,13 +137,15 @@ grep -q "generation 3 applied .* at $head" "$work/state/workstation/switch.log" 
 
 # 4
 fresh
+with_origin
 stub ok "$linux_keys"
 drive "$stale" update
 [ "$rc" = 0 ] || fail "4: update must succeed (rc $rc)"
-new=$(g rev-parse HEAD)
-[ "$new" != "$head" ] || fail '4: update must commit the lock'
-grep '^NIX: build' "$work/log" | grep -q "rev=$new" || fail '4: the build must name the new HEAD'
+[ "$(g rev-parse HEAD)" = "$ahead" ] || fail '4: update must fast-forward the checkout to origin'
+grep '^NIX: build' "$work/log" | grep -q "rev=$ahead" || fail '4: the build must name the new HEAD'
 ! grep '^NIX: build' "$work/log" | grep -q "rev=$head" || fail '4: the build must leave the previous HEAD'
+! logged '^NIX: flake update' || fail '4: update must leave the lock to origin'
+[ -z "$(g status --porcelain)" ] || fail '4: update must leave a clean checkout'
 
 # 5
 fresh
@@ -138,4 +168,59 @@ stub ok
 drive "$nohome" apply
 [ "$rc" = 2 ] || fail "7: no home key anywhere must refuse apply with rc 2 (rc $rc)"
 
-printf 'switch-driver.sh: OK (plane guards, the flake keys, the baked keys, update re-pin, failed build)\n'
+# 8
+fresh
+with_origin
+printf 'local\n' >"$work/co/note"
+g add note
+g commit -q -m local
+head=$(g rev-parse HEAD)
+stub ok "$linux_keys"
+drive "$stale" update
+[ "$rc" = 1 ] || fail "8: update over a local commit must refuse with rc 1 (rc $rc)"
+[ "$(g rev-parse HEAD)" = "$head" ] || fail '8: a refused update must leave the checkout at its commit'
+! logged '^NIX: build' || fail '8: a refused update must build nothing'
+grep -q 'git pull --rebase' "$work/err" || fail '8: the refusal must name the way out'
+
+# 9
+fresh
+stub ok "$linux_keys"
+drive "$stale" update
+[ "$rc" = 0 ] || fail "9: update without an origin must succeed (rc $rc)"
+grep '^NIX: build' "$work/log" | grep -q "rev=$head" || fail '9: the build must name the checkout commit'
+
+# 10
+fresh
+stub ok "$linux_keys"
+drive "$stale" apply --system
+[ "$rc" = 0 ] || fail "10: a system apply through the tmux runner must succeed (rc $rc)"
+grep -Fq "REBUILD: switch --flake $flake_ref#corrhos" "$work/log" || fail '10: the rebuild must name the flake and the system key'
+grep -q 'generation 7 applied' "$work/state/workstation/switch.log" || fail '10: the system switch must receipt'
+grep -q 'generation 7 applied' "$work/out" || fail '10: the caller must see the runner output'
+
+# 11
+fresh
+stub ok "$linux_keys"
+printf '#!/bin/sh\nexit 1\n' >"$work/bin/nixos-rebuild"
+drive "$stale" apply --system
+[ "$rc" != 0 ] || fail '11: a failed rebuild must fail the caller'
+[ ! -e "$work/state/workstation/switch.log" ] || fail '11: a failed rebuild must receipt nothing'
+
+# 12
+fresh
+stub ok "$linux_keys"
+printf '#!/bin/sh\nexit 1\n' >"$work/bin/tmux"
+chmod +x "$work/bin/tmux"
+drive "$stale" apply --system
+[ "$rc" = 0 ] || fail "12: a system apply through the detached fallback must succeed (rc $rc)"
+grep -q 'generation 7 applied' "$work/state/workstation/switch.log" || fail '12: the fallback must receipt'
+
+# 13
+fresh
+stub ok "$linux_keys"
+flake_ref="git+file://$work/co?rev=$head&note=it's \"quoted\" \$HOME; true"
+drive "$stale" apply --system
+[ "$rc" = 0 ] || fail "13: a flake ref with shell characters must switch (rc $rc)"
+grep -Fq "REBUILD: switch --flake $flake_ref#corrhos" "$work/log" || fail '13: the flake ref must reach the rebuild verbatim'
+
+printf 'switch-driver.sh: OK (plane guards, the flake keys, the baked keys, update over origin, failed build, the system runner)\n'
