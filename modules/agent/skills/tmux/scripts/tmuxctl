@@ -96,6 +96,8 @@ def cmd_read(args):
             "#{cursor_y}\t#{cursor_x}\t#{pane_in_mode}\t#{alternate_on}\t#{history_size}",
         ],
     ).strip()
+    if not info:
+        die(f"no such pane: {args.pane} (dead or closed)", 1)
     rows = [f"{args.pane}"]
     rows.append("cursor={}x{} mode={} alt-history={} scrollback={}".format(*info.split("\t")))
     cap = ["capture-pane", "-p", "-J", "-t", args.pane]
