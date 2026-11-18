@@ -150,14 +150,71 @@ def cmd_hex(args):
 def cmd_run(args):
     if len(args.command) > MAX_TYPE:
         die(f"command over {MAX_TYPE} bytes — use paste + key Enter", 2)
-    run_tmux(args.socket, ["send-keys", "-l", "-t", args.pane, args.command])
-    run_tmux(args.socket, ["send-keys", "-t", args.pane, "Enter"])
+    if args.no_wait:
+        run_tmux(args.socket, ["send-keys", "-l", "-t", args.pane, args.command])
+        run_tmux(args.socket, ["send-keys", "-t", args.pane, "Enter"])
+        return
+    run_wait(args)
+
+
+def run_wait(args):
+    """Type the command, submit, ride %output until the shell prints the
+    completion marker (an OSC escape — invisible on screen), yield the
+    transcript slice and the command's exit code."""
+    nonce = f"{os.getpid():x}{time.monotonic_ns() % 0xFFFF:x}"
+    marker = f"tmuxctl:{nonce}"
+    wrap = f" ; printf '\\033]7777;{marker}:%s\\007' \"$?\""
+    line_rx = re.compile("\x1b\\]7777;" + re.escape(marker) + r":(\d+)")
+    session = pane_session(args.socket, args.pane)
+    cc = ControlClient(args.socket, session)
+    out = []
+    code = None
+    rc = 124
+    deadline = time.monotonic() + (args.timeout or 180)
+    try:
+        run_tmux(args.socket, ["send-keys", "-l", "-t", args.pane, args.command + wrap])
+        run_tmux(args.socket, ["send-keys", "-t", args.pane, "Enter"])
+        while time.monotonic() < deadline:
+            wait = max(0.0, deadline - time.monotonic())
+            try:
+                line = cc.q.get(timeout=wait)
+            except queue.Empty:
+                break
+            if line is None:
+                rc = 125
+                break
+            if not line.startswith("%output"):
+                continue
+            parts = line.split(" ", 2)
+            if len(parts) < 3 or parts[1] != args.pane:
+                continue
+            payload = unescape(parts[2])
+            m = line_rx.search(payload)
+            if m:
+                for ln in clean(payload[: m.start()], False).splitlines():
+                    if ln.strip() and "]7777;tmuxctl:" not in ln:
+                        out.append(ln)
+                code = int(m.group(1))
+                rc = 0 if code == 0 else 1
+                break
+            text = clean(payload, False)
+            for ln in text.splitlines():
+                if ln.strip() and "]7777;tmuxctl:" not in ln:
+                    out.append(ln)
+    finally:
+        cc.close()
+    if out:
+        print("\n".join(out)[-4000:])
+    if code is not None:
+        print(f"--- exit {code} ---")
+    sys.exit(rc)
 
 
 # --- watch (control mode) --------------------------------------------------
 
 OCTAL = re.compile(r"\\([0-7]{3})")
 SGR = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
+OSC = re.compile(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)")
 
 
 def unescape(line):
@@ -167,7 +224,7 @@ def unescape(line):
 def clean(text, keep_sgr):
     if keep_sgr:
         return text
-    return SGR.sub("", text)
+    return OSC.sub("", SGR.sub("", text))
 
 
 def pane_session(socket, pane):
@@ -318,9 +375,11 @@ def main():
     s.add_argument("bytes", nargs="+", metavar="BYTE")
     s.set_defaults(fn=cmd_hex)
 
-    s = sub.add_parser("run", help="type a command line and submit it")
+    s = sub.add_parser("run", help="type a command line, submit it, wait for completion")
     s.add_argument("pane", metavar="PANE")
     s.add_argument("command")
+    s.add_argument("--no-wait", action="store_true", help="submit and return immediately")
+    s.add_argument("--timeout", type=float, default=180.0, help="wait cap in seconds")
     s.set_defaults(fn=cmd_run)
 
     s = sub.add_parser("watch", help="stream pane output (control mode, no polling)")

@@ -17,7 +17,7 @@ description: Drive tmux panes — list, read, type, paste and watch pane output 
 | `key` | `tmuxctl key %3 Enter` / `C-c` / `Escape` | named keys; the only submit path |
 | `paste` | `tmuxctl paste %3 < block` | bracketed paste from stdin — multiline blocks into REPLs/shells |
 | `hex` | `tmuxctl hex %3 1b 5b 31 3b 32 75` | raw byte sequences key names cannot express |
-| `run` | `tmuxctl run %3 'cmd args'` | type + Enter in one call |
+| `run` | `tmuxctl run %3 'cmd args' [--timeout N] [--no-wait]` | type + Enter, then wait: yields the output tail and `--- exit N ---` when the shell prints the completion marker (an invisible OSC escape); non-interactive commands only |
 | `watch` | `tmuxctl watch %3 --until REGEX [--idle N] [--timeout N] [--all] [--raw]` | streams pane output by tmux control-mode push — zero polling |
 
 ## Watch semantics

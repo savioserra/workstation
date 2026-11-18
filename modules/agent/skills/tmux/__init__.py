@@ -91,7 +91,13 @@ def tmux_hex(args, **kwargs):
 
 
 def tmux_run(args, **kwargs):
-    return json.dumps(_ctl(_sock(["run", args["pane"], args["command"]], args.get("socket"))))
+    a = ["run", args["pane"], args["command"]]
+    timeout = args.get("timeout") or 180
+    if args.get("no_wait"):
+        a += ["--no-wait"]
+        return json.dumps(_ctl(_sock(a, args.get("socket")), timeout=60))
+    a += ["--timeout", str(timeout)]
+    return json.dumps(_ctl(_sock(a, args.get("socket")), timeout=timeout + 30))
 
 
 def tmux_watch(args, **kwargs):
@@ -217,15 +223,21 @@ _HEX = {
 _RUN = {
     "name": "tmux_run",
     "description": (
-        "Type a shell command line into a pane and submit it (type + Enter). "
-        "Returns immediately; read output with tmux_read or wait with "
-        "tmux_watch."
+        "Run a shell command line in a pane and WAIT for completion: the "
+        "tool blocks while the command runs, then returns its output tail "
+        "and exit code (--- exit N ---). The completion signal rides tmux "
+        "control-mode push — no polling. Non-interactive commands only; "
+        "for REPLs/TUIs/ssh sessions use tmux_type + tmux_key. "
+        "no_wait=true submits and returns immediately; timeout caps the "
+        "wait (default 180s, exit rc 124 on expiry)."
     ),
     "parameters": {
         "type": "object",
         "properties": {
             "pane": _PANE,
             "command": {"type": "string", "description": "the command line"},
+            "timeout": {"type": "number", "description": "wait cap in seconds (default 180)"},
+            "no_wait": {"type": "boolean", "description": "submit and return immediately"},
             "socket": _SOCKET,
         },
         "required": ["pane", "command"],
