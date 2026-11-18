@@ -118,6 +118,7 @@ let
 in
 pkgs.writeShellScriptBin "workstation-switch" ''
   set -eu
+  export PATH="${lib.makeBinPath [ pkgs.jq ]}:$PATH"
 
   usage() {
     echo "usage: workstation-switch apply|rollback|update|sync [--system]" >&2
@@ -147,6 +148,16 @@ pkgs.writeShellScriptBin "workstation-switch" ''
   home_attr="''${WORKSTATION_SWITCH_HOME_ATTR:-${if homeAttr == null then "" else homeAttr}}"
   system_attr="''${WORKSTATION_SWITCH_SYSTEM_ATTR:-${if systemAttr == null then "" else systemAttr}}"
   home_activate="''${WORKSTATION_SWITCH_HOME_ACTIVATE:-}"
+  # the staged machine file is the live identity — its capture overrides the
+  # generation-baked attr default
+  machine_home=""
+  machine_system=""
+  if [ -f "''${WORKSTATION_SWITCH_MACHINE:-/nonexistent}/machine.json" ]; then
+    machine_home=$(jq -r 'select(.user != null and .host != null) | "\(.user)@\(.host)"' "$WORKSTATION_SWITCH_MACHINE/machine.json" 2>/dev/null || true)
+    machine_system=$(jq -r 'select(.host != null) | .host' "$WORKSTATION_SWITCH_MACHINE/machine.json" 2>/dev/null || true)
+  fi
+  [ -n "''${WORKSTATION_SWITCH_HOME_ATTR:-}" ] || [ -z "$machine_home" ] || home_attr=$machine_home
+  [ -n "''${WORKSTATION_SWITCH_SYSTEM_ATTR:-}" ] || [ -z "$machine_system" ] || system_attr=$machine_system
   ${guards}
   ${runRoutines}
 

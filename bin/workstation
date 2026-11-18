@@ -458,6 +458,8 @@ init | setup)
 		printf 'workstation: machine already captured in %s (host=%s user=%s) — the fields you set were kept\n' \
 			"$machine" "$(jqx -r .host "$machine")" "$(jqx -r .user "$machine")"
 	fi
+	# the capture has written the machine file — the activation build carries it
+	mdir=$flake/hosts/local
 	langs_step
 	fleet_mode=''
 	if [ -z "$(fleet_get)" ] || [ "$reask" = 1 ]; then

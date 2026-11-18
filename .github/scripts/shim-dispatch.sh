@@ -44,6 +44,11 @@ case "\$*" in
     printf '%s\n' '$root/peers-helper'
     exit 0
     ;;
+  *"activationPackage"*)
+    [ -f '$root/activation-fails' ] && exit 1
+    printf '%s\n' '$root/activation'
+    exit 0
+    ;;
   *"report.selectable."*)
     p=\$(printf '%s' "\$*" | sed -n 's/.*selectable."\([^"]*\)".*/\1/p')
     case "\$p" in
@@ -271,6 +276,51 @@ rc=0
 WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$init "$shim" init >/dev/null 2>"$root/err" || rc=$?
 [ "$rc" = 1 ] || fail "init without a template must exit 1 (got $rc)"
 grep -q 'missing (unexpected tree)' "$root/err" || fail 'the missing-template refusal must name it'
+
+# 6c — a fresh capture's first activation: the build carries the captured key
+# with the machine files overridden in
+fa=$root/applyflake
+mkdir -p "$fa/hosts/template" "$root/activation"
+printf '%s\n' "$template" >"$fa/hosts/template/machine.json"
+printf '{ }\n' >"$fa/hosts/template/peers.nix"
+cat >"$root/activation/activate" <<STUB
+#!/bin/sh
+printf '%s\n' 'activation ran' >> '$root/stub.log'
+STUB
+chmod +x "$root/activation/activate"
+cat >"$stub_dir/whiptail" <<'STUB'
+#!/bin/sh
+kind=''
+prompt=''
+prev=''
+for a; do
+	case $prev in --inputbox|--yesno) prompt=$a ;; esac
+	case $a in --yesno|--menu|--msgbox|--inputbox|--checklist) kind=$a ;; esac
+	prev=$a
+done
+case $kind in
+--msgbox) exit 0 ;;
+--checklist) printf '\n' >&2; exit 0 ;;
+--menu) printf 'standalone\n' >&2; exit 0 ;;
+--yesno) exit 0 ;;
+esac
+case $prompt in
+*hostname*) printf 'applyhost\n' >&2 ;;
+*operator\ user*) printf 'testuser\n' >&2 ;;
+*home\ directory*) printf '/home/testuser\n' >&2 ;;
+*vault*) printf 'Ops\n' >&2 ;;
+*) exit 1 ;;
+esac
+STUB
+chmod +x "$stub_dir/whiptail"
+out=$(WORKSTATION_FLAKE=$fa "$shim" init) || fail 'init through the first activation must succeed'
+printf '%s\n' "$out" | grep -q 'workstation: applied' || fail 'init must report the applied first switch'
+grep -Fq '#homeConfigurations."testuser@applyhost".activationPackage' "$root/stub.log" ||
+	fail 'the first activation must build the captured key'
+grep -Fq "activationPackage --override-input machine-files path:$fa/hosts/local" "$root/stub.log" ||
+	fail 'the first activation must carry the machine-files override pointing at the capture'
+grep -q 'activation ran' "$root/stub.log" || fail 'the first activation must run the activation package'
+printf '#!/bin/sh\nexit 1\n' >"$stub_dir/whiptail"
 
 # 6b
 sp=$root/setupflake
