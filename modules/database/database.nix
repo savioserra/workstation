@@ -45,7 +45,19 @@ ws.capability [ "database" ] {
       consumers.harlequin = {
         file = "harlequin.toml";
         # harlequin only accepts its builtin textual themes: the appearance maps
-        render = t: ''theme = "${if t.appearance == "light" then "textual-light" else "textual-dark"}"'';
+        # harlequin only accepts its builtin textual themes: the appearance maps;
+        # theme is a profile key, the top level rejects it
+        render =
+          t:
+          let
+            textual = if t.appearance == "light" then "textual-light" else "textual-dark";
+          in
+          ''
+            default_profile = "default"
+
+            [profiles.default]
+            theme = "${textual}"
+          '';
       };
     };
     home.file.".config/harlequin/config.toml" =
