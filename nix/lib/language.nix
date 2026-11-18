@@ -16,17 +16,16 @@ in
   #   options?; config? }
   language =
     path: spec:
-    ws.capability path {
-      inherit (spec) description;
-      default = spec.default or false;
-      enable = spec.enable or { };
-      options = spec.options or { };
-      config = lib.mkMerge [
-        { workstation.languages.tools = spec.tools or { }; }
-        (lib.optionalAttrs (spec ? editor) {
-          workstation.editor = ws.whenOn "editor" { languages.${lib.last path} = spec.editor; };
-        })
-        (spec.config or { })
-      ];
-    };
+    ws.capability path (
+      spec
+      // {
+        config = lib.mkMerge [
+          { workstation.languages.tools = spec.tools or { }; }
+          (lib.optionalAttrs (spec ? editor) {
+            workstation.editor = ws.whenOn "editor" { languages.${lib.last path} = spec.editor; };
+          })
+          (spec.config or { })
+        ];
+      }
+    );
 }

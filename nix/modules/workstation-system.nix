@@ -7,7 +7,6 @@
 }:
 let
   cfg = config.workstation;
-  isDarwin = pkgs.stdenv.hostPlatform.isDarwin;
 in
 {
   options.workstation = {
@@ -20,24 +19,11 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable (
-    lib.mkMerge [
-      {
-        environment.systemPackages = [
-          pkgs.tmux
-          pkgs.btop
-        ]
-        ++ cfg.extraPackages;
-      }
-      (lib.mkIf (!isDarwin) {
-        system.activationScripts.workstation = {
-          deps = [ "users" ];
-          text = ''
-            echo "workstation: substrate staged (system plane)"
-            echo "workstation: substrate staged (system plane)" > /dev/kmsg 2>/dev/null || true
-          '';
-        };
-      })
+  config = lib.mkIf cfg.enable {
+    environment.systemPackages = [
+      pkgs.tmux
+      pkgs.btop
     ]
-  );
+    ++ cfg.extraPackages;
+  };
 }

@@ -10,7 +10,7 @@ let
   routine = lib.types.submodule {
     options = {
       name = lib.mkOption {
-        type = lib.types.str;
+        type = lib.types.strMatching "[a-z0-9][a-z0-9-]*";
         description = "A store-name-safe routine id (kebab-case).";
       };
       text = lib.mkOption {
@@ -94,7 +94,7 @@ in
       })
     ];
 
-    home.stateVersion = "25.05";
+    home.stateVersion = lib.mkDefault "25.05";
     home.backupFileExtension = "hm-backup";
   };
 }

@@ -9,7 +9,7 @@
 # | workstation-fleet | the fleet member service and `workstation fleet` joins |
 { pkgs }:
 let
-  ws = import ../../nix/lib/capability.nix {
+  ws = import ../../nix/lib/payload.nix {
     inherit pkgs;
     inherit (pkgs) lib;
   };

@@ -68,11 +68,12 @@ option tree applied as a module.
 | Module | Contract |
 | --- | --- |
 | `bin/workstation` | Launcher shim: flake resolution order, verb dispatch, exit codes (dispatch gate: `.github/scripts/shim-dispatch.sh`) |
-| `nix/lib/machine.nix` | The machine file: identity, system, settings as home modules |
+| `nix/lib/machine.nix` | The machine file: identity, the flake keys (`homeKey`, `systemKey`), `settings` and `workstation.machine` as home modules |
 | `modules/default.nix` | The capability module list |
 | `modules/<domain>/<domain>.nix` | The domain's options and declarations, gated on `workstation.<domain>.enable` (members also on their own flag) |
 | `nix/report.nix` | The read verbs from one home eval: rows from the option tree, attribution from `definitionsWithLocations` |
-| `nix/lib/capability.nix` | The module helpers, imported by relative path: `capability` (the enable option + its gate over every enclosing enable), `whenOn` (a contribution guarded by the owning domain's enable), `shellInit`, `script`, `overlayTree` |
+| `nix/lib/capability.nix` | The module helpers, imported by relative path: `capability` (the enable option + its gate over every enclosing enable), `whenOn` (a contribution guarded by the owning domain's enable), `isOn` (every enable on a path), `shellInit`; the payload helpers ride along |
+| `nix/lib/payload.nix` | The payload helpers, free of the module system: `script`, `overlayTree` |
 | `nix/lib/license.nix` | The secrets domain's unfree acceptance (the 1Password CLI): one predicate, imported by every composition root |
 | `modules/agent/agent.nix` | The agent domain's hot-home surfaces: managed skill leaves, the checkout ensure, version-matched skill provisions |
 | `modules/<domain>/` payload dirs | Payload assets (`files/`, verify scripts), co-located with the declaring module |

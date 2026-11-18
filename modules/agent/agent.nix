@@ -194,11 +194,11 @@ let
   entries = skillEntries ++ extensionEntries;
 in
 {
-  options.workstation.agent.enable =
-    lib.mkEnableOption "the hermes agent runtime and its served skills"
-    // {
+  options.workstation =
+    (ws.capability [ "agent" ] {
+      description = "the hermes agent runtime and its served skills";
       default = true;
-    };
+    }).options.workstation;
 
   options.programs.hermes = {
     skills = lib.mkOption {
@@ -399,7 +399,7 @@ in
     };
   };
 
-  config = lib.mkIf config.workstation.agent.enable {
+  config = ws.whenOn "agent" {
     programs.hermes.a2a = {
       name = lib.mkIf (config.workstation.machine.host != null) (
         lib.mkDefault config.workstation.machine.host

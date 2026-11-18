@@ -1,44 +1,49 @@
 # Capability helpers: the enable option and its gate, guarded contributions,
-# the theme tokens, bash+zsh init, payload scripts, overlaid trees.
+# the theme tokens, bash+zsh init; the payload helpers ride along.
 {
   lib,
   pkgs,
-  config ? null,
+  config,
 }:
 let
-  enabledOr =
-    fallback: path: lib.attrByPath ([ "workstation" ] ++ path ++ [ "enable" ]) fallback config;
-  chain = path: lib.all (n: enabledOr true (lib.take n path)) (lib.range 1 (builtins.length path));
-in
-{
-  # capability [ "languages" "go" ] { description; default?; enable?; options?; config?; }
-  capability = path: spec: {
-    options.workstation = lib.setAttrByPath path (
-      {
-        enable =
-          lib.mkEnableOption spec.description
-          // {
-            default = spec.default or false;
-          }
-          // (spec.enable or { });
-      }
-      // (spec.options or { })
+  # isOn [ "terminal" "tmux" ]: every enable on the path holds; an
+  # undeclared path fails the eval
+  isOn =
+    path:
+    lib.all (n: lib.getAttrFromPath ([ "workstation" ] ++ lib.take n path ++ [ "enable" ]) config) (
+      lib.range 1 (builtins.length path)
     );
-    config = lib.mkIf (chain path) (spec.config or { });
-  };
+in
+import ./payload.nix { inherit lib pkgs; }
+// {
+  inherit isOn;
+
+  # capability [ "languages" "go" ] { description; default?; enable?; options?; config?; }
+  # a path is <domain> or <domain>/<member>, the grammar of the selection verbs
+  capability =
+    path: spec:
+    assert lib.assertMsg (builtins.elem (builtins.length path) [
+      1
+      2
+    ]) "capability: the path ${lib.concatStringsSep "/" path} must be <domain> or <domain>/<member>";
+    {
+      options.workstation = lib.setAttrByPath path (
+        {
+          enable =
+            lib.mkEnableOption spec.description
+            // {
+              default = spec.default or false;
+            }
+            // (spec.enable or { });
+        }
+        // (spec.options or { })
+      );
+      config = lib.mkIf (isOn path) (spec.config or { });
+    };
 
   # whenOn "editor" | whenOn [ "terminal" "nunchux" ]: a contribution guarded
   # by every enable on the owner's path; an undeclared owner fails the eval
-  whenOn =
-    owner:
-    let
-      path = lib.toList owner;
-    in
-    lib.mkIf (
-      lib.all (n: lib.getAttrFromPath ([ "workstation" ] ++ lib.take n path ++ [ "enable" ]) config) (
-        lib.range 1 (builtins.length path)
-      )
-    );
+  whenOn = owner: lib.mkIf (isOn (lib.toList owner));
 
   # themeTokens: the color map tokens per theme,
   # { <theme> = { name; appearance; palette; ansi; }; }; a capability maps
@@ -49,41 +54,4 @@ in
     programs.bash.initExtra = text;
     programs.zsh.initContent = text;
   };
-
-  script =
-    {
-      name,
-      file,
-      inputs ? [ ],
-      prelude ? "",
-    }:
-    pkgs.writeShellApplication {
-      inherit name;
-      runtimeInputs = inputs;
-      bashOptions = [ ];
-      text = prelude + builtins.readFile file;
-    };
-
-  overlayTree =
-    base: children:
-    if children == [ ] then
-      base
-    else
-      pkgs.runCommand "ws-composed-${base.name or "tree"}" { } ''
-        set -euo pipefail
-        mkdir -p "$out"
-        cp -a ${base}/. "$out/"
-        chmod -R u+w "$out"
-        ${lib.concatStrings (
-          map (c: ''
-            mkdir -p "$out/$(dirname "${c.path}")"
-            if [ -d "${c.source}" ]; then
-              mkdir -p "$out/${c.path}"
-              cp -a "${c.source}"/. "$out/${c.path}"/
-            else
-              cp -a "${c.source}" "$out/${c.path}"
-            fi
-          '') children
-        )}
-      '';
 }
