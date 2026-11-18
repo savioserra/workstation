@@ -23,9 +23,13 @@ rows() {
 			elif $s >= 60 then "\($s / 60 | floor)m ago"
 			else "just now" end;
 		[ .Self ] + [ .Peer[] ]
-		| sort_by([(if .Online then 0 else 1 end), .HostName])
+		| sort_by([
+			(if .Online then 0 else 1 end),
+			(if ((.DNSName // "") != "") then (.DNSName | rtrimstr(".") | split(".")[0]) else .HostName end)
+		])
 		| .[]
-		| [ .HostName, .OS,
+		| [ (if ((.DNSName // "") != "") then (.DNSName | rtrimstr(".") | split(".")[0]) else .HostName end),
+			.OS,
 			(if .Online then
 				(if ((.CurAddr // "") != "") then "direct " + (.CurAddr | sub("\\]:[0-9]+$"; "") | sub("^\\["; ""))
 				else "relayed" end)
