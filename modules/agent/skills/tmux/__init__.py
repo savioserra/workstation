@@ -96,6 +96,8 @@ def tmux_run(args, **kwargs):
     if args.get("no_wait"):
         a += ["--no-wait"]
         return json.dumps(_ctl(_sock(a, args.get("socket")), timeout=60))
+    if args.get("await"):
+        a += ["--await", args["await"]]
     a += ["--timeout", str(timeout)]
     return json.dumps(_ctl(_sock(a, args.get("socket")), timeout=timeout + 30))
 
@@ -223,19 +225,22 @@ _HEX = {
 _RUN = {
     "name": "tmux_run",
     "description": (
-        "Run a shell command line in a pane and WAIT for completion: the "
-        "tool blocks while the command runs, then returns its output tail "
-        "and exit code (--- exit N ---). The completion signal rides tmux "
-        "control-mode push — no polling. Non-interactive commands only; "
-        "for REPLs/TUIs/ssh sessions use tmux_type + tmux_key. "
-        "no_wait=true submits and returns immediately; timeout caps the "
-        "wait (default 180s, exit rc 124 on expiry)."
+        "Run a shell command line in a pane and WAIT: by default until "
+        "completion — yields the output tail and exit code (--- exit N ---) "
+        "when the shell prints the completion marker. With await=REGEX "
+        "returns as soon as the regex matches pane output (--- await "
+        "matched, still running ---) — use it for interactive launches "
+        "(ssh, REPLs): run 'ssh host' with await 'password:|\\$' and act "
+        "while the session stays live; full-session wait also works (the "
+        "marker fires at logout). no_wait=true submits and returns "
+        "immediately. timeout caps the wait (default 180s, rc 124)."
     ),
     "parameters": {
         "type": "object",
         "properties": {
             "pane": _PANE,
             "command": {"type": "string", "description": "the command line"},
+            "await": {"type": "string", "description": "regex; return when pane output matches (command keeps running)"},
             "timeout": {"type": "number", "description": "wait cap in seconds (default 180)"},
             "no_wait": {"type": "boolean", "description": "submit and return immediately"},
             "socket": _SOCKET,

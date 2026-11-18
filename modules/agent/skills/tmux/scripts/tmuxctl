@@ -160,19 +160,25 @@ def cmd_run(args):
 def run_wait(args):
     """Type the command, submit, ride %output until the shell prints the
     completion marker (an OSC escape — invisible on screen), yield the
-    transcript slice and the command's exit code."""
+    transcript slice and the command's exit code. --await returns on a
+    readiness pattern instead, while the command keeps running."""
     nonce = f"{os.getpid():x}{time.monotonic_ns() % 0xFFFF:x}"
     marker = f"tmuxctl:{nonce}"
-    wrap = f" ; printf '\\033]7777;{marker}:%s\\007' \"$?\""
-    line_rx = re.compile("\x1b\\]7777;" + re.escape(marker) + r":(\d+)")
+    start = f"printf '\\033]7777;{marker}:start\\007' ; "
+    wrap = f" ; printf '\\033]7777;{marker}:end:%s\\007' \"$?\""
+    start_rx = re.compile("\x1b\\]7777;" + re.escape(marker) + ":start\\007")
+    marker_rx = re.compile("\x1b\\]7777;" + re.escape(marker) + r":end:(\d+)")
+    await_rx = re.compile(args.await_re) if args.await_re else None
     session = pane_session(args.socket, args.pane)
     cc = ControlClient(args.socket, session)
     out = []
     code = None
+    awaited = False
+    started = False
     rc = 124
     deadline = time.monotonic() + (args.timeout or 180)
     try:
-        run_tmux(args.socket, ["send-keys", "-l", "-t", args.pane, args.command + wrap])
+        run_tmux(args.socket, ["send-keys", "-l", "-t", args.pane, start + args.command + wrap])
         run_tmux(args.socket, ["send-keys", "-t", args.pane, "Enter"])
         while time.monotonic() < deadline:
             wait = max(0.0, deadline - time.monotonic())
@@ -189,13 +195,36 @@ def run_wait(args):
             if len(parts) < 3 or parts[1] != args.pane:
                 continue
             payload = unescape(parts[2])
-            m = line_rx.search(payload)
+            if not started:
+                # matching activates only at the shell's own start marker —
+                # the echo and any zle redraw of the typed line precede it
+                sm = start_rx.search(payload)
+                if not sm:
+                    continue
+                started = True
+                payload = payload[sm.end() :]
+                if not payload:
+                    continue
+            m = marker_rx.search(payload)
+            hit = None
+            pre = ""
             if m:
-                for ln in clean(payload[: m.start()], False).splitlines():
+                hit = m
+                pre = clean(payload[: m.start()], False)
+            elif await_rx:
+                cleaned = clean(payload, False)
+                hit = await_rx.search(cleaned)
+                pre = cleaned[: hit.start()] if hit else ""
+            if hit:
+                for ln in pre.splitlines():
                     if ln.strip() and "]7777;tmuxctl:" not in ln:
                         out.append(ln)
-                code = int(m.group(1))
-                rc = 0 if code == 0 else 1
+                if m:
+                    code = int(m.group(1))
+                    rc = 0 if code == 0 else 1
+                else:
+                    awaited = True
+                    rc = 0
                 break
             text = clean(payload, False)
             for ln in text.splitlines():
@@ -205,7 +234,9 @@ def run_wait(args):
         cc.close()
     if out:
         print("\n".join(out)[-4000:])
-    if code is not None:
+    if awaited:
+        print("--- await matched (still running) ---")
+    elif code is not None:
         print(f"--- exit {code} ---")
     sys.exit(rc)
 
@@ -379,6 +410,7 @@ def main():
     s.add_argument("pane", metavar="PANE")
     s.add_argument("command")
     s.add_argument("--no-wait", action="store_true", help="submit and return immediately")
+    s.add_argument("--await", dest="await_re", default=None, help="regex: return when it matches pane output (command keeps running)")
     s.add_argument("--timeout", type=float, default=180.0, help="wait cap in seconds")
     s.set_defaults(fn=cmd_run)
 
