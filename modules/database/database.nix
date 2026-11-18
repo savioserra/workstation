@@ -41,5 +41,19 @@ ws.capability [ "database" ] {
         rank = 20;
       };
     };
+    workstation.theme = ws.whenOn "theme" {
+      consumers.harlequin = {
+        file = "harlequin.toml";
+        # harlequin only accepts its builtin textual themes: the appearance maps
+        render = t: ''theme = "${if t.appearance == "light" then "textual-light" else "textual-dark"}"'';
+      };
+    };
+    home.file.".config/harlequin/config.toml" =
+      if config.workstation.theme.enable then
+        {
+          source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.local/state/workstation/theme/current/harlequin.toml";
+        }
+      else
+        { enable = false; };
   };
 }
