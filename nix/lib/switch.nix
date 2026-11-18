@@ -149,12 +149,16 @@ pkgs.writeShellScriptBin "workstation-switch" ''
   system_attr="''${WORKSTATION_SWITCH_SYSTEM_ATTR:-${if systemAttr == null then "" else systemAttr}}"
   home_activate="''${WORKSTATION_SWITCH_HOME_ACTIVATE:-}"
   # the staged machine file is the live identity — its capture overrides the
-  # generation-baked attr default
+  # generation-baked attr default; the system plane keys by user@host on
+  # darwin and by host on linux (the host modules' convention)
   machine_home=""
   machine_system=""
   if [ -f "''${WORKSTATION_SWITCH_MACHINE:-/nonexistent}/machine.json" ]; then
     machine_home=$(jq -r 'select(.user != null and .host != null) | "\(.user)@\(.host)"' "$WORKSTATION_SWITCH_MACHINE/machine.json" 2>/dev/null || true)
-    machine_system=$(jq -r 'select(.host != null) | .host' "$WORKSTATION_SWITCH_MACHINE/machine.json" 2>/dev/null || true)
+    case "$(uname -s)" in
+      Darwin) machine_system=$machine_home ;;
+      *) machine_system=$(jq -r 'select(.host != null) | .host' "$WORKSTATION_SWITCH_MACHINE/machine.json" 2>/dev/null || true) ;;
+    esac
   fi
   [ -n "''${WORKSTATION_SWITCH_HOME_ATTR:-}" ] || [ -z "$machine_home" ] || home_attr=$machine_home
   [ -n "''${WORKSTATION_SWITCH_SYSTEM_ATTR:-}" ] || [ -z "$machine_system" ] || system_attr=$machine_system
