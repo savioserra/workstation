@@ -49,7 +49,7 @@ head=$(git -C "$checkout" rev-parse HEAD 2>/dev/null || true)
 # The declared skills: entry symlinks into the store, readable through.
 # The copy contract served real trees; the declarative surface serves ONE
 # store symlink per skill — anything else here is drift.
-for skill in secrets workstation; do
+for skill in secrets workstation tmux; do
   [ -L "$home/.hermes/skills/$skill" ] ||
     fail "declared skill at $home/.hermes/skills/$skill is not an entry symlink (copy-contract drift)"
   case "$(readlink "$home/.hermes/skills/$skill")" in
@@ -78,5 +78,23 @@ done
 smoke=$(timeout 120 env HOME="$home" "$launcher" --version 2>/dev/null | head -n 1) ||
   fail "launcher --version failed at $launcher (broken launcher or interpreter)"
 [ -n "$smoke" ] || fail "launcher --version produced no output at $launcher"
+
+# The tmux skill ships an executable: prove the wrapped interpreter answers
+# and the pane surface drives a real scratch server end to end.
+tmuxctl="$home/.hermes/skills/tmux/scripts/tmuxctl"
+if command -v tmux >/dev/null 2>&1; then
+  [ -x "$tmuxctl" ] || fail "tmuxctl missing or not executable at $tmuxctl"
+  sock="hermes-verify-$$"
+  tmux -L "$sock" new-session -d -s verify -x 80 -y 20 ||
+    fail "tmux verify: scratch session did not start"
+  pane=$(tmux -L "$sock" list-panes -t verify -F '#{pane_id}')
+  timeout 20 "$tmuxctl" -L "$sock" run "$pane" 'sleep 1; echo verify-$$-ran' ||
+    fail "tmuxctl run failed on the scratch pane"
+  out=$(timeout 20 "$tmuxctl" -L "$sock" watch "$pane" --until 'verify-.*-ran' --timeout 10) ||
+    fail "tmuxctl watch did not observe the run output (rc=$?, got: $out)"
+  printf '%s' "$out" | grep -q 'verify-.*-ran' ||
+    fail "tmuxctl watch exited without the expected marker"
+  tmux -L "$sock" kill-server 2>/dev/null || true
+fi
 
 echo "hermes verify: full-stack ok — $checkout is at the pinned commit $pin_commit; interpreter $pin_python; smoke: $smoke"

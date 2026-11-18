@@ -204,7 +204,10 @@ and sorted, never hidden.
   declared name the pinned tree bundles fails the eval). `secrets` is
   authored at `modules/agent/skills/secrets`; `workstation` (the substrate
   dev workflow + references) is authored at
-  `modules/agent/skills/workstation`; `hsql` is generated from the
+  `modules/agent/skills/workstation`; `tmux` (the `tmuxctl` pane surface:
+  inspect, read, operate, control-mode watch) is authored at
+  `modules/agent/skills/tmux` with its script interpreter-wrapped at build
+  time; `hsql` is generated from the
   harlequin derivation by `hsql --skill` at build time.
 - Gateway extensions: `programs.hermes.extensions` → entry symlinks into
   `~/.hermes/plugins/<name>`.

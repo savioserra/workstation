@@ -156,9 +156,22 @@ let
     }
   );
 
+  # the tmux skill carries an executable: ship it with its own interpreter
+  tmuxSkill =
+    pkgs.runCommand "hermes-skill-tmux"
+      {
+        nativeBuildInputs = [ pkgs.python3 ];
+      }
+      ''
+        cp -a ${./skills/tmux} $out
+        chmod -R u+w $out
+        patchShebangs $out/scripts/tmuxctl
+      '';
+
   authoredSkills = {
     secrets = ./skills/secrets;
     workstation = ./skills/workstation;
+    tmux = tmuxSkill;
   };
 
   skillEntries = lib.flatten (
