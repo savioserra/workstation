@@ -69,6 +69,12 @@ in
     file = ./files/a2a-fleet.sh;
   };
 
+  workstation-hermes-toolsets = ws.script {
+    name = "workstation-hermes-toolsets";
+    inputs = [ pkgs.python3 ];
+    file = ./files/hermes-toolsets.sh;
+  };
+
   # the tmuxctl run markers: short tokens the pane echoes instead of the
   # inline printf wrapper
   ws-go = pkgs.writeShellScriptBin "ws-go" ''

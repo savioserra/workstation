@@ -238,6 +238,36 @@ in
       description = "Gateway extensions linked as entry symlinks into ~/.hermes/plugins/<name>.";
     };
 
+    cliToolsets = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [
+        "browser"
+        "clarify"
+        "code_execution"
+        "computer_use"
+        "connections"
+        "context_engine"
+        "cronjob"
+        "delegation"
+        "file"
+        "kanban"
+        "memory"
+        "session_search"
+        "skills"
+        "terminal"
+        "todo"
+        "vision"
+        "web"
+      ];
+      description = "The cli session toolsets config.yaml carries — converged by the toolsets ensure; per-session divergence goes through this option, not hand edits.";
+    };
+
+    disabledMcpServers = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ "rea" ];
+      description = "MCP servers kept disabled in config.yaml (entries the user added and the ruled surface drops).";
+    };
+
     pin = lib.mkOption {
       type = lib.types.nullOr (
         lib.types.submodule {
@@ -483,6 +513,13 @@ in
           '') (lib.filterAttrs (_: extension: extension.enable) hermes.extensions)
         )}
       fi
+    '';
+
+    home.activation.ensure-hermes-toolsets = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+      ${helpers.workstation-hermes-toolsets}/bin/workstation-hermes-toolsets \
+        "$HOME/.hermes/config.yaml" \
+        "${lib.concatStringsSep "," hermes.cliToolsets}" \
+        "${lib.concatStringsSep "," hermes.disabledMcpServers}"
     '';
 
     home.activation.converge-hermes-a2a =
