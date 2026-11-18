@@ -241,6 +241,23 @@ def run_wait(args):
     sys.exit(rc)
 
 
+def cmd_split(args):
+    a = ["split-window", "-t", args.target_pane]
+    if args.horizontal:
+        a += ["-h"]
+    if args.size:
+        a += ["-l", args.size]
+    out = run_tmux(args.socket, a + ["-P", "-F", "#{pane_id}"])
+    print(out.strip())
+
+
+def cmd_kill(args):
+    for pane in args.panes:
+        if pane == pane_env():
+            die("refusing to kill this agent's own pane ($TMUX_PANE)", 2)
+        run_tmux(args.socket, ["kill-pane", "-t", pane])
+
+
 # --- watch (control mode) --------------------------------------------------
 
 OCTAL = re.compile(r"\\([0-7]{3})")
@@ -413,6 +430,16 @@ def main():
     s.add_argument("--await", dest="await_re", default=None, help="regex: return when it matches pane output (command keeps running)")
     s.add_argument("--timeout", type=float, default=180.0, help="wait cap in seconds")
     s.set_defaults(fn=cmd_run)
+
+    s = sub.add_parser("split", help="split a pane's window; prints the new pane id")
+    s.add_argument("target_pane", metavar="PANE")
+    s.add_argument("-H", "--horizontal", dest="horizontal", action="store_true", help="side by side (default: stacked)")
+    s.add_argument("-l", dest="size", default=None, help="size spec (cells, percent, or panes)")
+    s.set_defaults(fn=cmd_split)
+
+    s = sub.add_parser("kill", help="kill panes (never this agent's own)")
+    s.add_argument("panes", nargs="+", metavar="PANE")
+    s.set_defaults(fn=cmd_kill)
 
     s = sub.add_parser("watch", help="stream pane output (control mode, no polling)")
     s.add_argument("pane", metavar="PANE")

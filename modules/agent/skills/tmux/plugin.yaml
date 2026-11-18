@@ -13,5 +13,7 @@ provides_tools:
   - tmux_paste
   - tmux_hex
   - tmux_run
+  - tmux_split
+  - tmux_kill
   - tmux_watch
 provides_hooks: []

@@ -102,6 +102,19 @@ def tmux_run(args, **kwargs):
     return json.dumps(_ctl(_sock(a, args.get("socket")), timeout=timeout + 30))
 
 
+def tmux_split(args, **kwargs):
+    a = ["split", args["pane"]]
+    if args.get("horizontal"):
+        a += ["-H"]
+    if args.get("size"):
+        a += ["-l", args["size"]]
+    return json.dumps(_ctl(_sock(a, args.get("socket"))))
+
+
+def tmux_kill(args, **kwargs):
+    return json.dumps(_ctl(_sock(["kill", *args["panes"]], args.get("socket"))))
+
+
 def tmux_watch(args, **kwargs):
     a = ["watch", args["pane"]]
     if args.get("until"):
@@ -249,6 +262,41 @@ _RUN = {
     },
 }
 
+_SPLIT = {
+    "name": "tmux_split",
+    "description": (
+        "Split a pane's window and return the new pane id. Stacked by "
+        "default; horizontal=true for side by side; size like '20', '30%' "
+        "or '3' (panes)."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "pane": _PANE,
+            "horizontal": {"type": "boolean", "description": "side by side (default stacked)"},
+            "size": {"type": "string", "description": "cells, percent, or panes"},
+            "socket": _SOCKET,
+        },
+        "required": ["pane"],
+    },
+}
+
+_KILL = {
+    "name": "tmux_kill",
+    "description": (
+        "Kill panes by id. Refuses the agent's own pane. Confirm targets "
+        "with tmux_ps first; the operator sees every closed pane."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "panes": {"type": "array", "items": {"type": "string"}, "description": "pane ids"},
+            "socket": _SOCKET,
+        },
+        "required": ["panes"],
+    },
+}
+
 _WATCH = {
     "name": "tmux_watch",
     "description": (
@@ -282,6 +330,8 @@ _TOOLS = [
     (_PASTE, tmux_paste),
     (_HEX, tmux_hex),
     (_RUN, tmux_run),
+    (_SPLIT, tmux_split),
+    (_KILL, tmux_kill),
     (_WATCH, tmux_watch),
 ]
 

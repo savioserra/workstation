@@ -18,6 +18,8 @@ description: Drive tmux panes — list, read, type, paste and watch pane output 
 | `paste` | `tmuxctl paste %3 < block` | bracketed paste from stdin — multiline blocks into REPLs/shells |
 | `hex` | `tmuxctl hex %3 1b 5b 31 3b 32 75` | raw byte sequences key names cannot express |
 | `run` | `tmuxctl run %3 'cmd' [--timeout N] [--await RE] [--no-wait]` | submit and wait: yields output tail + `--- exit N ---` at the invisible completion marker; `--await RE` returns when the pane prints RE (session keeps running — the interactive-launch path); `--no-wait` fires and forgets |
+| `split` | `tmuxctl split %3 [-H] [-l SIZE]` | split the pane's window, prints the new pane id |
+| `kill` | `tmuxctl kill %3 [%4 ...]` | kill panes — refuses this agent's own pane |
 | `watch` | `tmuxctl watch %3 --until REGEX [--idle N] [--timeout N] [--all] [--raw]` | streams pane output by tmux control-mode push — zero polling |
 
 ## Watch semantics
@@ -37,4 +39,4 @@ description: Drive tmux panes — list, read, type, paste and watch pane output 
 4. Scratch work on scratch servers: `-L <name>` and `kill-server` between rounds; the default socket is the operator's live surface.
 5. Before any write on a shared server (source-file, kill-session, run-shell), list clients first.
 6. Never kill the pane this agent runs in (`$TMUX_PANE`).
-7. Long-tail verbs stay raw `tmux` (split-window, respawn-pane, swap-pane, resize-pane) — these laws still apply.
+7. Long-tail verbs stay raw `tmux` (respawn-pane, swap-pane, resize-pane, select-layout) — these laws still apply.
