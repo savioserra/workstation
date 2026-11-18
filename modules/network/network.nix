@@ -43,13 +43,16 @@ in
     })
     (lib.mkIf on {
       workstation.terminal.nunchux = ws.whenOn [ "terminal" "nunchux" ] {
-        entries."app:tailscale" = {
+        entries."menu:network" = {
+          desc = "Network";
+          rank = 30;
+        };
+        entries."app:network/tailscale" = {
           cmd = "tailscale-report view | less -R";
           desc = "Tailnet status";
           # the popup sizes itself to the rendered report (`!command` dims)
           width = "!tailscale-report width";
           height = "!tailscale-report height";
-          rank = 30;
         };
       };
     })

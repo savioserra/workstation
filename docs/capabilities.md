@@ -378,7 +378,7 @@ and sorted, never hidden.
   | `menu:system` (journal) | `terminal/nunchux` | the member |
   | `menu:tools` (btop, sql) | `terminal/nunchux` | the member |
   | `app:tools/sql` (harlequin) | `database` | `whenOn [ "terminal" "nunchux" ]` |
-  | `app:tailscale` (tailnet status) | `network` | `network.enable` + `whenOn [ "terminal" "nunchux" ]` |
+  | `menu:network` (tailscale) | `network` | `network.enable` + `whenOn [ "terminal" "nunchux" ]` |
 - Hosts: linux (darwin deferred; no release-asset consumer).
 
 ## Fresh-host tools

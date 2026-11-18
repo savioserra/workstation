@@ -239,8 +239,8 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "nunchux plane" "the tools menu did not render"
   grep -qx '\[app:tools/sql\]' "$home/.config/nunchux/config" \
     || fail "nunchux plane" "the database domain's sql entry did not render"
-  grep -qx '\[app:tailscale\]' "$home/.config/nunchux/config" \
-    && fail "nunchux plane" "the tailscale entry rendered with the network domain off"
+  grep -qE '^\[(menu:network|app:network/tailscale)\]$' "$home/.config/nunchux/config" \
+    && fail "nunchux plane" "the network menu rendered with the network domain off"
   grep -qx '\[app:tools/btop\]' "$home/.config/nunchux/config" \
     || fail "nunchux plane" "the tools menu's btop entry did not render"
   btop_bin=$(find_client btop) || fail "nunchux plane" "btop (the system entry's command) is not on PATH"
