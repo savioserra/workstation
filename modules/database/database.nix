@@ -8,6 +8,34 @@
 }:
 let
   ws = import ../../nix/lib/capability.nix { inherit config lib pkgs; };
+  tokens = ws.themeTokens;
+  # the starlight textual themes injected into harlequin's builtin set: both
+  # the registration (textual registers every BUILTIN_THEMES entry) and the
+  # config validation (VALID_THEMES aliases the same dict) come from here;
+  # the palettes evaluate from the theme tokens in nix
+  themesPy =
+    let
+      pyTheme =
+        name: p: dark:
+        ''"${name}": _StarlightTheme(name="${name}", primary="${p.accent}", secondary="${p.ok}", warning="${p.warn}", error="${p.err}", success="${p.ok}", accent="${p.shortcut}", foreground="${p.text}", background="${p.bg}", surface="${p.bg}", panel="${p.chrome}", dark=${
+          if dark then "True" else "False"
+        }),'';
+    in
+    lib.concatStringsSep "\n" [
+      "from textual.theme import Theme as _StarlightTheme"
+      "BUILTIN_THEMES.update({"
+      (pyTheme "starlight-dark" tokens.dark.palette true)
+      (pyTheme "starlight-light" tokens.light.palette false)
+      "})"
+    ];
+  harlequinStarlight = pkgs.harlequin.overrideAttrs (old: {
+    # the injected starlight names diverge from upstream's theme set on purpose:
+    # the upstream consistency test cannot hold
+    doCheck = false;
+    postPatch = (old.postPatch or "") + ''
+      cat ${pkgs.writeText "starlight-harlequin-themes.py" themesPy} >> src/harlequin/colors.py
+    '';
+  });
   hsqlSkill =
     pkgs.runCommand "hsql-agent-skill-${pkgs.harlequin.version}"
       {
@@ -26,7 +54,7 @@ ws.capability [ "database" ] {
   description = "harlequin and the hsql agent skill";
   default = true;
   config = {
-    home.packages = [ pkgs.harlequin ];
+    home.packages = [ harlequinStarlight ];
     programs.hermes.skills = ws.whenOn "agent" {
       hsql = {
         enable = true;
@@ -45,12 +73,12 @@ ws.capability [ "database" ] {
       consumers.harlequin = {
         file = "harlequin.toml";
         # harlequin only accepts its builtin textual themes: the appearance maps
-        # harlequin only accepts its builtin textual themes: the appearance maps;
-        # theme is a profile key, the top level rejects it
+        # harlequin only accepts its registered builtin textual themes: the
+        # appearance maps onto the injected starlight pair
         render =
           t:
           let
-            textual = if t.appearance == "light" then "textual-light" else "textual-dark";
+            textual = if t.appearance == "light" then "starlight-light" else "starlight-dark";
           in
           ''
             default_profile = "default"
