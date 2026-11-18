@@ -62,11 +62,10 @@ ws.capability [ "database" ] {
       };
     };
     workstation.terminal.nunchux = ws.whenOn [ "terminal" "nunchux" ] {
-      entries."app:sql" = {
+      entries."app:tools/sql" = {
         cmd = "harlequin";
         desc = "SQL IDE";
         primary_action = "window";
-        rank = 20;
       };
     };
     workstation.theme = ws.whenOn "theme" {

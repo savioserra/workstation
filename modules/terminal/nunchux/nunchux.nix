@@ -141,7 +141,11 @@ ws.capability [ "terminal" "nunchux" ] {
           status = lib.removeSuffix "\n" (builtins.readFile ./files/system-status);
           rank = 10;
         };
-        "app:system/btop" = {
+        "menu:tools" = {
+          desc = "Tools";
+          rank = 20;
+        };
+        "app:tools/btop" = {
           cmd = "btop";
           desc = "Task manager";
         };

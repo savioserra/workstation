@@ -375,9 +375,10 @@ and sorted, never hidden.
 
   | Entry | Owner | Guard |
   | --- | --- | --- |
-  | `menu:system` (btop, journal) | `terminal/nunchux` | the member |
-  | `app:sql` (harlequin) | `database` | `whenOn [ "terminal" "nunchux" ]` |
-  | `app:net` (tailscale status) | `network` | `network.enable` + `whenOn [ "terminal" "nunchux" ]` |
+  | `menu:system` (journal) | `terminal/nunchux` | the member |
+  | `menu:tools` (btop, sql) | `terminal/nunchux` | the member |
+  | `app:tools/sql` (harlequin) | `database` | `whenOn [ "terminal" "nunchux" ]` |
+  | `app:tailscale` (tailnet status) | `network` | `network.enable` + `whenOn [ "terminal" "nunchux" ]` |
 - Hosts: linux (darwin deferred; no release-asset consumer).
 
 ## Fresh-host tools
