@@ -58,6 +58,30 @@ in
         mkdir -p "$out"
       '';
 
+  switch-driver =
+    let
+      driver =
+        homeAttr:
+        import ../../nix/lib/switch.nix {
+          inherit (pkgs) lib;
+          inherit pkgs homeAttr;
+          systemAttr = "sys";
+        };
+    in
+    pkgs.runCommand "workstation-check-switch-driver"
+      {
+        nativeBuildInputs = [
+          pkgs.git
+          pkgs.jq
+        ];
+      }
+      ''
+        bash ${./switch-driver.sh} \
+          ${driver null}/bin/workstation-switch \
+          ${driver "old@key"}/bin/workstation-switch
+        mkdir -p "$out"
+      '';
+
   container-e2e =
     pkgs.runCommand "workstation-check-container-e2e"
       {

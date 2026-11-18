@@ -76,6 +76,10 @@ The lane map — which lane proves what:
 - **The closures build** — the persona's `activationPackage` realizes
   inside the container lane; the host legs' closures build where a
   builder is authorized.
+- **The switch driver** — `checks.<system>.switch-driver` runs the real
+  `workstation-switch` (`tests/nix/switch-driver.sh`) over a scratch
+  checkout, a stubbed nix and a staged profile: plane guards, the
+  machine-file key, the update re-pin, a failed build.
 
 Named residuals (the container lane cannot prove what a boot proved):
 
