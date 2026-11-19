@@ -30,11 +30,12 @@ The dedicated `tmux_*` tools (tmux_ps, tmux_read, tmux_type, tmux_key, tmux_past
 - `--all` covers every pane of the session (lines carry the `%id` prefix); the watch rides one control-mode client attached to the target pane's session
 - tmux's own copy/choose-mode output is not delivered by control mode — leave copy mode before watching
 - a control client receives output from attach onward: attach the watcher before submitting the command whose output you await (`type` → `watch` → `key Enter`), or build a delay into the command
+- batched tool calls run IN ORDER: a blocking `watch` holds the turn, so a `key Enter` placed after it lands only when the watch has already ended — never pair watch-before-Enter in one batch; submit with `run` (or `run --await`) instead
 
 ## Laws
 
 1. Read before act: `read` the pane immediately before typing into it — prompts resolve, earlier sends may have landed.
-2. Enter is always a separate call: `type` cannot submit; `key Enter` submits. `run` is the only composed submit.
+2. Prefer `run` over a `type` → `key Enter` (+ `watch`/`read`) chain: one call submits and waits, no interleaving. `type` + `key Enter` only when something must be read or answered between sends (password/confirm prompts); `run --await RE` for interactive launches (ssh, REPLs). First `run` in a pane without the helpers answers exit `5` (finished, code unknown).
 3. Blocks go through `paste`, never `type` — line-by-line submission is a paste of a block, not N typed lines.
 4. Scratch work on scratch servers: `-L <name>` and `kill-server` between rounds; the default socket is the operator's live surface.
 5. Before any write on a shared server (source-file, kill-session, run-shell), list clients first.
