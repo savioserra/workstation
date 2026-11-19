@@ -5,7 +5,7 @@ description: Drive tmux panes — list, read, type, paste and watch pane output 
 
 # tmux
 
-`scripts/tmuxctl` inside this skill's directory is the pane surface. Target panes by ID (`%3` — from `tmuxctl ps`), never by index. Every verb takes `-L <socket>` for scratch servers.
+The dedicated `tmux_*` tools (tmux_ps, tmux_read, tmux_type, tmux_key, tmux_paste, tmux_hex, tmux_run, tmux_split, tmux_kill, tmux_watch) are the first surface for every pane action: they are deferred tools — surface with `tool_search`, load schemas with `tool_describe`, invoke with `tool_call`. `scripts/tmuxctl` (this skill's directory, run through the terminal) is the fallback when a needed verb or flag is missing from the tools. Target panes by ID (`%3` — from `tmux_ps` / `tmuxctl ps`), never by index. Every verb takes `-L <socket>` for scratch servers.
 
 ## Verbs
 
