@@ -62,12 +62,12 @@ let
     }
   ) ws.themeTokens;
 
-  hermesRev = "3b421578588243f920886e6fe79a6faa87ea026e";
+  hermesRev = "8fc0374447313e276f6b9a2764bfc750190c966a";
   hermesTree = pkgs.fetchFromGitHub {
     owner = "NousResearch";
     repo = "hermes-agent";
     rev = hermesRev;
-    hash = "sha256-wGv+kNpiOGa1k/QxN7njXSF3wmlwPGtQ02Frnp6hP18=";
+    hash = "sha256-XAglpTjtcXz3N8flS3+9b9Duk636wEXcQEna21E6aZQ=";
   };
   hermesPin = {
     url = "https://github.com/NousResearch/hermes-agent";
