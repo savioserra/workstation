@@ -18,7 +18,7 @@
    across domains (`import ../../<other>/`) and system modules reading
    `../../modules/<domain>/files`.
 3. Upstream reuse — `git grep -ohE '\b(programs|services|fonts|xdg)\.[a-z0-9_-]+\.(enable|package|plugins|initContent)'`;
-   compare against hand-rolled equivalents (rc files, tmux plugin pins,
+   compare against hand-rolled equivalents (rc files, plugin pins,
    prompt, activation scripts).
 4. Eval cost — `NIX_SHOW_STATS=1 NIX_SHOW_STATS_PATH=$TMPDIR/st.json nix eval --raw --option eval-cache false '<leg attr>.drvPath'`,
    then `jq '{cpu: .cpuTime, thunks: .nrThunks, heapMB: (.gc.heapSize/1048576|floor)}'`.
@@ -99,7 +99,7 @@ before the next step starts. Per step:
 | machine data as modified tracked files (pulls blocked, stash dances) | tracked `hosts/template/`, untracked gitignored `hosts/local/` seeded by init, read through a `path:` input override (path inputs see gitignored files) |
 | enables declared in a central options file | each domain declares `options.workstation.<domain>`; an extension point is declared by the consuming domain, contributors guard with `mkIf config.workstation.<other>.enable` |
 | a domain's system half in a generic system module | per-domain `home.nix` / `nixos.nix` / `darwin.nix` (dendritic pattern = one feature file across classes) |
-| hand-written rc lanes, tmux plugin checkouts | `programs.bash/zsh` (`initContent` + `lib.mkOrder`), `programs.starship/eza/fzf/direnv/go/tmux` |
+| hand-written rc lanes | `programs.bash/zsh` (`initContent` + `lib.mkOrder`), `programs.starship/eza/fzf/direnv/go` |
 | system daemons written from a home activation on non-NixOS linux | system-manager (Ubuntu/Debian/NixOS, systemd) — only if its `nix/modules/upstream/nixpkgs/` carries the service's NixOS module (probe: `nix flake prefetch --json github:numtide/system-manager` → `ls <storePath>/nix/modules/upstream/nixpkgs`; it ships firewall, nginx, nix, openssh, ssh, sudo, security-wrappers, userborn, users-groups — no tailscale); else it is the same hand-written unit plus a root switch (rule TBD, explain the trade) |
 | per-capability HM evals to attribute files | one eval + `options.home.file.definitionsWithLocations` |
 | `self` snapshot in the home generation | build `git+file://<checkout>?rev=<HEAD>`, the machine files through a `path:./hosts/template` non-flake input overridden per host with `hosts/local`; the switch receipt names the commit from the ref's `?rev=` (nix drops `self.rev` under any `--override-input`), never stamped into the generation |

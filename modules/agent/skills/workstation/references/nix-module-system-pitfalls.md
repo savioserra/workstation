@@ -59,7 +59,7 @@
   does not bind extra ones). Add `pkgs` to the head the moment a module gains
   a `home.packages`/`environment.systemPackages` line.
 - **Plain CLI tool vs `programs.*`**: `home.packages` is the idiom for a
-  stateless binary home-manager has no module for (mosh, fzf, tmux,
+  stateless binary home-manager has no module for (mosh, fzf,
   lazygit) — referencing `programs.<x>` that home-manager does not ship
   fails the eval with `option does not exist`. NixOS's system-plane
   `programs.<x>.enable` is a different surface, set only when it carries

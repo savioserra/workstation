@@ -32,7 +32,7 @@
   -fsSL https://raw.githubusercontent.com/savioserra/workstation/main/install.sh | sh'`
 - Verify with a LOGIN shell (`bash -lc`) — `docker exec bash -c` does not
   source the managed PATH additions and reports every managed tool
-  missing. Smokes: `workstation --version`/`status`, nvim/tmux/btop/mosh
+  missing. Smokes: `workstation --version`/`status`, nvim/btop/mosh
   versions, fd/fzf/rg on PATH, `~/.hermes/skills/*` entry symlinks.
 - On an existing install the one-liner refuses and points at the
   lifecycle verbs — continuation is `workstation
@@ -43,18 +43,16 @@
 For dialog UX (init's captures, the languages checklist, the fleet menu)
 driven by hand before merge:
 
-1. `tmux new-window -d -t 0: -n ws-ct "docker run -it --rm --init --name
-   ws-ct -e TERM=xterm-256color -e USER=root -v <worktree>:/src:ro
-   nixos/nix:latest bash"` — `-t 0:` (trailing colon) picks the next free
-   index; `-t 0` collides with window 0.
+1. In the operator's terminal: `docker run -it --rm --init --name ws-ct
+   -e TERM=xterm-256color -e USER=root -v <worktree>:/src:ro
+   nixos/nix:latest bash`.
 2. Inside: `git config --global --add safe.directory '*'`, then the pipe
    shape the user runs: `cat /src/install.sh |
    WORKSTATION_REPO=/src WORKSTATION_CHECKOUT=/root/wsN
    WORKSTATION_NO_APPLY=1 sh`. A fresh `wsN` per run — never mount a
    `.git` at the default checkout path.
-3. Drive with single `tmux capture-pane` reads and `send-keys` (text,
-   then `Enter` separately). Assert the written identity/selections with
-   `docker exec`, then `docker rm -f` and kill the window.
+3. The operator drives the dialogs. Assert the written
+   identity/selections with `docker exec`, then `docker rm -f`.
 
 ## Pitfalls
 

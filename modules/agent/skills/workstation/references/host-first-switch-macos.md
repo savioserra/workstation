@@ -129,8 +129,8 @@ enables `services.tailscale`; removing an existing Tailscale.app, its CLI
 shim or a brew formula is a host-local one-off — an out-of-repo runner,
 never a system activation hook. A stopped removal leaves the app serving.
 
-1. Deliver one runner and start it in a tmux session ON the target
-   (`tmux new-session -s hostswitch 'sh runner | tee <log>'`): the sysext
+1. Deliver one runner and start it detached ON the target
+   (`nohup setsid sh runner > <log> 2>&1 &`): the sysext
    removal drops the tailnet an ssh session may ride. Inside: `sudo -v`
    once plus a keepalive loop, GUI steps through `sudo launchctl asuser
    <uid> sudo -u <user> open|osascript`.

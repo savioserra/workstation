@@ -41,7 +41,7 @@
   the restart takes it down. Guard: ancestor walk to the gateway pid OR
   identical `/proc/<pid>/cgroup` → defer with a receipt. Tests of the
   "running elsewhere" branch need a pid in a DIFFERENT cgroup (a sibling
-  `sleep` shares the tool's tmux scope and reads as inside).
+  `sleep` shares the tool's cgroup scope and reads as inside).
 - Runtime writers (the fleet) and the converge share keys: the converge
   must compute `a2a.trusted_peers` as declared peers UNION the runtime
   roster (`~/.local/state/workstation/fleet.members`), or the next apply

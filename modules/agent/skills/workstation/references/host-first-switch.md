@@ -1,8 +1,7 @@
 # First switch on a host (converging onto the substrate)
 
 - Scope: the substrate-specific sequence and its traps for converging a
-  host (local or remote). Remote-host pane mechanics: the swarm skill's
-  tmux section.
+  host (local or remote).
 
 ## Sequence
 
@@ -39,7 +38,7 @@
    the pane) and relocating it before the next attempt — a single
    clear-and-run never converges a lived-in host.
 7. **Byte-diff the parity proof**: `diff -rq <preserve>/<path> <new path>`
-   for the payload trees the operator cares about (nvim, tmux). Only
+   for the payload trees the operator cares about (nvim). Only
    intentional deltas should appear (a landed feature the old payload
    predated). Any unexpected byte delta is a regression to root-cause before
    declaring the first switch good.
@@ -103,18 +102,18 @@ The substrate provisions its own daemon unit (tailscaled:
 `workstation-tailscaled`, modules/network) and never removes another
 install — a package, snap or foreign unit stops the provision, named.
 Removing a host's previous install is an operator-run, out-of-repo one-off
-(a runner in tmux on the target, never repo code). Rules for that runner:
+(a detached runner on the target, never repo code). Rules for that runner:
 
 | Step | Rule (why) |
 | --- | --- |
-| Survey | package manager (dpkg/pacman/rpm/snap), repo source + keyring, foreign `/etc/systemd/system/<unit>`, state dir, the CURRENT daemon version — and how the operator is connected (`tmux list-clients` → parent `login -h <ip>`) |
+| Survey | package manager (dpkg/pacman/rpm/snap), repo source + keyring, foreign `/etc/systemd/system/<unit>`, state dir, the CURRENT daemon version — and how the operator is connected (`who` → the session source address) |
 | Version | never downgrade a daemon under newer state — take it from the foundation (unstable) input when the pinned set trails |
 | State | copy it to `/var/lib/workstation/<name>-aside-<stamp>/` and keep the SAME state path in the new unit — the node keeps identity, IP, prefs, login |
 | Removal | package REMOVE, never purge (the tailscale deb purge runs `rm -rf /var/lib/tailscale`); stop+disable first (pacman does not stop on removal) |
 | Mask | the deb postrm on remove symlinks the unit to `/dev/null` — move it aside and write the substrate unit in its place, then `daemon-reload` |
 | Sources | repo list + keyring move aside so the distro never reinstalls it |
 | Root (repo side) | answer a converged host without root (world-readable checks), detect a conflicting install before any sudo re-exec; re-exec under sudo only on change; HM activation PATH lacks host tools — append `/usr/sbin:/usr/bin:/sbin:/bin` |
-| Transport | the operator often arrives over Tailscale SSH: the swap drops the session (tmux survives) — confirm a public sshd fallback first |
+| Transport | the operator often arrives over Tailscale SSH: the swap drops the session (the detached runner survives) — confirm a public sshd fallback first |
 
 Test the stop path on a live host without risk: prepend a fake
 `dpkg-query` printing `install ok installed` to PATH and run the composed
