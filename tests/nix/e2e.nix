@@ -264,7 +264,7 @@ writeShellScriptBin "workstation-e2e" ''
   pass "shell init"
 
   step "tools run (nixpkgs)"
-  for t in fd fzf rg lazygit tree-sitter op mise; do
+  for t in fd rg lazygit tree-sitter op mise; do
     t_bin=$(find_client "$t") || fail "tools run" "$t is not on PATH"
     "$t_bin" --version >/dev/null 2>&1 \
       || fail "tools run" "$t --version failed at $t_bin"

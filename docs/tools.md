@@ -22,7 +22,6 @@ Platforms: linux x86_64 (WSL counts as linux), macOS arm64.
 | fd | 10.5.x | nixpkgs | on PATH via `home.packages` | linux-x86_64, darwin-arm64 |
 | eza | 0.23.5 | nixpkgs via Home Manager (`programs.eza`) | `ls` = `eza -lh` | linux-x86_64, darwin-arm64 |
 | starship | 1.27.0 | nixpkgs | on PATH; per-shell init + `.config/starship.toml` | linux-x86_64, darwin-arm64 |
-| fzf | 0.74.x | nixpkgs | on PATH via `home.packages` | linux-x86_64, darwin-arm64 |
 | mosh | 1.4.0 | nixpkgs | `home.packages` in the terminal domain (the `mosh` wrapper's `--server` sources the remote home-manager session vars — profile PATH, `LOCALE_ARCHIVE_2_27`); `programs.mosh.enable` on NixOS legs opens the mosh UDP firewall ports | linux-x86_64, darwin-arm64 |
 | lazygit | 0.66.x | nixpkgs | on PATH via `home.packages` | linux-x86_64, darwin-arm64 |
 | tree-sitter (CLI) | 0.26.x | nixpkgs | on PATH via `home.packages` | linux-x86_64, darwin-arm64 |

@@ -56,7 +56,7 @@ eval, and the container E2E lane's staged entry).
   declarations. No unpinned downloads, no `sudo`, no
   OS-package-manager installation of managed tools.
 - **Foundation inventory.** bash and zsh through home-manager's
-  `programs.*` modules + fd, fzf, rg, lazygit, tree-sitter, op,
+  `programs.*` modules + fd, rg, lazygit, tree-sitter, op,
   btop, the JetBrainsMono Nerd Font + eza, starship, harlequin+hsql
   (nixpkgs) + the tailscale transport (system legs: `services.tailscale`;
   standalone-HM linux legs: the CLI in `home.packages`, tailscaled the

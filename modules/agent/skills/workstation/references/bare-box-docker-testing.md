@@ -33,7 +33,7 @@
 - Verify with a LOGIN shell (`bash -lc`) — `docker exec bash -c` does not
   source the managed PATH additions and reports every managed tool
   missing. Smokes: `workstation --version`/`status`, nvim/btop/mosh
-  versions, fd/fzf/rg on PATH, `~/.hermes/skills/*` entry symlinks.
+  versions, fd/rg on PATH, `~/.hermes/skills/*` entry symlinks.
 - On an existing install the one-liner refuses and points at the
   lifecycle verbs — continuation is `workstation
   apply|update|setup`, never a re-run of the installer.
