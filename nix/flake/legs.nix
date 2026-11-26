@@ -2,8 +2,8 @@
 # | Leg | Builds |
 # | --- | --- |
 # | home | standalone home-manager over the system's nixpkgs |
-# | linux | NixOS-WSL with the machine's home plane (hosts/linux) |
-# | mac | nix-darwin, Homebrew pinned by nix-homebrew, the home plane (hosts/mac) |
+# | linux | NixOS-WSL with the machine's home plane (hosts/linux), the system's nixpkgs read-only |
+# | mac | nix-darwin, Homebrew pinned by nix-homebrew, the home plane (hosts/mac), the system's nixpkgs |
 {
   config,
   inputs,
@@ -20,6 +20,7 @@ let
     importApply path {
       inherit machine;
       homePlane = planes.homeManager.workstation;
+      pkgs = withSystem machine.system ({ pkgs, ... }: pkgs);
     };
 in
 {
@@ -40,8 +41,8 @@ in
     linux =
       machine:
       inputs.nixpkgs.lib.nixosSystem {
-        inherit (machine) system;
         modules = [
+          inputs.nixpkgs.nixosModules.readOnlyPkgs
           inputs.nixos-wsl.nixosModules.default
           planes.nixos.workstation
           inputs.home-manager.nixosModules.home-manager
@@ -52,7 +53,6 @@ in
     mac =
       machine:
       inputs.nix-darwin.lib.darwinSystem {
-        inherit (machine) system;
         modules = [
           planes.darwin.workstation
           inputs.home-manager.darwinModules.home-manager

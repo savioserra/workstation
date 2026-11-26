@@ -4,13 +4,12 @@
 {
   machine,
   homePlane,
-  ...
+  pkgs,
 }:
 { config, lib, ... }:
 {
-  nixpkgs.hostPlatform = machine.system;
+  nixpkgs.pkgs = pkgs;
   nix.enable = false;
-  nixpkgs.config.allowUnfreePredicate = import ../../nix/lib/license.nix { inherit lib; };
 
   workstation.host = {
     name = machine.host;

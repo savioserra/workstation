@@ -4,15 +4,12 @@
 {
   machine,
   homePlane,
-  ...
-}:
-{
-  config,
-  lib,
   pkgs,
-  ...
 }:
+{ config, lib, ... }:
 {
+  nixpkgs.pkgs = pkgs;
+
   workstation.enable = true;
   programs.mosh.enable = true;
   # mise-managed prebuilt toolchains exec through nix-ld
@@ -20,7 +17,6 @@
     enable = true;
     libraries = [ pkgs.stdenv.cc.cc ];
   };
-  nixpkgs.config.allowUnfreePredicate = import ../../nix/lib/license.nix { inherit lib; };
 
   workstation.host = {
     name = machine.host;
