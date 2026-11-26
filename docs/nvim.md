@@ -33,7 +33,7 @@
 ## Profile fields
 
 The deployed `languages/profile.lua` is **composed natively**: the editor
-capability's module (`modules/editor/editor.nix`) folds the entries the
+capability's config module (`modules/editor/editor-config.nix`) folds the entries the
 language capabilities declare (`workstation.editor.languages.<id>`, a typed
 submodule: an unknown field or a wrong type fails the eval) through
 `lib.generators.toLua` in a build-time derivation. Entries compose in id

@@ -10,9 +10,9 @@ provider state remain user-owned.
 
 | Step | Owner | Contract |
 | --- | --- | --- |
-| Declaration | `modules/<domain>/<domain>.nix` | Native nix: home.file surfaces, tools (nixpkgs), upstream `programs.*`, activation scripts |
+| Declaration | `modules/<domain>/<domain>.nix` + its feature files (`<domain>-<feature>.nix`) | Native nix: home.file surfaces, tools (nixpkgs), upstream `programs.*`, activation scripts |
 | Payload | `modules/<domain>/` (co-located with the declaring module) | Referenced bytes, copied into the store at eval |
-| Claim composition | `modules/terminal/terminal.nix` (inline) | Overlapping dir claims compose into one derivation (the `.platform` marker — the one consumer) |
+| Claim composition | `nix/lib/payload.nix` `overlayTree` | Overlapping dir claims compose into one derivation |
 | Deployment | the generation | `home-manager switch` links every target atomically |
 
 Target collisions throw at eval — two capabilities claiming one home target
@@ -26,7 +26,7 @@ mutates between switches (`.hermes`, the agent home). Tracked state there
 fights the program's writes. The law is scoped to the program's MUTATED
 state; it has two precise carve-outs, both declarative:
 
-- **skill leaves** — `modules/agent/agent.nix` renders managed skill files
+- **skill leaves** — `modules/agent/hermes-skills.nix` renders managed skill files
   as store-path `home.file` entries. The agent consumes them read-only; an
   in-place edit is replaced at the next switch (declared truth wins).
 - **activation scripts** — the checkout ensure mutates hot state at switch time under explicit guards

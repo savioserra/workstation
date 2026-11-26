@@ -1,6 +1,9 @@
 # The theme domain: the themes (a palette per role, dark and light ship
-# here), the consumer registry, the rendered theme tree and the runtime pick
-# (`workstation theme`).
+# here), the consumer registry and the color map tokens.
+# | File | Owns |
+# | --- | --- |
+# | theme.nix | the theme and consumer types, the shipped themes, the tokens |
+# | theme-picker.nix | the rendered theme tree and the runtime pick (`workstation theme`) |
 {
   config,
   lib,
@@ -10,7 +13,6 @@
 let
   ws = import ../../nix/lib/capability.nix { inherit config lib pkgs; };
   cfg = config.workstation.theme;
-  home = config.home.homeDirectory;
 
   paletteRoles = [
     "accent"
@@ -118,41 +120,9 @@ let
     ansi = if t.ansi == null then null else map (n: t.ansi.${n}) ansiNames;
   };
 
-  themeTree = pkgs.linkFarm "workstation-themes" (
-    lib.concatLists (
-      lib.mapAttrsToList (
-        name: tokens:
-        [
-          {
-            name = "${name}/tokens.json";
-            path = pkgs.writeText "workstation-theme-${name}.json" (builtins.toJSON tokens);
-          }
-        ]
-        ++ lib.mapAttrsToList (consumer: c: {
-          name = "${name}/${c.file}";
-          path = pkgs.writeText "workstation-theme-${name}-${consumer}" (c.render tokens);
-        }) (lib.filterAttrs (_: c: c.file != null) cfg.consumers)
-      ) cfg.tokens
-    )
-  );
-
-  program = ws.script {
-    name = "workstation-theme";
-    inputs = [ pkgs.coreutils ];
-    prelude = ''
-      THEMES=${home}/.local/share/workstation/themes
-      STATE=${home}/.local/state/workstation/theme
-      DEFAULT=${cfg.default}
-      reload_consumers() {
-      THEME=$(picked) || return 0
-      ${lib.concatMapStrings (c: c.reload) (builtins.attrValues cfg.consumers)}:
-      :
-      }
-    '';
-    file = ./files/workstation-theme.sh;
-  };
 in
 ws.capability [ "theme" ] {
+  imports = [ ./theme-picker.nix ];
   description = "the themes, the picker and the consumer files";
   default = true;
   options = {
@@ -191,11 +161,5 @@ ws.capability [ "theme" ] {
         message = "workstation.theme.default '${cfg.default}' names no theme (${lib.concatStringsSep ", " (builtins.attrNames cfg.themes)})";
       }
     ];
-
-    home.packages = [ program ];
-    home.file.".local/share/workstation/themes".source = themeTree;
-    home.activation.workstation-theme = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-      ${program}/bin/workstation-theme seed || true
-    '';
   };
 }

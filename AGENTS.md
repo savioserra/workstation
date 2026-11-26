@@ -53,7 +53,7 @@ declared surface. Native Linux and macOS arm64 acceptance stays explicit.
 | --- | --- |
 | Tool version | `flake.lock` (`nix flake update`), `docs/tools.md` |
 | Neovim version | `flake.lock`, `docs/tools.md` |
-| Hermes Agent pin | the flake's `hermes-agent` input rev, `modules/agent/agent.nix`, `docs/tools.md` |
+| Hermes Agent pin | `hermesRev` + hash in `modules/agent/hermes-pin.nix`, `docs/tools.md` |
 | Managed Hermes skill | `modules/agent/skills/<name>/`, the `programs.hermes.skills` entry, `modules/agent/verify/hermes.sh`, `docs/capabilities.md` |
 | Capability | `modules/<domain>/` (module + payload bytes co-located), tests, docs |
 | Neovim language | the language entry in the language domain's module, lockfiles if needed, behavior case |

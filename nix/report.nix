@@ -44,14 +44,19 @@ let
       }
     ) (defsBy options.xdg.configFile);
   recursiveOf = v: builtins.isAttrs v && (v.recursive or false) == true;
+  # targets sorted: a capability's rows never depend on its file layout
   fileTargetsOf =
     id:
-    lib.concatMap (d: builtins.attrNames (lib.filterAttrs (_: v: !recursiveOf v) d.value)) (
-      byId id fileDefs
+    lib.sort (a: b: a < b) (
+      lib.concatMap (d: builtins.attrNames (lib.filterAttrs (_: v: !recursiveOf v) d.value)) (
+        byId id fileDefs
+      )
     );
   claimTargetsOf =
     id:
-    lib.concatMap (d: builtins.attrNames (lib.filterAttrs (_: recursiveOf) d.value)) (byId id fileDefs);
+    lib.sort (a: b: a < b) (
+      lib.concatMap (d: builtins.attrNames (lib.filterAttrs (_: recursiveOf) d.value)) (byId id fileDefs)
+    );
 
   byId = id: builtins.filter (d: d.id == id);
 
@@ -69,8 +74,10 @@ let
 
   packagesOf =
     id:
-    lib.concatMap (d: map (p: p.pname or p.name) (builtins.filter live d.value)) (
-      byId id (defsBy options.home.packages)
+    lib.sort (a: b: a < b) (
+      lib.concatMap (d: map (p: p.pname or p.name) (builtins.filter live d.value)) (
+        byId id (defsBy options.home.packages)
+      )
     );
 
   declaredHere = opt: builtins.any (f: idOf f != null) (opt.declarations or [ ]);

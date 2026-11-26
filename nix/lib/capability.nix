@@ -18,7 +18,7 @@ import ./payload.nix { inherit lib pkgs; }
 // {
   inherit isOn;
 
-  # capability [ "languages" "go" ] { description; default?; enable?; options?; config?; }
+  # capability [ "languages" "go" ] { description; default?; enable?; imports?; options?; config?; }
   # a path is <domain> or <domain>/<member>, the grammar of the selection verbs
   capability =
     path: spec:
@@ -27,6 +27,7 @@ import ./payload.nix { inherit lib pkgs; }
       2
     ]) "capability: the path ${lib.concatStringsSep "/" path} must be <domain> or <domain>/<member>";
     {
+      imports = spec.imports or [ ];
       options.workstation = lib.setAttrByPath path (
         {
           enable =
