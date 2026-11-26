@@ -8,8 +8,10 @@ surface before its owning commit lands it.
 ## Dependency direction
 
 ```text
-flake.nix
-  -> nix/lib/machine.nix  (hosts/local/machine.json: identity + settings)
+flake.nix               (flake-parts mkFlake over nix/flake)
+  -> nix/flake/machines.nix  (nix/lib/machine.nix: hosts/local/machine.json, identity + settings)
+  -> nix/flake/planes.nix    (flake.modules.<class>.workstation: nix/modules)
+  -> nix/flake/legs.nix      (home, linux, mac builders; withSystem pkgs)
   -> nix/modules          (workstation-home imports modules/; workstation-system, host)
   -> modules/default.nix  (the domain and member modules, listed)
   -> nix/report.nix       (workstation.report.<verb>: one home eval)
@@ -174,8 +176,8 @@ and sorted, never hidden.
   container E2E asserts all three). Hosts: all.
 
 ### `agent`
-- The hermes runtime pin: the flake's `hermes-agent` input (fetchGit rev,
-  surfaced as `outputs.hermesAgentPin` → `programs.hermes.pin`); the
+- The hermes runtime pin: `hermesRev` + hash in
+  `modules/agent/hermes-pin.nix` (`fetchFromGitHub` → `programs.hermes.pin`); the
   checkout `~/.hermes/hermes-agent` ensured to the pin by activation —
   clone/fetch only when absent or clean-and-behind, never touching a dirty
   or runtime-advanced tree (the hot-dir law: activation mutates, the file

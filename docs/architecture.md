@@ -12,10 +12,11 @@ switch.log receipt).
 
 | Path | Role |
 | --- | --- |
-| `flake.nix`, `flake.lock` | The entry point: one nixpkgs input, home-manager, nix-darwin, NixOS-WSL; the machine's legs, the report verbs, the checks |
+| `flake.nix`, `flake.lock` | The entry point: one nixpkgs input, home-manager, nix-darwin, NixOS-WSL, flake-parts; `mkFlake` over `nix/flake` |
+| `nix/flake/` | The flake-parts modules: `systems.nix` (systems, one nixpkgs per system), `machines.nix` (the machine files), `planes.nix` (`flake.modules.<class>.workstation`), `legs.nix` (the leg builders), `outputs.nix` (the machine's legs, `workstation`), `checks.nix` |
 | `modules/<domain>/` | One directory per capability domain: the module (options + declarations), the bytes it deploys, `system.nix` where the domain carries a system plane. `modules/default.nix` lists the modules |
 | `nix/` | Shared infrastructure: `report.nix` (the read verbs), `lib/machine.nix` (the machine file), `lib/license.nix` (the unfree acceptance), `lib/capability.nix` (the module helpers), `lib/payload.nix` (scripts and overlaid trees), `lib/switch.nix` (the composed write plane: verb scaffold + routine registry), `modules/` (the home plane, the system plane, the host options) |
-| `hosts/` | `linux/` and `mac/` (the system legs); `template/` (`machine.json`); `local/` (gitignored): the machine's copy, written by `workstation init` / `add|remove` |
+| `hosts/` | `linux/` and `mac/` (the system legs: modules applied by `nix/flake/legs.nix` through `importApply`); `template/` (`machine.json`); `local/` (gitignored): the machine's copy, written by `workstation init` / `add|remove` |
 | `bin/workstation` | The launcher (POSIX sh): reads are `nix eval`s over `workstation.report.<verb>`; `add|remove` edit `hosts/local/machine.json` (jq); writes exec the staged switch driver |
 | `tests/` | The container E2E: `run-container.sh`, `e2e.nix` (the driver), `e2e-home.nix` (the persona), `e2e-selections*.nix` (its flag modules) |
 | `docs/` | The references; this file is the structure's anchor |
@@ -27,11 +28,11 @@ switch.log receipt).
 machine's selection pins —, `capabilities` — scope with an attrpath,
 `selectable`, `selections`), `workstation.keys` (the machine's `home` and
 `system` flake keys, the switch driver's targets),
-`homeManagerModules.workstation`,
+`modules.homeManager.workstation` and `modules.{nixos,darwin}.workstation`
+(the plane hubs, class-checked),
 `homeConfigurations` and `nixosConfigurations.<host>` (a linux machine's
 home and system planes), `darwinConfigurations` (a mac's leg),
-`workstationE2E` (the container lane's inputs: the
-persona home + the proof driver), `checks.<system>` (`nix flake check` is
+`packages.<system>.workstation-hermes-toolsets`, `checks.<system>` (`nix flake check` is
 the canonical validation entry: the declared-state reads, every host leg's
 eval, and the container E2E lane's staged entry).
 

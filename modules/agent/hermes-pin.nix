@@ -86,9 +86,9 @@ in
       {
         assertion = hermes.pin != null;
         message =
-          "programs.hermes.pin is unset — the flake must surface "
-          + "`hermesAgentPin` (its pinned hermes-agent input: url, rev, "
-          + "tree); see outputs.hermesAgentPin in flake.nix";
+          "programs.hermes.pin is unset — keep the module default "
+          + "(hermesRev in modules/agent/hermes-pin.nix) or set url, rev "
+          + "and tree";
       }
     ];
 

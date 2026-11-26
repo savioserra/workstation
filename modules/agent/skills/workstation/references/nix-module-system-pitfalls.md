@@ -13,7 +13,7 @@
   `_module.args.ws` recurses the moment the helper shapes a module
   (`infinite recursion … while evaluating the module argument 'ws'`), and a
   specialArgs `ws` breaks every outside consumer of
-  `homeManagerModules.workstation`. Helpers called inside the member file
+  `modules.homeManager.workstation`. Helpers called inside the member file
   keep `definitionsWithLocations`/declarations on that file — the report's
   attribution holds (proven by drvPath + report equality on every leg).
 - **Presets in an `attrsOf submodule` option merge per leaf**: define them

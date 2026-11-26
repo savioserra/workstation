@@ -6,7 +6,7 @@
 | --- | --- |
 | `README.md` | Host switching, the read verbs |
 | `AGENTS.md` | Repository-wide implementation rules |
-| `flake.nix`, `nix/` | The substrate: the machine file, the report verbs, the switch driver, the home/system/host modules |
+| `flake.nix`, `nix/` | The substrate: the flake-parts modules (`nix/flake`), the machine file, the report verbs, the switch driver, the home/system/host modules |
 | `bin/workstation` | The launcher shim (POSIX sh): flake resolution + verb dispatch; reads are nix evals, writes run the staged switch driver — the operator types `workstation` only |
 | `hosts/` | `linux` (the linux leg; NixOS-WSL system plane), `mac` (nix-darwin); `template/` the machine-file template, `local/` the machine's copy written by `workstation init` (gitignored) |
 | `.github/workflows/ci.yml` | The static battery + the nix evaluation leg |

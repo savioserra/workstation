@@ -1,6 +1,6 @@
 # The E2E persona's declared home — the ONE body both consumers import:
 # the container E2E's boot home and the standalone e2e@container
-# configuration (flake.nix) that the apply-driven switch applies. Shared so
+# configuration (the home leg) that the apply-driven switch applies. Shared so
 # the boot plane and the apply target can never drift.
 { ... }:
 {

@@ -1,59 +1,39 @@
-# The mac leg: nix-darwin, Homebrew pinned by nix-homebrew, and the
-# machine's home plane through home-manager.
+# The mac leg (nix-darwin): the host identity, Homebrew pinned by
+# nix-homebrew and the machine's home plane through home-manager. Applied
+# by nix/flake/legs.nix with importApply.
 {
-  nixpkgs,
-  home-manager,
-  nix-darwin,
-  nix-homebrew,
   machine,
+  homePlane,
+  ...
 }:
-let
-  inherit (machine) system;
-in
+{ config, lib, ... }:
 {
-  darwinConfig = nix-darwin.lib.darwinSystem {
-    inherit system;
-    modules = [
-      ../../nix/modules/workstation-system.nix
-      ../../nix/modules/host.nix
-      ../../modules/network/system.nix
-      home-manager.darwinModules.home-manager
-      nix-homebrew.darwinModules.nix-homebrew
-      (
-        { config, lib, ... }:
-        {
-          nixpkgs.hostPlatform = system;
-          nix.enable = false;
-          nixpkgs.config.allowUnfreePredicate = import ../../nix/lib/license.nix { inherit lib; };
+  nixpkgs.hostPlatform = machine.system;
+  nix.enable = false;
+  nixpkgs.config.allowUnfreePredicate = import ../../nix/lib/license.nix { inherit lib; };
 
-          workstation.host = {
-            name = machine.host;
-            inherit (machine) user;
-            homeDirectory = machine.home;
-          };
-          workstation.enable = true;
-          networking.hostName = config.workstation.host.name;
-          users.users.${machine.user}.home = machine.home;
-          system.primaryUser = machine.user;
-
-          nix-homebrew = {
-            enable = true;
-            inherit (machine) user;
-            autoMigrate = true;
-          };
-          homebrew.enable = true;
-
-          home-manager = {
-            useGlobalPkgs = true;
-            useUserPackages = true;
-            users.${machine.user}.imports = machine.homeModules ++ [
-              ../../nix/modules/workstation-home.nix
-            ];
-          };
-
-          system.stateVersion = 5;
-        }
-      )
-    ];
+  workstation.host = {
+    name = machine.host;
+    inherit (machine) user;
+    homeDirectory = machine.home;
   };
+  workstation.enable = true;
+  networking.hostName = config.workstation.host.name;
+  users.users.${machine.user}.home = machine.home;
+  system.primaryUser = machine.user;
+
+  nix-homebrew = {
+    enable = true;
+    inherit (machine) user;
+    autoMigrate = true;
+  };
+  homebrew.enable = true;
+
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    users.${machine.user}.imports = machine.homeModules ++ [ homePlane ];
+  };
+
+  system.stateVersion = 5;
 }

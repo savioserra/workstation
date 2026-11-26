@@ -1,60 +1,44 @@
-# The linux system leg (NixOS-WSL): the system plane plus the machine's
-# home plane through home-manager.
+# The linux system leg (NixOS-WSL): the host identity, WSL, mosh, nix-ld
+# and the machine's home plane through home-manager. Applied by
+# nix/flake/legs.nix with importApply.
 {
-  nixpkgs,
-  home-manager,
-  nixos-wsl,
   machine,
+  homePlane,
+  ...
 }:
 {
-  nixosConfig = nixpkgs.lib.nixosSystem {
-    inherit (machine) system;
-    modules = [
-      nixos-wsl.nixosModules.default
-      ../../nix/modules/workstation-system.nix
-      ../../nix/modules/host.nix
-      ../../modules/network/system.nix
-      home-manager.nixosModules.home-manager
-      (
-        {
-          config,
-          lib,
-          pkgs,
-          ...
-        }:
-        {
-          workstation.enable = true;
-          programs.mosh.enable = true;
-          # mise-managed prebuilt toolchains exec through nix-ld
-          programs.nix-ld = {
-            enable = true;
-            libraries = [ pkgs.stdenv.cc.cc ];
-          };
-          nixpkgs.config.allowUnfreePredicate = import ../../nix/lib/license.nix { inherit lib; };
-
-          workstation.host = {
-            name = machine.host;
-            inherit (machine) user;
-            homeDirectory = machine.home;
-          };
-
-          wsl = {
-            enable = true;
-            defaultUser = lib.mkIf (machine.user != "root") machine.user;
-          };
-          networking.hostName = config.workstation.host.name;
-
-          home-manager = {
-            useGlobalPkgs = true;
-            useUserPackages = true;
-            users.${machine.user}.imports = machine.homeModules ++ [
-              ../../nix/modules/workstation-home.nix
-            ];
-          };
-
-          system.stateVersion = "25.05";
-        }
-      )
-    ];
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
+  workstation.enable = true;
+  programs.mosh.enable = true;
+  # mise-managed prebuilt toolchains exec through nix-ld
+  programs.nix-ld = {
+    enable = true;
+    libraries = [ pkgs.stdenv.cc.cc ];
   };
+  nixpkgs.config.allowUnfreePredicate = import ../../nix/lib/license.nix { inherit lib; };
+
+  workstation.host = {
+    name = machine.host;
+    inherit (machine) user;
+    homeDirectory = machine.home;
+  };
+
+  wsl = {
+    enable = true;
+    defaultUser = lib.mkIf (machine.user != "root") machine.user;
+  };
+  networking.hostName = config.workstation.host.name;
+
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    users.${machine.user}.imports = machine.homeModules ++ [ homePlane ];
+  };
+
+  system.stateVersion = "25.05";
 }

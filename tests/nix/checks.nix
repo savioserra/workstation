@@ -1,20 +1,17 @@
 # The flake's check surface: leg eval gates, the e2e persona homes and
-# driver, the staged container lane. The hosts live in flake.nix; nothing
-# here declares machine state.
+# driver, the staged container lane. The legs come from nix/flake/legs.nix;
+# nothing here declares machine state.
 {
   self,
-  nixpkgs,
+  pkgs,
   home,
-  ciSystem,
   legs,
   report,
 }:
 let
-  pkgs = nixpkgs.legacyPackages.${ciSystem};
-
   e2eHome =
     selections:
-    (home ciSystem [
+    (home pkgs.stdenv.hostPlatform.system [
       ./e2e-home.nix
       selections
     ]).activationPackage;
