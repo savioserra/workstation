@@ -51,7 +51,7 @@ eval, and the container E2E lane's staged entry).
 - **Resources-without-runtime is a defect.** A capability that names a
   tool ships the tool; verify smokes the consumer, not a fingerprint.
   Tools ride the one nixpkgs input; the
-  remaining pins (herdr, the hermes checkout
+  remaining pins (the hermes checkout
   input, the language toolchains as mise registry pins) are pinned
   declarations. No unpinned downloads, no `sudo`, no
   OS-package-manager installation of managed tools.

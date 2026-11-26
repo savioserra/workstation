@@ -88,7 +88,7 @@ option tree applied as a module.
   - **file/symlink surfaces** — `home.file` entries with store-path sources
     (intra-home links through `mkOutOfStoreSymlink`);
   - **tools** — packages of the one nixpkgs input; the remaining pins
-    declare inline: herdr's `fetchurl`, the hermes
+    declare inline: the hermes
     checkout as the flake's `hermes-agent` input;
   - **dir claims** — a store tree linked at a home target; overlapping
     targets compose into one derivation;
@@ -119,7 +119,7 @@ languages  languages/elixir, languages/go, languages/node, languages/typescript 
 editor     nvim (+ languages: typescript, elixir declare editor entries)
 terminal   terminal, terminal/zellij (member capability)
 theme      theme
-agent      agent, herdr
+agent      agent
 secrets    secrets
 ```
 
@@ -219,12 +219,6 @@ and sorted, never hidden.
   `hermes-agent` rev; the interpreter floor re-derives from the new rev's
   `pm/lock.json`.
 
-### `herdr`
-- The one inline `fetchurl` pin (no nixpkgs coverage — upstream ships
-  release binaries only), linked from its store derivation at
-  `.local/bin/herdr`.
-- Verify: fingerprint + link record. Hosts: all.
-
 ### `go`
 - mise pin `go = "1.27.3"` in the global config.
 - Verify: the config pin and the installed tool (the container E2E
@@ -311,8 +305,7 @@ and sorted, never hidden.
 
 Every tool class ships with the substrate; none stays a documented host
 prerequisite. The HOW: the nixpkgs lock carries the versions and
-`home.packages` puts the tools on PATH. Inline pins, by exception: herdr
-(`fetchurl`), the hermes
+`home.packages` puts the tools on PATH. Inline pin, by exception: the hermes
 checkout (the flake input). Every bump moves the owning row and its
 consumer together. The hermes manifest (`~/.local/opt/hermes/pin.json`)
 keeps its verify lane honest.

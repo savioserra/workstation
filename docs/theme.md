@@ -69,4 +69,3 @@ A domain follows the pick through `workstation.theme.consumers.<name>`, guarded 
 | --- | --- | --- |
 | nvim | appearance | `tokens.json` through the pick sets `vim.o.background` for oasis.nvim, live via a directory watch ([nvim](nvim.md)) |
 | hermes | palette | `~/.hermes/skins/workstation-<theme>.yaml` per theme from `ws.themeTokens`; `consumers.hermes` reload: `hermes config set display.skin workstation-$THEME` on change — the CLI, TUI and desktop repaint live |
-| herdr | terminal-following | documented canonical choice only: `[theme] name = "terminal"`, `auto_switch = true` ([herdr](herdr.md)) |

@@ -155,15 +155,13 @@ writeShellScriptBin "workstation-e2e" ''
   pass "nvim boots headless with the languages composed"
 
   # 2b. the agent domain: the pinned runtime stack and the linked skills
-  step "agent runtime stack (launcher, interpreter, herdr, pin manifest)"
+  step "agent runtime stack (launcher, interpreter, pin manifest)"
   [ -x "$home/.local/bin/hermes" ] \
     || fail "agent runtime stack" "$home/.local/bin/hermes is not executable"
   [ -f "$home/.local/opt/hermes/bin/hermes" ] \
     || fail "agent runtime stack" "$home/.local/opt/hermes/bin/hermes missing"
   [ -x "$home/.local/opt/hermes/python/bin/python3" ] \
     || fail "agent runtime stack" "the pinned interpreter did not deploy"
-  [ -x "$home/.local/bin/herdr" ] \
-    || fail "agent runtime stack" "$home/.local/bin/herdr is not executable"
   grep -Eq '"engine":\{"rev":"[0-9a-f]{40}' "$home/.local/opt/hermes/pin.json" 2>/dev/null \
     || fail "agent runtime stack" "the deployed pin manifest carries no engine rev"
   pass "agent runtime stack"

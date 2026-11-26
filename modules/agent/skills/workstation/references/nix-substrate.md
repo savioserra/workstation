@@ -60,7 +60,7 @@
 
 ## Settled rulings (do not re-litigate)
 
-- **One channel, no overlays, no floors** — nixos-unstable carries every tool. The inline-pin exceptions (herdr, the hermes checkout) are declared in their owning modules.
+- **One channel, no overlays, no floors** — nixos-unstable carries every tool. The inline-pin exception (the hermes checkout) is declared in its owning module.
 - **The operator surface is one verb** — `workstation init` / `apply` / `add|remove`; leg-native verbs never appear in user-facing flows.
 - **Host-side experimentation is host-local**: payload edits stay UNCOMMITTED in the working copy and stay OUT of the generation (applies build the committed HEAD); `WORKSTATION_WORKTREE=1` deploys them on request; land only the operator's verdict.
 - **No per-tool verify scripts**: store paths and nixpkgs already guarantee the bits, so pin-manifest checks and 'checkout at commit X' smokes are redundant; consumer checks live in the container e2e. A verify lane survives only for state nix does not own (the activation-cloned hermes checkout).

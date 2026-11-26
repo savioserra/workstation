@@ -1,5 +1,5 @@
 # The agent domain: hermes (pinned checkout, launcher, interpreter, skills,
-# extensions, a skin per theme following the pick) and herdr.
+# extensions, a skin per theme following the pick).
 {
   config,
   lib,
@@ -92,30 +92,6 @@ let
       || lib.versionAtLeast pkgs.python314.version lockedPythonVersion
       || throw "workstation-agent: pkgs.python314 ${pkgs.python314.version} predates the release the pinned hermes rev's pm/lock.json carries (${lockedPythonVersion}) — update the nixpkgs lock, or the hermes-agent rev must move to a lock the nixpkgs set satisfies";
     pkgs.python314;
-
-  herdrVersion = "0.9.0";
-  herdrPin =
-    if pkgs.stdenv.hostPlatform.isx86_64 && pkgs.stdenv.hostPlatform.isLinux then
-      {
-        url = "https://github.com/herdrdev/herdr/releases/download/v${herdrVersion}/herdr-linux-x86_64";
-        sha256 = "4fa1a01158dd8043da92d31b270780b0dcc10603038d9b61cac4d81ab63fb71f";
-      }
-    else if pkgs.stdenv.hostPlatform.isAarch64 && pkgs.stdenv.hostPlatform.isDarwin then
-      {
-        url = "https://github.com/herdrdev/herdr/releases/download/v${herdrVersion}/herdr-macos-aarch64";
-        sha256 = "32b53df09872628059c789a69f02a6b8e29e14ddf26711421f3463f70c1aef17";
-      }
-    else
-      throw "workstation-agent: no herdr release asset declared for system '${pkgs.system}' (the pin knows linux x86_64 and darwin arm64)";
-  herdr =
-    pkgs.runCommand "herdr-${herdrVersion}"
-      {
-        src = pkgs.fetchurl herdrPin;
-        passthru.pinVersion = herdrVersion;
-      }
-      ''
-        install -Dm755 "$src" "$out/bin/herdr"
-      '';
 
   launcher = pkgs.runCommand "ws-hermes-launcher" { } ''
     install -Dm755 ${./files/hermes-launcher.sh} "$out/hermes-launcher"
@@ -306,7 +282,6 @@ in
           ".local/opt/hermes/pin.json".text = pinJson;
           ".local/opt/hermes/bin/hermes".source = "${hermes.package}/hermes-launcher";
           ".local/bin/hermes".source = "${hermes.package}/hermes-launcher";
-          ".local/bin/herdr".source = "${herdr}/bin/herdr";
         }
       )
       (ws.whenOn "theme" skinFiles)

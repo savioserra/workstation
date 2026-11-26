@@ -4,7 +4,7 @@ Platforms: linux x86_64 (WSL counts as linux), macOS arm64.
 
 | Property | Value |
 | --- | --- |
-| Tool sourcing | the one nixpkgs input (`nixos-unstable`). The remaining pins declare inline in their owning modules: herdr, the hermes checkout (flake input), the language toolchains (mise registry pins) |
+| Tool sourcing | the one nixpkgs input (`nixos-unstable`). The remaining pins declare inline in their owning modules: the hermes checkout (flake input), the language toolchains (mise registry pins) |
 | Versions | The nixpkgs lock is the version surface (`nix flake update` moves the set). Inline pins move their owning module's row and consumer together |
 | Node version | the mise pin in `modules/languages/node/node.nix`; `~/.node-version` derives from the pin (one source) |
 | Update unit | The lock (nixpkgs tools) or the owning module's pin row (inline pins), verification, this table |
@@ -14,7 +14,6 @@ Platforms: linux x86_64 (WSL counts as linux), macOS arm64.
 | Neovim | 0.12.x | nixpkgs (`modules/editor/editor.nix`) | `.local/bin/nvim`; the language profile composes in the editor module | linux-x86_64, darwin-arm64 |
 | Go | 1.27.3 | mise pin (`modules/languages/go/go.nix`) | the mise global config's `[tools]`; installed under `~/.local/share/mise`, on PATH through the cd activation | linux-x86_64, darwin-arm64 |
 | Homebrew | 7.0.x | github.com/Homebrew/brew via `nix-homebrew` (`flake.lock`) | the darwin leg installs and pins brew at the default prefix; `homebrew.*` declares its packages | darwin-arm64 |
-| Herdr | 0.9.0 | github.com/herdrdev/herdr | The one inline `fetchurl` pin (no nixpkgs coverage); `.local/bin/herdr` from the store derivation | linux-x86_64, darwin-arm64 |
 | Node.js | 24.22.2 | mise pin (`modules/languages/node/node.nix`) | the mise global config's `[tools]`; `~/.node-version` derives from the pin | linux-x86_64, darwin-arm64 |
 | pnpm | 12.9.0 | mise pin (`modules/languages/typescript/typescript.nix`) | the mise global config's `[tools]`; installed under `~/.local/share/mise` | linux-x86_64, darwin-arm64 |
 | Elixir + Erlang | 1.20.5-otp-28 / 28.5.0.8 | mise pins (`modules/languages/elixir/elixir.nix`) | the mise global config's `[tools]`; elixir pinned to an otp-28 prebuilt build (1.18.x ships none); erlang prebuilt platforms only (`compile = false`, never a kerl build) | linux-x86_64, darwin-arm64 |
