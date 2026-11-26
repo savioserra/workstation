@@ -478,23 +478,27 @@ in
       fi
     '';
 
-    home.activation.ensure-hermes-extensions = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-      launcher="$HOME/.local/opt/hermes/bin/hermes"
-      if [ ! -x "$launcher" ]; then
-        echo "workstation: hermes extensions ensure deferred — the launcher is absent"
-      else
-        ${lib.concatStringsSep "\n" (
-          lib.mapAttrsToList (name: _: ''
-            if [ -d "$HOME/.hermes/plugins/${name}" ] &&
-               ! grep -qE '^[[:space:]]*-[[:space:]]*${name}[[:space:]]*$' "$HOME/.hermes/config.yaml" 2>/dev/null; then
-              "$launcher" plugins enable ${name} >/dev/null 2>&1 &&
-                echo "workstation: hermes extension ${name} enabled" ||
-                echo "workstation: hermes extension ${name} enable deferred — the launcher refused"
+    home.activation.ensure-hermes-extensions =
+      lib.mkIf (lib.any (e: e.enable) (builtins.attrValues hermes.extensions))
+        (
+          lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+            launcher="$HOME/.local/opt/hermes/bin/hermes"
+            if [ ! -x "$launcher" ]; then
+              echo "workstation: hermes extensions ensure deferred — the launcher is absent"
+            else
+              ${lib.concatStringsSep "\n" (
+                lib.mapAttrsToList (name: _: ''
+                  if [ -d "$HOME/.hermes/plugins/${name}" ] &&
+                     ! grep -qE '^[[:space:]]*-[[:space:]]*${name}[[:space:]]*$' "$HOME/.hermes/config.yaml" 2>/dev/null; then
+                    "$launcher" plugins enable ${name} >/dev/null 2>&1 &&
+                      echo "workstation: hermes extension ${name} enabled" ||
+                      echo "workstation: hermes extension ${name} enable deferred — the launcher refused"
+                  fi
+                '') (lib.filterAttrs (_: extension: extension.enable) hermes.extensions)
+              )}
             fi
-          '') (lib.filterAttrs (_: extension: extension.enable) hermes.extensions)
-        )}
-      fi
-    '';
+          ''
+        );
 
     home.activation.ensure-hermes-toolsets = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
       ${helpers.workstation-hermes-toolsets}/bin/workstation-hermes-toolsets \
