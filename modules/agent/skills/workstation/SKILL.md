@@ -5,7 +5,7 @@ author: Hermes Agent
 license: MIT
 version: 1.0.0
 tags: [hermes, workstation, nix, home-manager, nix-darwin, testing]
-related_skills: [autonomous-ai-agents:hermes-kanban-swarm]
+related_skills: []
 ---
 
 # Workstation substrate — development workflow

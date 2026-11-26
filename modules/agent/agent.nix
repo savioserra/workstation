@@ -213,7 +213,6 @@ in
         "cronjob"
         "delegation"
         "file"
-        "kanban"
         "memory"
         "session_search"
         "skills"

@@ -33,8 +33,7 @@ Read the nearest scoped `AGENTS.md` and follow the owning reference:
 - Phase markers may ride transient comments for cross-phase handover; they
   do not ship in code — no phase-named files, options, config keys or
   commit messages survive to the merged tree.
-- Work lands roadmap-style: future work is seeded as a parent-chained chain (task1 → task2 → …), serial within a surface. A card whose declared surface overlaps an in-flight card's waits behind it via a parent link — never dispatched alongside it.
-- A card is done only when its declared surface exists at git HEAD: workers deliver branch commits (or land them), and `kanban_complete` metadata names the commit sha. Uncommitted scratch work is not a done state — feature-sized cards run in persistent workspaces (`worktree:`/`dir:`), never scratch; if work must ride uncommitted, the card names it orchestrator-owned and stays open until landed. The reviewer/lead verifies the surface at HEAD before accepting.
+- Work is done only when its declared surface exists at git HEAD: uncommitted scratch work is not a done state; the reviewer verifies the surface at HEAD before accepting.
 
 ## Required checks
 

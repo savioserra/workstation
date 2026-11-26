@@ -215,7 +215,7 @@ and sorted, never hidden.
   full-stack or exit 1. Hosts: all.
 - Runtime-extended state the capability never freezes: the pm-managed
   dependency closure, the tool store (`~/.hermes/tools/…`), the gateway,
-  kanban boards, profiles. Updates go through the pin: bump the
+  profiles. Updates go through the pin: bump the
   `hermes-agent` rev; the interpreter floor re-derives from the new rev's
   `pm/lock.json`.
 
