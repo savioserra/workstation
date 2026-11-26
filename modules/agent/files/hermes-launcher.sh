@@ -31,6 +31,25 @@ export HERMES_ENGINE_CHECKOUT
 PYTHONPYCACHEPREFIX=${XDG_CACHE_HOME:-$HOME/.cache}/hermes-pycache
 export PYTHONPYCACHEPREFIX
 
+# Inside a zellij pane: the pane resume helper beside this launcher keeps the
+# pane's resurrect command on the session it shows; it outlives the exec
+# below as long as hermes runs (same pid).
+if [ -n "${ZELLIJ_PANE_ID:-}" ]; then
+  here=$(dirname "$(readlink -f "$0")")
+  if [ -x "$here/hermes-pane-resume" ]; then
+    ui=
+    for arg in "$@"; do
+      case $arg in
+      --tui | --cli) ui=$arg ;;
+      esac
+    done
+    tty_name=$(tty 2>/dev/null) || tty_name=
+    # shellcheck disable=SC2086 # the ui flag is one word or empty
+    "$here/hermes-pane-resume" "$$" "$python" "$(date +%s)" "$tty_name" $ui \
+      </dev/null >/dev/null 2>&1 &
+  fi
+fi
+
 exec "$python" -I -c 'import os, sys
 os.environ.pop("PYTHONHOME", None)
 os.environ.pop("PYTHONPATH", None)

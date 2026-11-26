@@ -81,6 +81,11 @@ The lane map — which lane proves what:
   checkout, a stubbed nix and a staged profile: plane guards, the
   flake's keys over the baked ones, update over an origin, a failed
   build, the detached system runner.
+- **The pane resume helper** — `checks.<system>.hermes-pane-resume`
+  (`tests/nix/hermes-pane-resume.sh`) over a stubbed zellij and a scratch
+  home: no-op outside zellij, stale breadcrumbs ignored, the exact
+  resurrect command, the ui flag, a session switch, exit with hermes, the
+  pane id key.
 
 Named residuals (the container lane cannot prove what a boot proved):
 

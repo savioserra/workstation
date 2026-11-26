@@ -120,6 +120,7 @@ let
 
   launcher = pkgs.runCommand "ws-hermes-launcher" { } ''
     install -Dm755 ${./files/hermes-launcher.sh} "$out/hermes-launcher"
+    install -Dm755 ${./files/hermes-pane-resume.sh} "$out/hermes-pane-resume"
   '';
 
   pinJson = builtins.toJSON {

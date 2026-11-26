@@ -190,6 +190,14 @@ and sorted, never hidden.
 - The launcher: `programs.hermes.package` at `.local/bin/hermes`; resolves
   the interpreter and checkout from `$HOME` at run time, runs the
   interpreter isolated, fails closed with a named message.
+- Pane resume (inside a zellij pane): the launcher starts
+  `hermes-pane-resume` beside itself; while hermes runs it reads the
+  pane's terminal breadcrumb (`~/.hermes/terminal-sessions/tty-<tty>`, else
+  `zellij_pane_id-<id>`; only breadcrumbs written since the launch) and keeps
+  the pane's resurrect command on `~/.local/bin/hermes [--tui|--cli] --resume
+  <id>` (`zellij action set-resurrect-command`), following `/new` and
+  session switches; a resurrected pane reopens its conversation, the
+  compression chain followed to the live tip. Outside zellij: a no-op.
 - Theme (theme domain on): `~/.hermes/skins/workstation-<theme>.yaml` per
   theme from `ws.themeTokens`; the pick sets `display.skin` through
   `hermes config set` ([theme](theme.md)).

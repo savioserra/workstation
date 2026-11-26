@@ -168,6 +168,11 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "agent runtime stack" "the deployed pin manifest carries no engine rev"
   pass "agent runtime stack"
 
+  step "hermes pane resume helper staged beside the launcher"
+  [ -x "$(dirname "$(readlink -f "$home/.local/bin/hermes")")/hermes-pane-resume" ] \
+    || fail "pane resume" "hermes-pane-resume is not beside the launcher"
+  pass "pane resume"
+
   step "agent skills served as declared entry symlinks"
   [ -L "$home/.hermes/skills/secrets" ] \
     || fail "agent skills" "$home/.hermes/skills/secrets is not the declared entry symlink"
