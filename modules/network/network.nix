@@ -41,21 +41,6 @@ in
         report
       ];
     })
-    (lib.mkIf on {
-      workstation.terminal.nunchux = ws.whenOn [ "terminal" "nunchux" ] {
-        entries."menu:network" = {
-          desc = "Network";
-          rank = 30;
-        };
-        entries."app:network/tailscale" = {
-          cmd = "tailscale-report view | less -R";
-          desc = "Tailnet status";
-          # the popup sizes itself to the rendered report (`!command` dims)
-          width = "!tailscale-report width";
-          height = "!tailscale-report height";
-        };
-      };
-    })
     (lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
       home.activation.ensure-tailscaled = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         ${ensure}/bin/workstation-tailscaled ${if on then "on" else "off"} || true

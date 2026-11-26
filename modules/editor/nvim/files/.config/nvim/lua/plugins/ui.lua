@@ -1,6 +1,6 @@
 return {
 	-- Use Snacks as the shared picker, explorer, dashboard, and notification UI.
-	-- Animated scrolling stays disabled so the interface remains immediate over tmux/SSH.
+	-- Animated scrolling stays disabled so the interface remains immediate over SSH.
 	{
 		"folke/snacks.nvim",
 		opts = {

@@ -6,7 +6,7 @@
   config,
 }:
 let
-  # isOn [ "terminal" "tmux" ]: every enable on the path holds; an
+  # isOn [ "languages" "go" ]: every enable on the path holds; an
   # undeclared path fails the eval
   isOn =
     path:
@@ -41,7 +41,7 @@ import ./payload.nix { inherit lib pkgs; }
       config = lib.mkIf (isOn path) (spec.config or { });
     };
 
-  # whenOn "editor" | whenOn [ "terminal" "nunchux" ]: a contribution guarded
+  # whenOn "editor" | whenOn [ "languages" "go" ]: a contribution guarded
   # by every enable on the owner's path; an undeclared owner fails the eval
   whenOn = owner: lib.mkIf (isOn (lib.toList owner));
 

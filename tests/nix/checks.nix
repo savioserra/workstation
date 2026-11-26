@@ -47,17 +47,6 @@ in
     harlequinVersion = pkgs.harlequin.version;
   };
 
-  switch-routines-compose =
-    pkgs.runCommand "workstation-check-switch-routines"
-      {
-        driver = "${e2eHome ./e2e-selections.nix}/home-path/bin/workstation-switch";
-      }
-      ''
-        grep -q 'ws-routine-after-apply-tmux-server-skew' "$driver" \
-          || { echo 'the tmux routine did not compose into the staged switch driver' >&2; exit 1; }
-        mkdir -p "$out"
-      '';
-
   switch-driver =
     let
       driver =
@@ -73,7 +62,6 @@ in
         nativeBuildInputs = [
           pkgs.git
           pkgs.jq
-          pkgs.tmux
         ];
       }
       ''

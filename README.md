@@ -4,7 +4,7 @@ Every machine you own — a linux box, a WSL host, a mac — carrying the same
 tools, switched by one command and rolled back by another.
 
 The whole workstation is nix declarations: the shell and prompt, Neovim
-(LazyVim) with per-language setups, tmux, fonts, the CLI toolset, secrets
+(LazyVim) with per-language setups, fonts, the CLI toolset, secrets
 wiring, and an agent fleet whose members call each other over tailscale.
 One nixpkgs input decides every version. Nothing is installed by hand,
 nothing drifts between machines.
@@ -54,17 +54,17 @@ workstation setup             # the inquiry again: answers prefilled, languages 
 workstation status           # the declared inventory
 workstation fleet            # start / join / standalone — the fleet choice
 workstation peers            # pair with agents outside the fleet
-workstation theme light      # pick a theme (dark, light): tmux and nvim follow
+workstation theme light      # pick a theme (dark, light): nvim follows
 workstation help             # the full contract
 ```
 
 `add`/`remove` take a domain (`editor`, `network`) or a member
-(`languages/elixir`, `terminal/nunchux`) and offer the apply. The flags
+(`languages/elixir`, `network`) and offer the apply. The flags
 live in `hosts/local/machine.json` (gitignored) — edit it by hand if you
 prefer; an unknown flag is rejected at eval, a typo never silently
 no-ops.
 
-Domains: editor, terminal (tmux, nunchux), languages (elixir, go, node,
+Domains: editor, terminal, languages (elixir, go, node,
 typescript), fonts, theme, foundation (shell, prompt, the CLI toolset),
 secrets, agent, network. Domains default on; `network` and the language
 members default off.
@@ -105,5 +105,5 @@ outside the fleet, and per-peer tuning, go through `workstation peers`.
 | [docs/tools.md](docs/tools.md) | Tool inventory and prerequisites |
 | [docs/testing.md](docs/testing.md) | Checks and acceptance |
 | [docs/secrets.md](docs/secrets.md) | Authentication boundary |
-| [docs/nvim.md](docs/nvim.md), [docs/tmux.md](docs/tmux.md) | Application configuration |
+| [docs/nvim.md](docs/nvim.md) | Application configuration |
 | [AGENTS.md](AGENTS.md) | Contributor rules, checks (`sh .github/scripts/check.sh`), CI |

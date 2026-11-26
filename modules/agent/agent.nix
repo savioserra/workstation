@@ -156,22 +156,9 @@ let
     }
   );
 
-  # the tmux skill carries an executable: ship it with its own interpreter
-  tmuxSkill =
-    pkgs.runCommand "hermes-skill-tmux"
-      {
-        nativeBuildInputs = [ pkgs.python3 ];
-      }
-      ''
-        cp -a ${./skills/tmux} $out
-        chmod -R u+w $out
-        patchShebangs $out/scripts/tmuxctl
-      '';
-
   authoredSkills = {
     secrets = ./skills/secrets;
     workstation = ./skills/workstation;
-    tmux = tmuxSkill;
   };
 
   skillEntries = lib.flatten (
@@ -435,19 +422,6 @@ in
       enable = true;
       inherit source;
     }) authoredSkills;
-
-    # the tmux skill tree is also a gateway plugin (tmux_* pane tools)
-    programs.hermes.extensions.tmux = {
-      enable = true;
-      package = tmuxSkill;
-    };
-
-    # the tmuxctl run markers ride the user PATH (pane shells echo the
-    # tokens; the markers themselves are invisible OSC output)
-    home.packages = [
-      helpers.ws-go
-      helpers.ws-done
-    ];
 
     home.file = lib.mkMerge [
       (

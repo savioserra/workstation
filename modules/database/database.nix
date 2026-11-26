@@ -61,13 +61,6 @@ ws.capability [ "database" ] {
         source = hsqlSkill;
       };
     };
-    workstation.terminal.nunchux = ws.whenOn [ "terminal" "nunchux" ] {
-      entries."app:tools/sql" = {
-        cmd = "harlequin";
-        desc = "SQL IDE";
-        primary_action = "window";
-      };
-    };
     workstation.theme = ws.whenOn "theme" {
       consumers.harlequin = {
         file = "harlequin.toml";

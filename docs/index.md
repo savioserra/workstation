@@ -24,7 +24,6 @@
 | [`architecture.md`](architecture.md) | Declared state + two clients, the read verbs, the write plane |
 | [`secrets.md`](secrets.md) | 1Password boundary, vault scope, secrets skill policy |
 | [`nvim.md`](nvim.md) | Editor entry points, profile, plugins, locks |
-| [`tmux.md`](tmux.md) | Settings, plugin pins, theme |
 | [`theme.md`](theme.md) | Themes, the palette roles, the pick, consumer surfaces |
 | [`herdr.md`](herdr.md) | Pinned Herdr binary, ownership and compatibility gates |
 

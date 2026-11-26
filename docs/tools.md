@@ -4,7 +4,7 @@ Platforms: linux x86_64 (WSL counts as linux), macOS arm64.
 
 | Property | Value |
 | --- | --- |
-| Tool sourcing | the one nixpkgs input (`nixos-unstable`). The remaining pins declare inline in their owning modules: herdr, the tmux/nunchux checkouts (`fetchFromGitHub`), the hermes checkout (flake input), the language toolchains (mise registry pins) |
+| Tool sourcing | the one nixpkgs input (`nixos-unstable`). The remaining pins declare inline in their owning modules: herdr, the hermes checkout (flake input), the language toolchains (mise registry pins) |
 | Versions | The nixpkgs lock is the version surface (`nix flake update` moves the set). Inline pins move their owning module's row and consumer together |
 | Node version | the mise pin in `modules/languages/node/node.nix`; `~/.node-version` derives from the pin (one source) |
 | Update unit | The lock (nixpkgs tools) or the owning module's pin row (inline pins), verification, this table |
@@ -33,10 +33,7 @@ Platforms: linux x86_64 (WSL counts as linux), macOS arm64.
 | Hermes Agent | rev `8fc037444` (v0.23.4) + interpreter `pkgs.python314` | github.com/NousResearch/hermes-agent; nixpkgs (python 3.14.10, the interpreter floor) | Pinned checkout `~/.hermes/hermes-agent` (activation ensure); interpreter at `.local/opt/hermes/python`; launcher at `.local/bin/hermes`; skills as store entry symlinks (`programs.hermes.skills`); extensions into `~/.hermes/plugins`; verify anchor `.local/opt/hermes/pin.json` | linux-x86_64, darwin-arm64 |
 | A2A helpers | yq-go 4.45.4, socat 1.8.0.3, curl 8.14.1, jq 1.7.1, newt 0.52.24, tailscale 1.104.x, findutils | nixpkgs (`modules/agent/packages.nix`) | in the closures of `workstation-a2a-converge` (the activation), `workstation-peers` (`workstation peers`), `workstation-fleet` (the fleet service, `workstation fleet`) and `workstation-a2a-token`, never on PATH | linux-x86_64, darwin-arm64 |
 | JetBrainsMono Nerd Font | 3.5.0 | nixpkgs (`modules/fonts/fonts.nix`) | linux `.local/share/fonts/JetBrainsMonoNerdFont`; darwin `Library/Fonts/JetBrainsMonoNerdFont`; fontconfig enabled | linux-x86_64, darwin-arm64 |
-| nunchux | 3.1.3 | github.com/datamadsen/nunchux | pinned checkout `.tmux/plugins/nunchux` (`fetchFromGitHub`) + the `bin/.platform` marker; package is linux-only | linux-x86_64 |
-| tmux | 3.8 | nixpkgs | the tmux member's `home.packages` and the system legs | linux-x86_64, darwin-arm64 |
 | btop | 1.4.7 | nixpkgs | the terminal domain (`home.packages`, every leg); the system legs (NixOS, darwin) | linux-x86_64, darwin-arm64 |
-| TPM plugin set | pinned commits | github.com/tmux-plugins/tpm, github.com/2KAbhishek/tmux2k, github.com/tmux-plugins/tmux-yank, github.com/tmux-plugins/tmux-resurrect, github.com/christoomey/vim-tmux-navigator | pinned store checkouts `~/.tmux/plugins/<name>` | linux-x86_64, darwin-arm64 |
 
 ## Pin maintenance
 

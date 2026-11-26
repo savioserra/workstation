@@ -15,8 +15,6 @@
     ./network/network.nix
     ./secrets/secrets.nix
     ./terminal/terminal.nix
-    ./terminal/nunchux/nunchux.nix
-    ./terminal/tmux/tmux.nix
     ./theme/theme.nix
   ];
 }

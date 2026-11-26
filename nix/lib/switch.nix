@@ -202,8 +202,7 @@ pkgs.writeShellScriptBin "workstation-switch" ''
     touch "$log"
     own "$state_dir" "$log"
     seen=$(wc -c < "$log")
-    # the runner carries its env explicitly (a tmux session on an existing
-    # server inherits the server's environment), every value shell-quoted
+    # the runner carries its env explicitly, every value shell-quoted
     inner=$(printf 'WORKSTATION_SWITCH_DETACHED=1 WORKSTATION_SWITCH_FLAKE=%q WORKSTATION_SWITCH_MACHINE=%q WORKSTATION_SWITCH_HOME_ATTR=%q WORKSTATION_SWITCH_SYSTEM_ATTR=%q HOME=%q XDG_STATE_HOME=%q SUDO_USER=%q PATH=%q %q %q --system' \
       "$flake" "''${WORKSTATION_SWITCH_MACHINE:-}" "$home_attr" "$system_attr" "$HOME" "''${XDG_STATE_HOME:-$HOME/.local/state}" "''${SUDO_USER:-}" "$PATH" "$0" "$cmd")
     payload=$(printf '%s 2>&1 | tee -a %q; echo "''${PIPESTATUS[0]}" > %q' "$inner" "$log" "$status")
@@ -214,30 +213,6 @@ pkgs.writeShellScriptBin "workstation-switch" ''
       rc=$(cat "$status" 2>/dev/null || echo 1)
       exit "$rc"
     }
-    if command -v tmux >/dev/null 2>&1; then
-      if tmux has-session -t ws-switch 2>/dev/null; then
-        echo "workstation-switch: the ws-switch session exists — a system switch is in flight; attach: tmux attach -t ws-switch (log: $log)" >&2
-        exit 1
-      fi
-      if tmux new-session -d -s ws-switch "${pkgs.runtimeShell} -c $(printf '%q' "$payload")"; then
-        if [ -t 0 ]; then
-          echo "workstation-switch: system switch in tmux session ws-switch (log: $log)"
-          tmux attach -t ws-switch || true
-          if tmux has-session -t ws-switch 2>/dev/null; then
-            echo "workstation-switch: the switch runs on in ws-switch (attach: tmux attach -t ws-switch; log: $log)"
-            exit 0
-          fi
-          rc=$(cat "$status" 2>/dev/null || echo 1)
-          own "$log" "$status"
-          exit "$rc"
-        fi
-        echo "workstation-switch: system switch in tmux session ws-switch — waiting (log: $log)"
-        while tmux has-session -t ws-switch 2>/dev/null; do
-          sleep 1
-        done
-        finish
-      fi
-    fi
     echo "workstation-switch: system switch detached — waiting (log: $log)"
     if command -v setsid >/dev/null 2>&1; then
       nohup setsid ${pkgs.runtimeShell} -c "$payload" >/dev/null 2>&1 &

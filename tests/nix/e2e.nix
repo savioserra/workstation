@@ -200,54 +200,6 @@ writeShellScriptBin "workstation-e2e" ''
   esac
   pass "hsql skill version"
 
-  step "tmux plane (config, XDG link, pinned plugin checkouts, a server on the managed config)"
-  [ -r "$home/.tmux.conf" ] \
-    || fail "tmux plane" "$home/.tmux.conf missing"
-  [ -L "$home/.config/tmux/tmux.conf" ] \
-    || fail "tmux plane" "the XDG link did not deploy"
-  [ -d "$home/.tmux/plugins/tpm" ] \
-    || fail "tmux plane" "the tpm checkout did not deploy"
-  [ -d "$home/.tmux/plugins/tmux2k" ] \
-    || fail "tmux plane" "the tmux2k checkout did not deploy"
-  tmux_bin=$(find_client tmux) || fail "tmux plane" "tmux is not on PATH"
-  "$tmux_bin" -L e2e-conf -f "$home/.tmux.conf" new-session -d -s conf \
-    || fail "tmux plane" "a tmux server did not start on the managed config"
-  [ "$("$tmux_bin" -L e2e-conf show -gv pane-border-status)" = top ] \
-    || fail "tmux plane" "the managed config set no pane labels"
-  fmt="$("$tmux_bin" -L e2e-conf show -gv pane-border-format)"
-  echo "$fmt" | grep -q '#{pane_title}' \
-    || fail "tmux plane" "the pane labels dropped the pane title (the hermes topic)"
-  echo "$fmt" | grep -q 'range=control' \
-    || fail "tmux plane" "the pane labels dropped the default float/zoom/close buttons"
-  [ "$("$tmux_bin" -L e2e-conf show -gv menu-border-lines)" = rounded ] \
-    || fail "tmux plane" "the managed config set no rounded menu borders"
-  "$tmux_bin" -L e2e-conf kill-server 2>/dev/null || true
-  pass "tmux plane"
-
-  step "nunchux plane (pinned checkout, platform marker, rendered config)"
-  [ -d "$home/.tmux/plugins/nunchux" ] \
-    || fail "nunchux plane" "the pinned checkout did not deploy"
-  grep -q 'linux-amd64' "$home/.tmux/plugins/nunchux/bin/.platform" 2>/dev/null \
-    || fail "nunchux plane" "the .platform marker did not compose into the checkout"
-  [ -r "$home/.config/nunchux/config" ] \
-    || fail "nunchux plane" "the rendered config did not deploy"
-  [ "$(readlink -f "$home/.config/nunchux/config")" = "$(readlink -f "$home/.local/state/workstation/theme/current/nunchux.conf")" ] \
-    || fail "nunchux plane" "the config does not read through the theme pick"
-  grep -q 'fzf_colors = fg+:#f5f5dc:bold' "$home/.config/nunchux/config" \
-    || fail "nunchux plane" "the dark pick's fzf colors did not render (text=#f5f5dc missing)"
-  grep -qx '\[menu:tools\]' "$home/.config/nunchux/config" \
-    || fail "nunchux plane" "the tools menu did not render"
-  grep -qx '\[app:tools/sql\]' "$home/.config/nunchux/config" \
-    || fail "nunchux plane" "the database domain's sql entry did not render"
-  grep -qE '^\[(menu:network|app:network/tailscale)\]$' "$home/.config/nunchux/config" \
-    && fail "nunchux plane" "the network menu rendered with the network domain off"
-  grep -qx '\[app:tools/btop\]' "$home/.config/nunchux/config" \
-    || fail "nunchux plane" "the tools menu's btop entry did not render"
-  btop_bin=$(find_client btop) || fail "nunchux plane" "btop (the system entry's command) is not on PATH"
-  "$btop_bin" --version >/dev/null 2>&1 \
-    || fail "nunchux plane" "btop --version failed at $btop_bin"
-  pass "nunchux plane"
-
   step "pre-existing rc file moved aside by the first switch"
   grep -qx '# distro bashrc' "$home/.bashrc.hm-backup" 2>/dev/null \
     || fail "pre-existing rc file" "the distro .bashrc was not kept as .bashrc.hm-backup"
@@ -318,7 +270,7 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "mise plane" "the mise pnpm install did not provision"
   pass "mise plane (config pins, activation after the direnv hook, installed tools)"
 
-  step "theme plane (rendered themes, the seeded pick, the switcher, tmux, nunchux, hermes and nvim following, the picker)"
+  step "theme plane (rendered themes, the seeded pick, the switcher, hermes and nvim following, the picker)"
   themes="$home/.local/share/workstation/themes"
   pick="$home/.local/state/workstation/theme/current"
   for t in dark light; do
@@ -330,36 +282,14 @@ writeShellScriptBin "workstation-e2e" ''
   [ "$(readlink "$pick")" = "$themes/dark" ] \
     || fail "theme plane" "the seeded pick is not the default (dark): $(readlink "$pick")"
   wt=$(find_client workstation-theme) || fail "theme plane" "workstation-theme is not on PATH"
-  tmux_bin=$(find_client tmux) || fail "theme plane" "tmux is not on PATH"
-  "$tmux_bin" -f /dev/null new-session -d -s e2e-theme \
-    || fail "theme plane" "a tmux server did not start"
   "$wt" light >/dev/null \
     || fail "theme plane" "workstation-theme light failed"
   [ "$("$wt" current)" = light ] \
     || fail "theme plane" "the pick did not move to light"
-  grep -q "@tmux2k-blue '#023c75'" "$themes/light/tmux.conf" \
-    || fail "theme plane" "the light tmux render carries no light accent"
-  [ "$("$tmux_bin" show -gv @tmux2k-blue)" = '#023c75' ] \
-    || fail "theme plane" "the running tmux did not reload the light palette"
-  [ "$("$tmux_bin" show -gv popup-style)" = 'fg=#181811,bg=#f5f2ea' ] \
-    || fail "theme plane" "the tmux popup canvas did not follow the light pick"
-  [ "$("$tmux_bin" show -gv menu-selected-style)" = 'fg=#181811,bg=#e1d8c1' ] \
-    || fail "theme plane" "the tmux menu selection did not follow the light pick"
-  [ "$("$tmux_bin" show -gwv 'pane-colours[6]')" = '#237277' ] \
-    || fail "theme plane" "the light terminal colors did not reach the tmux panes"
-  grep -qx 'set -gwu pane-colours' "$themes/dark/tmux.conf" \
-    || fail "theme plane" "the dark render does not hand the panes back to the terminal's colors"
-  grep -q 'hl:#023c75' "$home/.config/nunchux/config" \
-    || fail "theme plane" "the nunchux fzf colors did not follow the light pick"
   grep -qx "  background: '#f5f2ea'" "$home/.hermes/skins/workstation-light.yaml" \
     || fail "theme plane" "the hermes light skin did not render from the light tokens"
   grep -q 'config set display.skin "workstation-$THEME"' "$(readlink -f "$wt")" \
     || fail "theme plane" "the pick does not switch the hermes skin"
-  "$tmux_bin" set -g @tmux2k-blue unreloaded
-  TERM=unknown ${pkgs.util-linux}/bin/script -qec "$wt reload" /dev/null >/dev/null 2>&1 || true
-  [ "$("$tmux_bin" show -gv @tmux2k-blue)" = '#023c75' ] \
-    || fail "theme plane" "the reload under TERM=unknown on a tty did not reach tmux"
-  "$tmux_bin" kill-server 2>/dev/null || true
   out=$("$home/.local/bin/nvim" --headless -c "lua io.stdout:write('BG=' .. vim.o.background .. '\n')" -c 'qa!' 2>/dev/null)
   case "$out" in
     *BG=light*) ;;
@@ -376,10 +306,6 @@ writeShellScriptBin "workstation-e2e" ''
   "$wt" set nope 2>/dev/null || rc=$?
   [ "$rc" = 2 ] \
     || fail "theme plane" "an unknown theme must exit 2 (got $rc)"
-  grep -qx '\[app:theme/light\]' "$home/.config/nunchux/config" \
-    || fail "theme plane" "the nunchux picker carries no light entry"
-  grep -qx 'primary_action = run' "$home/.config/nunchux/config" \
-    || fail "theme plane" "the theme pick must run silently, no tmux surface"
   pass "theme plane"
 
   step "init capture live (placeholders fill, settings survive, the re-init is byte-identical)"
@@ -452,8 +378,6 @@ writeShellScriptBin "workstation-e2e" ''
   switch_out=$(WORKSTATION_SWITCH_HOME_ACTIVATE="${homeActivateMinusGo}" "$staged_switch" apply) \
     || fail "apply-driven switch" "the driver failed (switch or receipt)"
   unset WORKSTATION_SWITCH_HOME_ACTIVATE
-  printf '%s' "$switch_out" | grep -q 'tmux server check' \
-    || fail "apply-driven switch" "the after-apply routine did not run (no tmux server check line)"
   pass "apply-driven switch (the removal apply: go deselected, next generation)"
 
   step "the removal: go left the profile and the mise config, the rest rides"
@@ -525,8 +449,6 @@ writeShellScriptBin "workstation-e2e" ''
   step "rollback lane (the previous generation, the after-rollback routine)"
   rb_out=$("$staged_switch" rollback) \
     || fail "rollback lane" "workstation-switch rollback failed"
-  printf '%s' "$rb_out" | grep -q 'tmux server check' \
-    || fail "rollback lane" "the after-rollback routine did not run (no tmux server check line)"
   PATH="$init_path" tail -n 1 "$home/.local/state/workstation/switch.log" | grep -Eq 'generation [0-9]+ applied \(' \
     || fail "rollback lane" "the rollback wrote no receipt line"
   pass "rollback lane (the previous generation, the after-rollback routine)"

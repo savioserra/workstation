@@ -26,7 +26,7 @@ let
   );
 in
 ws.capability [ "terminal" ] {
-  description = "eza, starship, mosh, btop, tmux and nunchux";
+  description = "eza, starship, mosh and btop";
   default = true;
   config = {
     home.packages = [

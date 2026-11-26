@@ -146,13 +146,6 @@ let
       reload_consumers() {
       THEME=$(picked) || return 0
       ${lib.concatMapStrings (c: c.reload) (builtins.attrValues cfg.consumers)}:
-      # force every attached client to repaint: mosh diffs frames and keeps
-      # a stale bottom row alive after the layout settles
-      if tmux has-session </dev/null 2>/dev/null; then
-      tmux list-clients -F '#{client_name}' </dev/null 2>/dev/null | while read -r client; do
-      tmux refresh-client -t "$client" </dev/null 2>/dev/null || true
-      done
-      fi
       :
       }
     '';
@@ -204,24 +197,5 @@ ws.capability [ "theme" ] {
     home.activation.workstation-theme = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
       ${program}/bin/workstation-theme seed || true
     '';
-
-    workstation.terminal.nunchux = ws.whenOn [ "terminal" "nunchux" ] {
-      entries = {
-        "menu:theme" = {
-          desc = "Theme";
-          status = "workstation-theme current";
-          rank = 40;
-        };
-      }
-      // lib.mapAttrs' (
-        name: t:
-        lib.nameValuePair "app:theme/${name}" {
-          cmd = "workstation-theme set ${name}";
-          desc = t.description;
-          # the pick runs silently: a background run-shell, no window or popup
-          primary_action = "run";
-        }
-      ) cfg.themes;
-    };
   };
 }

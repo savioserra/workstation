@@ -16,7 +16,7 @@ Read the nearest scoped `AGENTS.md` and follow the owning reference:
 | Lifecycle and capability contracts | [docs/capabilities.md](docs/capabilities.md) |
 | Home state law | [docs/home-state.md](docs/home-state.md) |
 | Checks and acceptance limits | [docs/testing.md](docs/testing.md) |
-| Editor / terminal | [docs/nvim.md](docs/nvim.md) / [docs/tmux.md](docs/tmux.md) |
+| Editor | [docs/nvim.md](docs/nvim.md) |
 | Secret handling / tool inventory | [docs/secrets.md](docs/secrets.md) / [docs/tools.md](docs/tools.md) |
 
 ## Operating contract
@@ -56,7 +56,6 @@ declared surface. Native Linux and macOS arm64 acceptance stays explicit.
 | Neovim version | `flake.lock`, `docs/tools.md` |
 | Hermes Agent pin | the flake's `hermes-agent` input rev, `modules/agent/agent.nix`, `docs/tools.md` |
 | Managed Hermes skill | `modules/agent/skills/<name>/`, the `programs.hermes.skills` entry, `modules/agent/verify/hermes.sh`, `docs/capabilities.md` |
-| tmux plugin pin | the `fetchFromGitHub` rev in `modules/terminal/terminal.nix`, `docs/tmux.md` |
 | Capability | `modules/<domain>/` (module + payload bytes co-located), tests, docs |
 | Neovim language | the language entry in the language domain's module, lockfiles if needed, behavior case |
 | Removed deployed source | drop the declaration: the generation diff removes what the file plane owned |

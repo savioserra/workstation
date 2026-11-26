@@ -86,7 +86,7 @@ capability's nixpkgs runtime (erlang 28 + elixir 1.18, on PATH).
 | `theme.lua` | oasis.nvim (upstream starlight pin) + LazyVim colorscheme opt |
 | `treesitter.lua` | Parser set |
 | `ui.lua` | snacks, lualine, noice, dropbar, inline diagnostics, highlight colors |
-| `editor.lua` | Movement, tags, tmux navigation, diff view |
+| `editor.lua` | Movement, tags, diff view |
 | `testing.lua` | neotest and Jest adapter |
 | `debugging.lua` | nvim-dap and nvim-dap-view |
 

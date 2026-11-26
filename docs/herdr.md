@@ -30,7 +30,7 @@ deliberately **not** promised until the corresponding evidence exists:
   live `config.toml` (the binary owns it: onboarding, Settings edits,
   `herdr config reset-keys`). Set once in herdr's Settings:
   `[theme] name = "terminal"`, `auto_switch = true` — herdr then follows the
-  host terminal's ANSI palette exactly like the tmux bar here (the editor
+  host terminal's ANSI palette (the editor
   is the one brand-pinned exception: it loads the upstream oasis starlight
   palette), with optional
   `[theme.custom]` accents derived from the shared tokens

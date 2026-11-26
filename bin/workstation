@@ -27,7 +27,7 @@ selection (per-machine capability flags, hosts/local/machine.json settings):
   remove <path>...     disable capability(ies)
   selected             this machine's rows: per path on/off/baseline + notes
   paths are <domain> or <domain>/<member> — `editor`,
-  `languages/typescript`, `terminal/nunchux` (workstation selected lists
+  `languages/typescript`, `languages/go` (workstation selected lists
   them all). add and remove are idempotent, accept multiple paths, and
   offer `apply now?` on a TTY (WORKSTATION_NO_APPLY=1 skips the offer).
 
@@ -45,7 +45,7 @@ peers (the A2A node's peers, hosts/local/peers.nix):
                   the apply. Fleet members pair on their own (fleet);
                   peers adds other agents and tunes any peer
 
-theme (the palette tmux, nvim and every theme consumer follow):
+theme (the palette nvim and every theme consumer follow):
   theme [<name>]  pick a theme — applied at once, kept across applies;
                   bare prints the current one; `theme list` shows them all
 

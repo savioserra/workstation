@@ -13,9 +13,8 @@
 # | 7 | no baked home key, the flake answers none | refuses |
 # | 8 | update, a local commit origin lacks | refuses, the checkout stays, builds nothing |
 # | 9 | update, no origin | switches at the checkout's commit |
-# | 10 | system apply, tmux runner | waits, relays the receipt, exits with the switch's code |
 # | 11 | system apply, the rebuild fails | the failure reaches the caller |
-# | 12 | system apply, no tmux | the detached fallback waits and receipts |
+# | 12 | system apply | the detached runner waits, relays the receipt, exits with the switch's code |
 # | 13 | a flake ref with quotes and spaces | reaches the rebuild verbatim |
 set -eu
 
@@ -50,13 +49,12 @@ fresh() {
 	chmod +x "$work/gen/activate"
 	ln -s "$work/gen" "$work/state/nix/profiles/home-manager-3-link"
 	ln -s home-manager-3-link "$work/state/nix/profiles/home-manager"
-	mkdir -p "$work/sys" "$work/tmux"
+	mkdir -p "$work/sys"
 	ln -s "$work/gen" "$work/sys/system-7-link"
 	ln -s system-7-link "$work/sys/system"
 	flake_ref="git+file://$work/co?rev=$head"
 	printf '#!/bin/sh\necho "REBUILD: $*" >>"%s"\n' "$work/log" >"$work/bin/nixos-rebuild"
 	chmod +x "$work/bin/nixos-rebuild"
-	rm -f "$work/bin/tmux"
 	: >"$work/log"
 }
 
@@ -95,7 +93,6 @@ EOF
 drive() {
 	rc=0
 	env -i PATH="$work/bin:$PATH" HOME="$work/home" USER=op XDG_STATE_HOME="$work/state" \
-		TMUX_TMPDIR="$work/tmux" \
 		WORKSTATION_SWITCH_SYSTEM_PROFILE="$work/sys/system" \
 		WORKSTATION_SWITCH_FLAKE="$flake_ref" \
 		WORKSTATION_SWITCH_MACHINE="$work/co/hosts/local" \
@@ -189,15 +186,6 @@ drive "$stale" update
 [ "$rc" = 0 ] || fail "9: update without an origin must succeed (rc $rc)"
 grep '^NIX: build' "$work/log" | grep -q "rev=$head" || fail '9: the build must name the checkout commit'
 
-# 10
-fresh
-stub ok "$linux_keys"
-drive "$stale" apply --system
-[ "$rc" = 0 ] || fail "10: a system apply through the tmux runner must succeed (rc $rc)"
-grep -Fq "REBUILD: switch --flake $flake_ref#corrhos" "$work/log" || fail '10: the rebuild must name the flake and the system key'
-grep -q 'generation 7 applied' "$work/state/workstation/switch.log" || fail '10: the system switch must receipt'
-grep -q 'generation 7 applied' "$work/out" || fail '10: the caller must see the runner output'
-
 # 11
 fresh
 stub ok "$linux_keys"
@@ -209,11 +197,9 @@ drive "$stale" apply --system
 # 12
 fresh
 stub ok "$linux_keys"
-printf '#!/bin/sh\nexit 1\n' >"$work/bin/tmux"
-chmod +x "$work/bin/tmux"
 drive "$stale" apply --system
-[ "$rc" = 0 ] || fail "12: a system apply through the detached fallback must succeed (rc $rc)"
-grep -q 'generation 7 applied' "$work/state/workstation/switch.log" || fail '12: the fallback must receipt'
+[ "$rc" = 0 ] || fail "12: a system apply through the detached runner must succeed (rc $rc)"
+grep -q 'generation 7 applied' "$work/state/workstation/switch.log" || fail '12: the runner must receipt'
 
 # 13
 fresh

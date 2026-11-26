@@ -45,8 +45,7 @@ option tree applied as a module.
   "settings": {
     "workstation": {
       "network": { "enable": true },
-      "languages": { "go": { "enable": true } },
-      "terminal": { "nunchux": { "enable": false } }
+      "languages": { "go": { "enable": true } }
     },
     "programs": { "hermes": { "a2a": { "enable": true } } }
   }
@@ -57,10 +56,9 @@ option tree applied as a module.
 | --- | --- |
 | Paths | `<domain>` or `<domain>/<member>`: `workstation.<domain>.enable`, `workstation.<domain>.<member>.enable` |
 | Validation | the module system: unknown option and wrong type fail the eval |
-| Defaults | each enable option's default: domains on, `network` and language members off, `nunchux` on linux only |
+| Defaults | each enable option's default: domains on, `network` and language members off |
 | Members | deploy iff `domain.enable && member.enable`; `add <member>` turns a disabled domain on |
 | Baseline | `foundation` has no enable option |
-| Platform | `terminal/nunchux` asserts linux |
 | Reads | `selected` serves `workstation.report.selections`: per path `on`/`off`/`baseline` and the option description |
 
 ## Module boundaries
@@ -94,8 +92,7 @@ option tree applied as a module.
   - **file/symlink surfaces** — `home.file` entries with store-path sources
     (intra-home links through `mkOutOfStoreSymlink`);
   - **tools** — packages of the one nixpkgs input; the remaining pins
-    declare inline: herdr's `fetchurl`, the
-    tmux/nunchux checkouts as hash-pinned `fetchFromGitHub`, the hermes
+    declare inline: herdr's `fetchurl`, the hermes
     checkout as the flake's `hermes-agent` input;
   - **dir claims** — a store tree linked at a home target; overlapping
     targets compose into one derivation;
@@ -124,7 +121,7 @@ base       foundation
 fonts      fonts
 languages  languages/elixir, languages/go, languages/node, languages/typescript (member capabilities)
 editor     nvim (+ languages: typescript, elixir declare editor entries)
-terminal   terminal/tmux, terminal/nunchux (member capabilities)
+terminal   terminal
 theme      theme
 agent      agent, herdr
 secrets    secrets
@@ -205,10 +202,7 @@ and sorted, never hidden.
   declared name the pinned tree bundles fails the eval). `secrets` is
   authored at `modules/agent/skills/secrets`; `workstation` (the substrate
   dev workflow + references) is authored at
-  `modules/agent/skills/workstation`; `tmux` (the `tmuxctl` pane surface:
-  inspect, read, operate, control-mode watch) is authored at
-  `modules/agent/skills/tmux` with its script interpreter-wrapped at build
-  time; `hsql` is generated from the
+  `modules/agent/skills/workstation`; `hsql` is generated from the
   harlequin derivation by `hsql --skill` at build time.
 - Gateway extensions: `programs.hermes.extensions` → entry symlinks into
   `~/.hermes/plugins/<name>`.
@@ -333,7 +327,7 @@ and sorted, never hidden.
   `~/.local/share/workstation/themes/<name>/` with its `tokens.json`.
 - The pick: `~/.local/state/workstation/theme/current`, seeded with
   `workstation.theme.default`, moved by `workstation theme <name>`
-  (`workstation-theme`); the nunchux picker menu.
+  (`workstation-theme`).
 - Verify: the container E2E (rendered themes, seeded pick, switch, the
   pick across an apply). Hosts: all. [theme](theme.md)
 
@@ -346,50 +340,18 @@ and sorted, never hidden.
   and prepends `~/.nix-profile/bin`, `/etc/profiles/per-user/$USER/bin`,
   `/run/current-system/sw/bin` to PATH — an ssh command on a bash host
   sources neither. Other clients (Termius): the same `--server` string.
-- btop: `home.packages` (all legs) — the nunchux system entry and the tmux2k ram popup.
+- btop: `home.packages` (all legs).
 - Hosts: all.
-
-### `tmux`
-- The `terminal/tmux` member capability: plugin checkouts (tpm, tmux2k,
-  tmux-yank, tmux-resurrect, vim-tmux-navigator) as hash-pinned
-  `fetchFromGitHub`.
-- `.tmux.conf`; the `.config/tmux` link; the reply-drain `tmux`
-  function in bash and zsh.
-- The switch routine `tmux-server-skew` (after-apply, after-rollback,
-  after-update): the running server's version vs the generation's —
-  report-only, the restart stays the operator's.
-- Hosts: linux/macOS.
-
-### `nunchux`
-- The `terminal/nunchux` member capability (linux; enabling it on
-  darwin fails an assertion): pinned checkout (`.tmux/plugins/nunchux` at
-  the v3.1.3 commit, hash-pinned `fetchFromGitHub`, repo-tracked launcher
-  binary) + the `.platform` marker composed in.
-- `.config/nunchux/config` rendered from two options; with the theme on, a
-  link through the pick to the theme consumer's `nunchux.conf`:
-
-  | Option | Renders |
-  | --- | --- |
-  | `workstation.terminal.nunchux.settings` | `[settings]`; an unset `fzf_colors`: the pick's palette (theme on), fzf's defaults (theme off) |
-  | `workstation.terminal.nunchux.entries."<header>"` | one section per header (`menu:<name>`, `app:<name>`, `app:<menu>/<name>`); every field but `rank` as `key = value`; `[order]` = the top-level items by `rank`, then name |
-
-  | Entry | Owner | Guard |
-  | --- | --- | --- |
-  | `menu:system` (journal) | `terminal/nunchux` | the member |
-  | `menu:tools` (btop, sql) | `terminal/nunchux` | the member |
-  | `app:tools/sql` (harlequin) | `database` | `whenOn [ "terminal" "nunchux" ]` |
-  | `menu:network` (tailscale) | `network` | `network.enable` + `whenOn [ "terminal" "nunchux" ]` |
-- Hosts: linux (darwin deferred; no release-asset consumer).
 
 ## Fresh-host tools
 
 Every tool class ships with the substrate; none stays a documented host
 prerequisite. The HOW: the nixpkgs lock carries the versions and
 `home.packages` puts the tools on PATH. Inline pins, by exception: herdr
-(`fetchurl`), the tmux/nunchux checkouts (`fetchFromGitHub`), the hermes
+(`fetchurl`), the hermes
 checkout (the flake input). Every bump moves the owning row and its
 consumer together. The hermes manifest (`~/.local/opt/hermes/pin.json`)
-keeps its verify lane honest; the plugin checkouts are store paths.
+keeps its verify lane honest.
 
 ## Grain contract
 
@@ -416,7 +378,7 @@ Fail-closed at eval:
 | Phase | Owner | Responsibility |
 | --- | --- | --- |
 | switch / rollback | `workstation apply` / `workstation rollback` | Build the generation from the flake, activate atomically, write the receipt to `switch.log`; the flake is the resolved checkout's committed `HEAD` (`--flake`, `$WORKSTATION_FLAKE`, the enclosing checkout, `$WORKSTATION_CHECKOUT`) with its working-tree machine files; `WORKSTATION_WORKTREE=1` builds the working tree; an explicit `WORKSTATION_SWITCH_FLAKE` wins; `update` pulls the checkout from origin (fast-forward only, as the checkout's user under sudo), then switches; the lock moves with origin's commits; a dirty checkout, local commits origin lacks or a failed pull stop before touching anything |
-| system switch | the driver's runner | A `--system` switch runs in the detached `ws-switch` tmux session (a nohup process without tmux) and survives its caller; the caller attaches on a terminal, waits elsewhere, and exits with the switch's code; under sudo the receipts and the routines belong to the invoking user; log: `switch-driver.log` beside `switch.log` |
+| system switch | the driver's runner | A `--system` switch runs in a detached nohup process and survives its caller; the caller waits and exits with the switch's code; under sudo the receipts and the routines belong to the invoking user; log: `switch-driver.log` beside `switch.log` |
 | `plan` / `status` / `capabilities` / `selected` | `nix eval` over `workstation.report` | Answer the declared state; mutate nothing |
 | select | `workstation add <path>...` / `workstation remove <path>...` | Validate against `selectable`, set or drop the flag in `hosts/local/machine.json`, offer the apply (idempotent; the baseline refuses) |
 | inquiry | `workstation init` (and `setup`, the full re-ask) | Capture the machine, offer the languages as a checklist pre-filled with the current selection, choose the fleet |
@@ -450,7 +412,6 @@ script, or a verify assertion.
 ## Verification requirements
 
 - Verify executable versions through the configured environment.
-- Verify tmux with an isolated server/socket.
 - Verify fonts through host registration or cache visibility.
 - Verify Neovim imports by successful startup (and the composed profile).
 - Verify languages with real files, parsers, and attached LSP clients.

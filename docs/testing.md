@@ -59,7 +59,7 @@ The lane map — which lane proves what:
   the shell init (eza, starship, the direnv hook after the prompt, the
   op env, the editor env), the tools running, the mise plane (the config
   pins, the activation after the direnv hook, the go/pnpm installs), the agent
-  skills at pinned versions, the tmux/nunchux/foundation planes, the
+  skills at pinned versions, the foundation plane, the
   init capture live against a writable checkout copy (the placeholders
   fill from detection, the settings survive, a converged re-init is
   byte-identical), the
@@ -80,7 +80,7 @@ The lane map — which lane proves what:
   `workstation-switch` (`tests/nix/switch-driver.sh`) over a scratch
   checkout, a stubbed nix and a staged profile: plane guards, the
   flake's keys over the baked ones, update over an origin, a failed
-  build, the system runner (tmux and the fallback).
+  build, the detached system runner.
 
 Named residuals (the container lane cannot prove what a boot proved):
 

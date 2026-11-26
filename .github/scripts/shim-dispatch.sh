@@ -53,7 +53,7 @@ case "\$*" in
     p=\$(printf '%s' "\$*" | sed -n 's/.*selectable."\([^"]*\)".*/\1/p')
     case "\$p" in
       foundation) printf '{"baseline":true,"default":true,"kind":"baseline"}\n' ;;
-      editor | terminal | terminal/tmux | theme | fonts | secrets | agent | languages)
+      editor | terminal | theme | fonts | secrets | agent | languages)
         printf '{"baseline":false,"default":true,"kind":"domain"}\n' ;;
       network | languages/elixir | languages/go | languages/node | languages/typescript)
         printf '{"baseline":false,"default":false,"kind":"member"}\n' ;;

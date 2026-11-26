@@ -74,14 +74,4 @@ in
     inputs = [ pkgs.python3 ];
     file = ./files/hermes-toolsets.sh;
   };
-
-  # the tmuxctl run markers: short tokens the pane echoes instead of the
-  # inline printf wrapper
-  ws-go = pkgs.writeShellScriptBin "ws-go" ''
-    printf '\033]7777;tmuxctl:%s:start\007' "$1"
-  '';
-
-  ws-done = pkgs.writeShellScriptBin "ws-done" ''
-    printf '\033]7777;tmuxctl:%s:end:%s\007' "$1" "$2"
-  '';
 }

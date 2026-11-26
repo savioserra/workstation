@@ -19,6 +19,6 @@ vim.opt.winborder = "rounded"
 vim.opt.showtabline = 1
 
 -- noice.nvim renders the cmdline as a popup, so the reserved cmdline row at
--- the bottom is otherwise unused dead space between lualine and tmux's status
--- bar. Removing it closes that gap.
+-- the bottom is otherwise unused dead space below lualine. Removing it closes
+-- that gap.
 vim.opt.cmdheight = 0
