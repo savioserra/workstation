@@ -25,7 +25,9 @@ ws.capability [ "terminal" "zellij" ] {
         # the built-in non-colliding preset: locked by default, Ctrl g
         # unlocks, then single keys enter the modes
         keybinds._props.preset = "unlock-first";
-        theme = "ayu-dark";
+        theme = "dracula";
+        theme_dark = "default";
+        show_startup_tips = false;
         ui.pane_frames = {
           rounded_corners = true;
           hide_session_name = true;
