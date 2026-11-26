@@ -1,6 +1,5 @@
 # The agent domain: hermes (pinned checkout, launcher, interpreter, skills,
-# extensions, the A2A node, the fleet member service, a skin per theme
-# following the pick) and herdr.
+# extensions, a skin per theme following the pick) and herdr.
 {
   config,
   lib,
@@ -123,6 +122,8 @@ let
     install -Dm755 ${./files/hermes-pane-resume.sh} "$out/hermes-pane-resume"
   '';
 
+  helpers = import ./packages.nix { inherit pkgs; };
+
   pinJson = builtins.toJSON {
     engine = {
       url = if hermes.pin != null then hermes.pin.url else "";
@@ -130,32 +131,6 @@ let
     };
     python = pkgs.python314.version;
   };
-
-  a2a = hermes.a2a;
-  helpers = import ./packages.nix { inherit pkgs; };
-  fleetOn = a2a.enable && a2a.tailnet && a2a.fleet.enable;
-  fleetEnv = {
-    WORKSTATION_FLEET_PORT = toString a2a.fleet.port;
-    WORKSTATION_A2A_PORT = toString a2a.port;
-    WORKSTATION_HERMES = "${hermes.package}/hermes-launcher";
-  };
-  tokenEnv = alias: "A2A_PEER_TOKEN_" + lib.toUpper (lib.replaceStrings [ "-" ] [ "_" ] alias);
-  dnsLabel = "[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?";
-  a2aDesired = pkgs.writeText "hermes-a2a.json" (
-    builtins.toJSON {
-      inherit (a2a) enable port tailnet;
-      name = if a2a.name == null then "" else a2a.name;
-      platforms = a2a.toolsetPlatforms;
-      peers = lib.mapAttrs (alias: peer: {
-        inherit (peer) url timeout capabilities;
-        auth = {
-          type = "bearer";
-          token = "\${${tokenEnv alias}}";
-        };
-      }) a2a.peers;
-      tokenEnvs = lib.mapAttrs (alias: _: tokenEnv alias) a2a.peers;
-    }
-  );
 
   authoredSkills = {
     secrets = ./skills/secrets;
@@ -298,103 +273,9 @@ in
       '';
     };
 
-    a2a = {
-      enable =
-        lib.mkEnableOption "the A2A node: the inbound platform, the a2a toolset, the tailnet bind and the declared peers"
-        // {
-          default = true;
-        };
-
-      port = lib.mkOption {
-        type = lib.types.port;
-        default = 9900;
-        description = ''
-          The inbound A2A port (platforms.a2a.extra.port): the port this
-          node serves, the port `workstation peers` probes.
-        '';
-      };
-
-      name = lib.mkOption {
-        type = lib.types.nullOr (lib.types.strMatching "[A-Za-z0-9.-]+");
-        default = null;
-        description = ''
-          This node's MagicDNS name: the Agent Card name (A2A_AGENT_NAME)
-          and the advertised URL http://<name>:<port> (A2A_PUBLIC_URL, set
-          with the tailnet bind). Defaults to workstation.machine.host;
-          null leaves hermes' hostname-derived default.
-        '';
-      };
-
-      tailnet =
-        lib.mkEnableOption "the tailnet bind: A2A_HOST is this node's tailnet IPv4 (hermes widens past loopback only once an inbound token exists)"
-        // {
-          default = true;
-        };
-
-      toolsetPlatforms = lib.mkOption {
-        type = lib.types.listOf (lib.types.strMatching "[a-z0-9_]+");
-        default = [ "cli" ];
-        description = "The hermes platforms whose sessions get the a2a client toolset.";
-      };
-
-      fleet = {
-        enable =
-          lib.mkEnableOption "the fleet member service: tailnet nodes of this tailscale user pair with this node automatically (workstation-fleet serve)"
-          // {
-            default = true;
-          };
-        port = lib.mkOption {
-          type = lib.types.port;
-          default = 9902;
-          description = ''
-            The fleet port on the tailnet IPv4: `GET /fleet` marks a member,
-            `POST /join` pairs the caller (identified by `tailscale whois`,
-            accepted only for this node's tailscale user).
-          '';
-        };
-      };
-
-      peers = lib.mkOption {
-        type = lib.types.attrsOf (
-          lib.types.submodule {
-            options = {
-              url = lib.mkOption {
-                type = lib.types.strMatching "https?://[A-Za-z0-9.-]+(:[0-9]+)?/?";
-                description = "The peer's A2A endpoint: http://<node>:<port> (its MagicDNS name).";
-              };
-              timeout = lib.mkOption {
-                type = lib.types.ints.between 1 3600;
-                default = 120;
-                description = "Seconds a call to this peer may take.";
-              };
-              capabilities = lib.mkOption {
-                type = lib.types.listOf (lib.types.strMatching "[A-Za-z0-9._-]+");
-                default = [ ];
-                description = "The capabilities a2a_orchestrate routes to this peer.";
-              };
-            };
-          }
-        );
-        default = { };
-        description = ''
-          The peers this node calls, keyed by MagicDNS name — the name is
-          also the peer's inbound identity (a2a.trusted_peers, the name in
-          its A2A_PEER_TOKENS row). Each renders an a2a_agents entry whose
-          bearer token is the env reference A2A_PEER_TOKEN_<NAME>. Read
-          from workstation.machine.peers.
-        '';
-      };
-    };
   };
 
   config = ws.whenOn "agent" {
-    programs.hermes.a2a = {
-      name = lib.mkIf (config.workstation.machine.host != null) (
-        lib.mkDefault config.workstation.machine.host
-      );
-      peers = config.workstation.machine.peers;
-    };
-
     assertions = [
       {
         assertion = hermes.pin != null;
@@ -411,13 +292,7 @@ in
         + "hermes-agent bundles — skills_sync owns that name at runtime "
         + "and would fight the declared entry symlink; rename the "
         + "declared skill";
-    }) (builtins.attrNames (lib.filterAttrs (_: skill: skill.enable) hermes.skills))
-    ++ map (alias: {
-      assertion = builtins.match dnsLabel alias != null;
-      message =
-        "programs.hermes.a2a.peers.${alias}: a peer is keyed by its MagicDNS name "
-        + "(a DNS label: lowercase letters, digits, '-')";
-    }) (builtins.attrNames a2a.peers);
+    }) (builtins.attrNames (lib.filterAttrs (_: skill: skill.enable) hermes.skills));
 
     programs.hermes.skills = lib.mapAttrs (_: source: {
       enable = true;
@@ -507,86 +382,6 @@ in
         "${lib.concatStringsSep "," hermes.cliToolsets}" \
         "${lib.concatStringsSep "," hermes.disabledMcpServers}"
     '';
-
-    home.activation.converge-hermes-a2a =
-      lib.hm.dag.entryAfter [ "linkGeneration" "ensure-hermes-checkout" ]
-        ''
-          if HERMES_HOME="$HOME/.hermes" WORKSTATION_STATE="$HOME/.local/state/workstation" \
-            ${helpers.workstation-a2a-converge}/bin/workstation-a2a-converge \
-            ${a2aDesired} "${hermes.package}/hermes-launcher"; then
-            :
-          else
-            echo "workstation: a2a converge deferred — the receipts above name the step; the next apply retries"
-          fi
-        '';
-
-    xdg.configFile."systemd/user/workstation-fleet.service" =
-      lib.mkIf (fleetOn && pkgs.stdenv.hostPlatform.isLinux)
-        {
-          text = ''
-            [Unit]
-            Description=workstation fleet member (A2A tailnet pairing)
-
-            [Service]
-            ExecStart=${helpers.workstation-fleet}/bin/workstation-fleet serve
-            ${
-              lib.concatStrings (lib.mapAttrsToList (name: value: "Environment=${name}=${value}\n") fleetEnv)
-            }Restart=always
-            RestartSec=10
-
-            [Install]
-            WantedBy=default.target
-          '';
-        };
-    home.activation.workstation-fleet = lib.mkIf pkgs.stdenv.hostPlatform.isLinux (
-      lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-        # systemctl/loginctl are the host's: outside the activation PATH
-        PATH=$PATH:/usr/bin:/bin
-        ws_unit=${config.xdg.configHome}/systemd/user/workstation-fleet.service
-        ws_stamp=${config.home.homeDirectory}/.local/state/workstation/fleet.unit
-        if [ -e "$ws_unit" ]; then
-          if systemctl --user show-environment >/dev/null 2>&1; then
-            ws_want=$(readlink -f "$ws_unit")
-            systemctl --user daemon-reload
-            systemctl --user enable workstation-fleet.service >/dev/null 2>&1 || true
-            if [ "$(cat "$ws_stamp" 2>/dev/null)" != "$ws_want" ] ||
-              ! systemctl --user is-active -q workstation-fleet.service; then
-              if systemctl --user restart workstation-fleet.service; then
-                mkdir -p "''${ws_stamp%/*}" && printf '%s\n' "$ws_want" >"$ws_stamp"
-                echo "workstation: fleet member service running (port ${toString a2a.fleet.port})"
-              else
-                echo "workstation: fleet member service failed to start — journalctl --user -u workstation-fleet"
-              fi
-            fi
-            # a user service outlives the login session only with linger
-            if [ "$(loginctl show-user "$(id -un)" -p Linger --value 2>/dev/null)" = no ]; then
-              loginctl enable-linger "$(id -un)" 2>/dev/null ||
-                echo "workstation: the fleet stops at logout — run: sudo loginctl enable-linger $(id -un)"
-            fi
-          else
-            echo "workstation: fleet member service deferred — no user systemd session; run: systemctl --user enable --now workstation-fleet"
-          fi
-        elif [ -f "$ws_stamp" ]; then
-          systemctl --user stop workstation-fleet.service 2>/dev/null || true
-          rm -f "${config.xdg.configHome}/systemd/user/default.target.wants/workstation-fleet.service" "$ws_stamp"
-          systemctl --user daemon-reload 2>/dev/null || true
-          echo "workstation: fleet member service stopped (the fleet is off)"
-        fi
-      ''
-    );
-    launchd.agents.workstation-fleet = lib.mkIf (fleetOn && pkgs.stdenv.hostPlatform.isDarwin) {
-      enable = true;
-      config = {
-        ProgramArguments = [
-          "${helpers.workstation-fleet}/bin/workstation-fleet"
-          "serve"
-        ];
-        EnvironmentVariables = fleetEnv;
-        KeepAlive = true;
-        RunAtLoad = true;
-        StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/workstation-fleet.log";
-      };
-    };
 
   };
 }

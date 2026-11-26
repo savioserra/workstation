@@ -77,7 +77,7 @@ before the next step starts. Per step:
    by the pull), migrate with a one-off script kept OUT of the repo: back up
    the old files, build the new file from them (`nix eval --impure --json
    --expr` over the imported old files — no nixpkgs lib needed), pull,
-   write, restore `peers`. Give it a dry-run mode and prove its output equals
+   write. Give it a dry-run mode and prove its output equals
    the hand-built expected file before running it on a host; make it a no-op
    when the new file is already captured.
 6. Report a step table (step | commit | host gens) plus the open decisions.

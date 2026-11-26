@@ -5,7 +5,7 @@ tools, switched by one command and rolled back by another.
 
 The whole workstation is nix declarations: the shell and prompt, Neovim
 (LazyVim) with per-language setups, fonts, the CLI toolset, secrets
-wiring, and an agent fleet whose members call each other over tailscale.
+wiring and the Hermes agent.
 One nixpkgs input decides every version. Nothing is installed by hand,
 nothing drifts between machines.
 
@@ -40,7 +40,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/savioserra/workstation/mai
 The installer clones to `~/workstation` (`WORKSTATION_CHECKOUT`
 overrides) and runs
 `workstation init`: a few dialogs prefilled with the detected hostname,
-user and home, the fleet choice, and the first switch. Every later update
+user and home, the languages, and the first switch. Every later update
 is the same one-liner or `workstation apply` after a `git pull`.
 
 ## The verbs
@@ -50,10 +50,8 @@ workstation apply            # switch this machine to what main builds
 workstation rollback         # back to the previous generation
 workstation add <path>       # turn a capability on  (workstation remove ...)
 workstation selected         # this machine's rows: on, off, baseline
-workstation setup             # the inquiry again: answers prefilled, languages + fleet re-asked
+workstation setup             # the inquiry again: answers prefilled, languages re-asked
 workstation status           # the declared inventory
-workstation fleet            # start / join / standalone — the fleet choice
-workstation peers            # pair with agents outside the fleet
 workstation theme light      # pick a theme (dark, light): nvim follows
 workstation help             # the full contract
 ```
@@ -68,21 +66,6 @@ Domains: editor, terminal (zellij), languages (elixir, go, node,
 typescript), fonts, theme, foundation (shell, prompt, the CLI toolset),
 secrets, agent, network. Domains default on; `network` and the language
 members default off.
-
-## The agent fleet
-
-The machines' assistants call each other over the tailnet. `init` asks
-once; `workstation fleet` changes the choice any time:
-
-| Choice | What happens |
-| --- | --- |
-| Start a new fleet | tailscale on, the tailscale login if needed; this machine serves the fleet |
-| Join a fleet | the same, then this machine pairs with every fleet member of your tailscale user |
-| Standalone | no tailscale, no fleet |
-
-A join is accepted only when the caller is this node's own tailscale
-user; each pair shares one fresh token, stored at both ends. Agents
-outside the fleet, and per-peer tuning, go through `workstation peers`.
 
 ## Boundaries
 

@@ -40,11 +40,6 @@ in
         default = null;
         description = "The machine's 1Password vault (machine.json).";
       };
-      peers = lib.mkOption {
-        type = lib.types.attrsOf lib.types.anything;
-        default = { };
-        description = "The machine's A2A peers (peers.nix).";
-      };
     };
     routines = {
       after-apply = lib.mkOption {

@@ -32,7 +32,7 @@ let
   };
 in
 {
-  options.workstation.network.enable = lib.mkEnableOption "tailscale, the fleet transport";
+  options.workstation.network.enable = lib.mkEnableOption "tailscale";
 
   config = lib.mkMerge [
     (lib.mkIf (on && pkgs.stdenv.hostPlatform.isLinux) {

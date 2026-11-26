@@ -20,9 +20,6 @@ bin/workstation (POSIX sh: flake resolution, verb dispatch)
   reads:  nix eval --json <flake>#workstation.report.<verb>
   select: workstation add|remove <path>  (hosts/local/machine.json settings via jq,
           validated against workstation.report.selectable)
-  fleet:  workstation fleet  (the a2a and network flags + the switch;
-          the flake's workstation-fleet helper: login, join)
-  peers:  workstation peers  (hosts/local/peers.nix + pairing)
   writes: workstation apply  (execs the staged switch driver)
 ```
 
@@ -46,8 +43,7 @@ option tree applied as a module.
     "workstation": {
       "network": { "enable": true },
       "languages": { "go": { "enable": true } }
-    },
-    "programs": { "hermes": { "a2a": { "enable": true } } }
+    }
   }
 }
 ```
@@ -214,56 +210,6 @@ and sorted, never hidden.
   harlequin derivation by `hsql --skill` at build time.
 - Gateway extensions: `programs.hermes.extensions` → entry symlinks into
   `~/.hermes/plugins/<name>`.
-- The A2A node: `programs.hermes.a2a` (on by default), converged by the
-  `converge-hermes-a2a` activation through the hermes CLI:
-
-  | Declared | Lands in `~/.hermes` |
-  | --- | --- |
-  | `enable`, `port` (9900) | `platforms.a2a.enabled`, `platforms.a2a.extra.port` |
-  | `toolsetPlatforms` (`cli`) | the `a2a` toolset per platform |
-  | `name` (the identity's host) | `A2A_AGENT_NAME`; with the tailnet bind, `A2A_PUBLIC_URL` `http://<name>:<port>` |
-  | `tailnet` | `A2A_HOST` — the node's tailnet IPv4; with no inbound credential, a node-local lock `A2A_BEARER_TOKEN` (generated inside python, held by nobody) widens the bind: the Agent Card is public on the tailnet, calls stay closed until a pairing |
-  | `peers` (`hosts/local/peers.nix`) | one `a2a_agents.<node>` entry each, bearer token `${A2A_PEER_TOKEN_<NODE>}`; `a2a.trusted_peers` (with the fleet roster) |
-  | `fleet.enable`, `fleet.port` (9902) | the fleet member service `workstation-fleet serve` (systemd user unit / launchd agent) |
-  | the identity's `fleet` | `"standalone"` turns `enable` off; absent or `"member"` keeps it on |
-
-  - Writes run on drift only and verify by re-read; the declaration's keys
-    are listed in the state tree's `hermes-a2a.owned` and retracted when
-    dropped; operator keys stay untouched.
-  - A change restarts a running gateway, unless the apply runs inside it
-    (the receipt names `hermes gateway restart`).
-  - Tokens: one per node pair, stored by `workstation peers` (pairing) in
-    `.env` — `A2A_PEER_TOKEN_<NODE>` out, the `<node>:<token>` row of
-    `A2A_PEER_TOKENS` in. The converge reads token names for presence
-    only; a pairing leaves `hermes-a2a.restart`, which the next apply
-    serves.
-- The fleet: members of one tailscale user pair automatically.
-
-  | Endpoint (tailnet IPv4, fleet port) | Answer |
-  | --- | --- |
-  | `GET /fleet` | `workstation-fleet v1 member=<node>` — the discovery marker |
-  | `POST /join` | a fresh pair token, when `tailscale whois` names the caller as this node's tailscale user |
-
-  - A pairing lands at both ends: the token through `workstation-a2a-token`
-    (stdin), the runtime entry `a2a_agents.<node>` (the card's skills,
-    120s), `a2a.trusted_peers`, the roster `fleet.members` in the state
-    tree; the gateway restarts.
-  - `workstation fleet` / `workstation init`: Turn on → Start (serve) or
-    Join (serve, then pair with every online member of the same tailscale
-    user); Not now → standalone. A logged-out node offers `tailscale up`
-    first. On the linux home leg, turning on selects the `network` domain.
-- `workstation peers`: the hub over the tailnet's A2A agents (the online
-  linux/macOS/windows nodes whose Agent Card answers on the A2A port).
-
-  | Action | Effect |
-  | --- | --- |
-  | add | the agent joins `hosts/local/peers.nix` with every advertised skill and 120s |
-  | pair (tailnet) | a one-shot offer on this node's tailnet IPv4 (A2A port + 1), answered only to the peer's tailnet IPv4, serving the token once; `workstation peers` on the peer finds it and accepts |
-  | pair (by hand) | paste the peer's token, or generate one (printed once at exit) — any A2A agent |
-  | capabilities, timeout, remove | edit the entry; remove also drops its tokens |
-
-  Token values travel only through the environment into hermes' own `.env`
-  writer — never argv, a file or a log.
 - Verify: `modules/agent/verify/hermes.sh` — checkout at the deployed pin,
   store-symlink skills, interpreter, launcher `--version` consumer smoke;
   full-stack or exit 1. Hosts: all.
@@ -399,9 +345,7 @@ Fail-closed at eval:
 | system switch | the driver's runner | A `--system` switch runs in a detached nohup process and survives its caller; the caller waits and exits with the switch's code; under sudo the receipts and the routines belong to the invoking user; log: `switch-driver.log` beside `switch.log` |
 | `plan` / `status` / `capabilities` / `selected` | `nix eval` over `workstation.report` | Answer the declared state; mutate nothing |
 | select | `workstation add <path>...` / `workstation remove <path>...` | Validate against `selectable`, set or drop the flag in `hosts/local/machine.json`, offer the apply (idempotent; the baseline refuses) |
-| inquiry | `workstation init` (and `setup`, the full re-ask) | Capture the machine, offer the languages as a checklist pre-filled with the current selection, choose the fleet |
-| fleet | `workstation fleet` (and `init`/`setup`) | Choose start / join / standalone; write `programs.hermes.a2a.enable` and `workstation.network.enable`, switch on a change, log in to tailscale, join |
-| peers | `workstation peers` | Discover the tailnet's A2A agents, add, pair, tune; write `hosts/local/peers.nix`, store the pair tokens, offer the apply |
+| inquiry | `workstation init` (and `setup`, the full re-ask) | Capture the machine, offer the languages as a checklist pre-filled with the current selection |
 | verify lane | `modules/agent/verify/hermes.sh` | The agent stack's consumer smoke against its recorded pins |
 
 Reads are pure evals. The container E2E (`tests/nix`) asserts the shape

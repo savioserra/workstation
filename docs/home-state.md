@@ -29,7 +29,7 @@ state; it has two precise carve-outs, both declarative:
 - **skill leaves** — `modules/agent/agent.nix` renders managed skill files
   as store-path `home.file` entries. The agent consumes them read-only; an
   in-place edit is replaced at the next switch (declared truth wins).
-- **activation scripts** — the checkout ensure and the A2A converge mutate hot state at switch time under explicit guards
+- **activation scripts** — the checkout ensure mutates hot state at switch time under explicit guards
   (clone/fetch only when absent or clean-and-behind; `config.yaml`/`.env` keys written only through the hermes
   CLI, only the declared ones, on drift), and the file plane still tracks
   nothing.
@@ -64,8 +64,6 @@ checkout or Git) carries only read-side state:
 | `switch.log` | the switch receipt |
 | `theme/current` | the theme pick (link into `~/.local/share/workstation/themes`) |
 | `nvim-managed.list` | the editor deploy's managed paths |
-| `hermes-a2a.owned` | the A2A converge's declared keys |
-| `hermes-a2a.restart` | a pairing awaiting the gateway (consumed by the converge) |
 
 `workstation plan` previews the attributable declared state from the report
 (capability, lane, target). The declared-vs-applied diff story is the nix

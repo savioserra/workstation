@@ -11,7 +11,7 @@
    fresh install. The survey decides which conflicts to expect and gives the
    parity-proof baseline.
 2. **Machine capture.** `workstation init` (whiptail; non-TTY contexts:
-   write `hosts/local/machine.json` + `hosts/local/peers.nix` directly in
+   write `hosts/local/machine.json` directly in
    the template's shape, including `checkout`). Verify the rebuild key is live: `nix eval --raw
    "git+file://$PWD?rev=$(git rev-parse HEAD)#homeConfigurations.\"<user>@<host>\".config.home.username"
    --override-input machine-files path:$PWD/hosts/local`.
@@ -75,11 +75,6 @@
   manager query), and whether sudo needs a password. A foreign tailscale
   package is expected: the provision stops naming it and the switch still
   completes.
-- A fleet choice made in an init whose switch FAILED is lost (the join runs
-  after the switch): once the switch succeeds, run `workstation fleet`,
-  pick the same choice, and confirm the pairing on the far side's fleet log
-  (`journalctl --user -u workstation-fleet`). Offline members are simply
-  not counted; they pair when they next apply.
 - Convergence verification battery, after the applied receipt: the
   activate's real rc (never a grep chain), `nvim --headless +qa` exit 0,
   `languages/profile.lua` present, the tools resolving from the nix
@@ -149,7 +144,7 @@ on / on-again-without-root / restart / off, asserting state hash equality.
   the next `workstation apply` starts the ledger.
 - **Test fixtures that assume an uncaptured machine**: gates/tests reading
   `hosts/local/machine.json` for the TEMPLATE sentinel must own their own fixture
-  file (and a template `peers.nix` beside it — init seeds both) — on a converged host the live checkout's machine is captured and
+  file — on a converged host the live checkout's machine is captured and
   the refusal path never fires. Fixture checkouts under a scratch dir may sit
   inside some outer git repo: the shim only takes the `?rev=` path when the
   dir IS the git toplevel.

@@ -33,7 +33,8 @@ for name in off:
     if key not in text:
         continue
     rest = text[text.index(key) :]
-    end = rest.index("\na2a:") if "\na2a:" in rest else len(rest)
+    nxt = re.search(r"\n(?=\S)", rest[len(key):])
+    end = len(key) + nxt.start() if nxt else len(rest)
     seg = rest[:end]
     if re.search(r"^    enabled: true$", seg, re.M):
         new_seg = re.sub(r"^    enabled: true$", "    enabled: false", seg, count=1, flags=re.M)

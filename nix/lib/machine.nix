@@ -1,6 +1,6 @@
 # The machine files (the flake's machine-files input: hosts/template in the
 # tree, hosts/local on a machine): machine.json, identity plus `settings`, a
-# home-manager option tree; peers.nix, the A2A peers.
+# home-manager option tree.
 # - identity: host, user, home, system
 # - keys: homeKey (linux), systemKey (the host on linux, user@host on darwin)
 # - homeModules: the settings tree, the home identity, workstation.machine
@@ -55,7 +55,6 @@ in
         inherit host;
         checkout = m.checkout or null;
         vault = m.vault or null;
-        peers = import (root + "/peers.nix");
       };
     }
   ];

@@ -9,7 +9,7 @@
 #
 # Ensures nix, clones this repo to $WORKSTATION_CHECKOUT (default
 # ~/workstation) and runs `workstation init`: the machine capture into
-# hosts/local/machine.json, the fleet choice and the first switch. Every later
+# hosts/local/machine.json and the first switch. Every later
 # update is `workstation apply`.
 #
 # Environment:
@@ -53,7 +53,7 @@ fi
 [ -f "$checkout/bin/workstation" ] ||
 	{ printf 'install: %s is not a workstation checkout (no bin/workstation)\n' "$checkout" >&2; exit 1; }
 
-# --- the machine capture, the fleet choice and the first switch ------------
+# --- the machine capture and the first switch -----------------------------
 cd "$checkout"
 # `curl ... | sh` holds stdin: the dialogs read /dev/tty; whiptail comes
 # from the checkout's nixpkgs until the first switch ships it

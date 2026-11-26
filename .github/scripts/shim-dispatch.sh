@@ -10,9 +10,7 @@
 # | 4 | writes delegate to workstation-switch; an uncaptured machine refuses; no driver fails closed |
 # | 5 | add/remove: grammar, report row, baseline refusal; hosts/local/machine.json settings edited, pruned, apply offered |
 # | 6 | init: placeholders filled from detection, set fields kept, a converged re-init byte-identical, cancel writes nothing |
-# | 7 | peers: helper build, file guards, change-gated apply offer |
 # | 8 | the write plane switches the resolved checkout only |
-# | 9 | fleet: asked once, member/standalone written to the machine file, re-asked by `workstation fleet` |
 # | 10 | theme: delegates to workstation-theme anywhere (args unchanged); no switcher fails closed naming the fix |
 set -eu
 progname='shim-dispatch.sh'
@@ -35,15 +33,6 @@ cat >"$stub_dir/nix" <<STUB
 #!/bin/sh
 printf '%s\n' "\$*" >> '$root/stub.log'
 case "\$*" in
-  *"#workstation-fleet"*)
-    printf '%s\n' '$root/fleet-helper'
-    exit 0
-    ;;
-  *"#workstation-peers"*)
-    [ -f '$root/peers-build-fails' ] && exit 1
-    printf '%s\n' '$root/peers-helper'
-    exit 0
-    ;;
   *"activationPackage"*)
     [ -f '$root/activation-fails' ] && exit 1
     printf '%s\n' '$root/activation'
@@ -73,20 +62,6 @@ printf '{"stub":true}\n'
 STUB
 chmod +x "$stub_dir/nix"
 
-mkdir -p "$root/peers-helper/bin"
-cat >"$root/peers-helper/bin/workstation-peers" <<STUB
-#!/bin/sh
-printf 'workstation-peers %s\n' "\$*" >> '$root/stub.log'
-mode=\$(cat '$root/peers-mode' 2>/dev/null || true)
-case "\$mode" in
-  touch) printf '# changed\n' >> "\$1" ;;
-  paired) exit 10 ;;
-  fail) exit 1 ;;
-esac
-exit 0
-STUB
-chmod +x "$root/peers-helper/bin/workstation-peers"
-
 cat > "$stub_dir/workstation-switch" <<STUB
 #!/bin/sh
 printf '%s\n' "\$*" >> '$root/stub.log'
@@ -106,7 +81,6 @@ expect_log() {
 machine() {
 	mkdir -p "$1/hosts/local" "$1/hosts/template"
 	printf '%s\n' "$2" >"$1/hosts/local/machine.json"
-	[ -f "$1/hosts/template/peers.nix" ] || printf '{ }\n' >"$1/hosts/template/peers.nix"
 }
 captured='{"host":"testhost","user":"testuser","home":"/home/testuser","system":"x86_64-linux","settings":{}}'
 template='{"host":"TEMPLATE","user":"TEMPLATE","home":"/home/TEMPLATE","settings":{}}'
@@ -233,7 +207,7 @@ for a; do :; done
 printf '%s\n' "$a" >&2
 STUB
 init=$root/initflake
-machine "$init" '{"host":"TEMPLATE","user":"TEMPLATE","home":"/home/TEMPLATE","settings":{"workstation":{"foundation":{"shell":{"extras":"stty -ixon"}}},"programs":{"hermes":{"a2a":{"enable":true}}}}}'
+machine "$init" '{"host":"TEMPLATE","user":"TEMPLATE","home":"/home/TEMPLATE","settings":{"workstation":{"foundation":{"shell":{"extras":"stty -ixon"}}}}}'
 out=$(WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$init "$shim" init) || fail 'init on the template must succeed'
 printf '%s' "$out" | grep -q 'machine captured' || fail 'the capture must say it captured'
 grep -q TEMPLATE "$init/hosts/local/machine.json" && fail 'init must fill every placeholder'
@@ -245,7 +219,7 @@ cp "$init/hosts/local/machine.json" "$root/init-before"
 out=$(WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$init "$shim" init) || fail 'a converged re-init must succeed'
 printf '%s' "$out" | grep -q 'already captured' || fail 'the converged re-init must say so'
 cmp -s "$root/init-before" "$init/hosts/local/machine.json" || fail 'a converged re-init must not touch the file'
-machine "$init" '{"host":"myhost","user":"TEMPLATE","home":"/home/TEMPLATE","system":"aarch64-linux","settings":{"programs":{"hermes":{"a2a":{"enable":true}}}}}'
+machine "$init" '{"host":"myhost","user":"TEMPLATE","home":"/home/TEMPLATE","system":"aarch64-linux","settings":{}}'
 WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$init "$shim" init >/dev/null || fail 'init on a half-captured machine must succeed'
 [ "$(q "$init" .host)" = myhost ] || fail 'init must keep the operator host'
 [ "$(q "$init" .system)" = aarch64-linux ] || fail 'init must keep the operator system'
@@ -261,14 +235,12 @@ cmp -s "$root/init-before" "$init/hosts/local/machine.json" || fail 'a cancelled
 rm "$init/hosts/local/machine.json"
 mkdir -p "$init/hosts/template"
 printf '%s\n' "$template" >"$init/hosts/template/machine.json"
-printf '{ }\n' >"$init/hosts/template/peers.nix"
 cat >"$stub_dir/whiptail" <<'STUB'
 #!/bin/sh
 for a; do :; done
 printf '%s\n' "$a" >&2
 STUB
 WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$init "$shim" init >/dev/null 2>&1 || fail 'init must seed hosts/local from the template'
-[ -f "$init/hosts/local/peers.nix" ] || fail 'init must seed peers.nix from the template'
 grep -q TEMPLATE "$init/hosts/local/machine.json" && fail 'the seeded capture must fill every placeholder'
 rm -r "$init/hosts/local" "$init/hosts/template"
 printf '#!/bin/sh\nexit 1\n' >"$stub_dir/whiptail"
@@ -282,7 +254,6 @@ grep -q 'missing (unexpected tree)' "$root/err" || fail 'the missing-template re
 fa=$root/applyflake
 mkdir -p "$fa/hosts/template" "$root/activation"
 printf '%s\n' "$template" >"$fa/hosts/template/machine.json"
-printf '{ }\n' >"$fa/hosts/template/peers.nix"
 cat >"$root/activation/activate" <<STUB
 #!/bin/sh
 printf '%s\n' 'activation ran' >> '$root/stub.log'
@@ -301,7 +272,6 @@ done
 case $kind in
 --msgbox) exit 0 ;;
 --checklist) printf '\n' >&2; exit 0 ;;
---menu) printf 'standalone\n' >&2; exit 0 ;;
 --yesno) exit 0 ;;
 esac
 case $prompt in
@@ -339,7 +309,6 @@ case $kind in
 --msgbox) exit 0 ;;
 --yesno) exit 1 ;;
 --checklist) printf '"elixir" "go"\n' >&2; exit 0 ;;
---menu) printf 'standalone\n' >&2; exit 0 ;;
 esac
 case $prompt in
 *hostname*) printf 'newhost\n' >&2 ;;
@@ -362,51 +331,6 @@ WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$sp "$shim" setup >/dev/null 2>&1 ||
 	fail 'setup must keep an already-checked language checked'
 [ "$(q "$sp" '.settings.workstation.languages.node // "absent"')" = absent ] ||
 	fail 'an unchecked default-off language stays unset'
-fleet_state_sp() { q "$sp" '[.settings.programs.hermes.a2a.enable, .settings.workstation.network.enable] | map(tostring) | join(" ")'; }
-[ "$(fleet_state_sp)" = 'false false' ] || fail "setup must re-ask the fleet choice (got: $(fleet_state_sp))"
-
-# 7
-pf=$root/peersflake
-mkdir -p "$pf/hosts/local"
-printf '{ }\n' >"$pf/hosts/local/peers.nix"
-rc=0
-WORKSTATION_FLAKE=$pf "$shim" peers extra >/dev/null 2>&1 || rc=$?
-[ "$rc" = 2 ] || fail "peers with an argument must exit 2 (got $rc)"
-rm -f "$root/peers-mode"
-out=$(WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$pf "$shim" peers) || fail 'peers with an unchanged file must succeed'
-expect_log "#workstation-peers"
-expect_log "workstation-peers $pf/hosts/local/peers.nix"
-printf '%s' "$out" | grep -q 'peers saved' && fail 'an unchanged peers file must not offer the apply'
-printf 'touch\n' >"$root/peers-mode"
-out=$(WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$pf "$shim" peers) || fail 'peers with a changed file must succeed'
-printf '%s' "$out" | grep -q 'peers saved; apply skipped' || fail 'a changed peers file must offer the apply'
-printf 'paired\n' >"$root/peers-mode"
-out=$(WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$pf "$shim" peers) || fail 'a saved pairing (exit 10) must not fail the verb'
-printf '%s' "$out" | grep -q 'peers saved; apply skipped' || fail 'a saved pairing must offer the apply'
-printf 'fail\n' >"$root/peers-mode"
-rc=0
-WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$pf "$shim" peers >/dev/null 2>&1 || rc=$?
-[ "$rc" = 1 ] || fail "a failing helper must exit 1 (got $rc)"
-rm -f "$root/peers-mode"
-: >"$root/peers-build-fails"
-rc=0
-WORKSTATION_FLAKE=$pf "$shim" peers >/dev/null 2>"$root/err" || rc=$?
-[ "$rc" = 1 ] || fail "a failed helper build must exit 1 (got $rc)"
-grep -q 'did not build' "$root/err" || fail 'the failed build must say so'
-rm -f "$root/peers-build-fails"
-chmod a-w "$pf/hosts/local/peers.nix"
-rc=0
-WORKSTATION_FLAKE=$pf "$shim" peers >/dev/null 2>"$root/err" || rc=$?
-chmod u+w "$pf/hosts/local/peers.nix"
-if [ "$(id -u)" != 0 ]; then
-	[ "$rc" = 2 ] || fail "a read-only peers file must exit 2 (got $rc)"
-	grep -q 'read-only' "$root/err" || fail 'the read-only refusal must name it'
-fi
-rm "$pf/hosts/local/peers.nix"
-rc=0
-WORKSTATION_FLAKE=$pf "$shim" peers >/dev/null 2>"$root/err" || rc=$?
-[ "$rc" = 1 ] || fail "a missing peers file must exit 1 (got $rc)"
-grep -q 'peers.nix missing' "$root/err" || fail 'the missing-file refusal must name it'
 
 # 8
 last_switch() { grep '^switch-flake=' "$root/stub.log" | tail -n 1; }
@@ -446,83 +370,6 @@ printf 'work in progress\n' >"$gco/bin/workstation"
 (cd "$co" && WORKSTATION_SWITCH_FLAKE=/operator/flake "$shim" apply >/dev/null 2>&1) || fail 'apply must delegate'
 [ "$(last_switch)" = "switch-flake=/operator/flake" ] || fail "an operator-set WORKSTATION_SWITCH_FLAKE must win (got: $(last_switch))"
 
-# 9
-mkdir -p "$root/fleet-helper/bin"
-cat >"$root/fleet-helper/bin/workstation-fleet" <<STUB
-#!/bin/sh
-printf 'workstation-fleet %s\n' "\$*" >> '$root/stub.log'
-[ "\$1" = online ] && exit "\$(cat '$root/fleet-online' 2>/dev/null || echo 0)"
-exit 0
-STUB
-chmod +x "$root/fleet-helper/bin/workstation-fleet"
-cat >"$stub_dir/whiptail" <<STUB
-#!/bin/sh
-kind=''
-for a; do case \$a in --yesno|--menu|--msgbox|--inputbox|--checklist) kind=\$a ;; esac; done
-[ "\$kind" = --msgbox ] && exit 0
-[ "\$kind" = --checklist ] && exit 0
-q='$root/wt-queue'
-[ -s "\$q" ] || exit 1
-ans=\$(head -n 1 "\$q"); sed -i '1d' "\$q"
-printf 'whiptail %s -> %s\n' "\$kind" "\$ans" >> '$root/stub.log'
-if [ "\$kind" = --yesno ]; then [ "\$ans" = yes ]; exit; fi
-printf '%s\n' "\$ans" >&2
-STUB
-chmod +x "$stub_dir/whiptail"
-cat >"$stub_dir/tailscale" <<STUB
-#!/bin/sh
-exit "\$(cat '$root/ts-online' 2>/dev/null || echo 1)"
-STUB
-chmod +x "$stub_dir/tailscale"
-fl=$root/fleetflake
-mkdir -p "$fl/bin"
-: >"$fl/bin/workstation"
-: >"$fl/flake.nix"
-fleet_state() { q "$fl" '[.settings.programs.hermes.a2a.enable, .settings.workstation.network.enable] | map(tostring) | join(" ")'; }
-machine "$fl" "$template"
-printf '%s\n' "$(uname -n | cut -d. -f1)" "${USER:-$(id -un)}" "$HOME" Workstation yes join >"$root/wt-queue"
-WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$fl "$shim" init >/dev/null 2>&1 || fail 'init with the fleet join must succeed'
-[ "$(fleet_state)" = 'true true' ] || fail "Join must turn the A2A node and the network on (got: $(fleet_state))"
-cp "$fl/hosts/local/machine.json" "$root/fleet-before"
-: >"$root/wt-queue"
-WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$fl "$shim" init >/dev/null 2>&1 || fail 'a converged re-init must succeed'
-cmp -s "$root/fleet-before" "$fl/hosts/local/machine.json" || fail 'a re-init must keep the fleet choice byte for byte'
-machine "$fl" "$template"
-printf '%s\n' "$(uname -n | cut -d. -f1)" "${USER:-$(id -un)}" "$HOME" Workstation no >"$root/wt-queue"
-WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE=$fl "$shim" init >/dev/null 2>&1 || fail 'init with Not now must succeed'
-[ "$(fleet_state)" = 'false false' ] || fail "Not now must turn both off (got: $(fleet_state))"
-: >"$root/stub.log"
-printf '%s\n' yes start >"$root/wt-queue"
-WORKSTATION_FLAKE=$fl "$shim" fleet >/dev/null 2>&1 || fail 'fleet start must succeed'
-[ "$(fleet_state)" = 'true true' ] || fail 'Start must turn the fleet on'
-[ "$(grep -c '^apply$' "$root/stub.log")" = 1 ] || fail 'a changed choice must switch once'
-grep -q 'workstation-fleet online' "$root/stub.log" || fail 'the fleet must check the tailnet login'
-grep -q 'workstation-fleet join' "$root/stub.log" && fail 'Start must never join'
-: >"$root/stub.log"
-printf '%s\n' yes join >"$root/wt-queue"
-WORKSTATION_FLAKE=$fl "$shim" fleet >/dev/null 2>&1 || fail 'fleet join must succeed'
-grep -q '^apply$' "$root/stub.log" && fail 'an unchanged choice must not switch'
-grep -q 'workstation-fleet join' "$root/stub.log" || fail 'Join must run the helper join'
-: >"$root/stub.log"
-printf '1\n' >"$root/fleet-online"
-printf '%s\n' yes join no >"$root/wt-queue"
-out=$(WORKSTATION_FLAKE=$fl "$shim" fleet 2>&1) || fail 'a deferred login must not fail the verb'
-grep -q 'workstation-fleet join' "$root/stub.log" && fail 'a logged-out node must not join'
-printf '%s' "$out" | grep -q 'tailscale up' || fail 'the deferred login must name the command'
-rm -f "$root/fleet-online"
-printf '0\n' >"$root/ts-online"
-: >"$root/stub.log"
-printf '%s\n' standalone >"$root/wt-queue"
-WORKSTATION_FLAKE=$fl "$shim" fleet >/dev/null 2>&1 || fail 'fleet on a logged-in node must succeed'
-grep -q 'whiptail --yesno' "$root/stub.log" && fail 'a logged-in node must skip the tailscale question'
-[ "$(fleet_state)" = 'false false' ] || fail 'the menu answer must land without the tailscale question'
-rm -f "$root/ts-online"
-machine "$fl" "$template"
-rc=0
-WORKSTATION_FLAKE=$fl "$shim" fleet >/dev/null 2>"$root/err" || rc=$?
-[ "$rc" = 2 ] || fail "fleet on a template machine must exit 2 (got $rc)"
-grep -q 'workstation init' "$root/err" || fail 'the refusal must name workstation init'
-
 # 10
 cat >"$stub_dir/workstation-theme" <<STUB
 #!/bin/sh
@@ -541,4 +388,4 @@ rc=0
 [ "$rc" = 2 ] || fail "theme without the switcher must exit 2 (got $rc)"
 grep -q 'workstation add theme' "$root/err" || fail 'the missing-switcher failure must name the fix'
 
-echo "$progname: OK (dispatch, resolution order, delegation, fail-closed, selection, init, peers, switch-checkout, fleet and theme paths all hold)"
+echo "$progname: OK (dispatch, resolution order, delegation, fail-closed, selection, init, switch-checkout and theme paths all hold)"

@@ -40,7 +40,7 @@
 
 ## Interactive lane: the dialogs of an unmerged branch
 
-For dialog UX (init's captures, the languages checklist, the fleet menu)
+For dialog UX (init's captures, the languages checklist)
 driven by hand before merge:
 
 1. In the operator's terminal: `docker run -it --rm --init --name ws-ct

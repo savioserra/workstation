@@ -357,7 +357,7 @@ writeShellScriptBin "workstation-e2e" ''
   cp -a /workstation/. "$initlive/"
   chmod -R u+w "$initlive"
   mkdir -p "$initlive/hosts/local"
-  printf '%s\n' '{"host":"TEMPLATE","user":"TEMPLATE","home":"/home/TEMPLATE","settings":{"workstation":{"foundation":{"shell":{"extras":"stty -ixon"}}},"programs":{"hermes":{"a2a":{"enable":true}}}}}' \
+  printf '%s\n' '{"host":"TEMPLATE","user":"TEMPLATE","home":"/home/TEMPLATE","settings":{"workstation":{"foundation":{"shell":{"extras":"stty -ixon"}}}}}' \
     >"$initlive/hosts/local/machine.json"
   init_path=${initTools}/bin:$PATH
   out=$(PATH="$init_path" WORKSTATION_NO_APPLY=1 WORKSTATION_FLAKE="$initlive" "$shim_bin" init) \
@@ -390,7 +390,7 @@ writeShellScriptBin "workstation-e2e" ''
   cp -a /workstation/. "$live/"
   chmod -R u+w "$live"
   mkdir -p "$live/hosts/local"
-  cp "$live/hosts/template/machine.json" "$live/hosts/template/peers.nix" "$live/hosts/local/"
+  cp "$live/hosts/template/machine.json" "$live/hosts/local/"
   go_flag() { PATH="$init_path" jq -r '.settings.workstation.languages.go.enable // "unset"' "$live/hosts/local/machine.json"; }
   WORKSTATION_FLAKE=$live WORKSTATION_NO_APPLY=1 "$shim_bin" selected \
     | grep -o '"languages/go":{[^}]*}' | grep -q '"state":"off"' \

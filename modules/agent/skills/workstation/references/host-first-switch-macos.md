@@ -141,11 +141,8 @@ never a system activation hook. A stopped removal leaves the app serving.
 3. The app's node identity cannot move: the nix daemon is a NEW node.
    Remove the old machine in the admin console BEFORE authorizing
    `sudo tailscale up --hostname=<name>`, or it registers as `<name>-1` and
-   every peer reference breaks.
-4. Then a second `apply --system` (A2A_HOST re-binds to the new IP), then
-   the fleet join.
-5. Verify from another host while the target's session is down:
-   `tailscale status` (same node name, new IP, same user), the fleet
-   marker and A2A card on the new node, the audit log.
+   every reference to the node breaks.
+4. Verify from another host while the target's session is down:
+   `tailscale status` (same node name, new IP, same user), the audit log.
    `systemextensionsctl list` shows the old extensions 'terminated
    waiting to uninstall on reboot' — normal.
