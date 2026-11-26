@@ -12,8 +12,8 @@ flake.nix               (flake-parts mkFlake over nix/flake)
   -> nix/flake/machines.nix  (nix/lib/machine.nix: hosts/local/machine.json, identity + settings)
   -> nix/flake/planes.nix    (flake.modules.<class>.workstation: nix/modules)
   -> nix/flake/legs.nix      (home, linux, mac builders; withSystem pkgs)
-  -> nix/modules          (workstation-home imports modules/; workstation-system, host)
-  -> modules/default.nix  (the domain and member modules, listed)
+  -> nix/modules          (the plane cores: workstation-home, workstation-system, host)
+  -> modules/default.nix  (the domain entries: flake-parts modules contributing flake.modules.<class>.<domain>)
   -> nix/report.nix       (workstation.report.<verb>: one home eval)
   -> nix/lib/switch.nix  (the composed write plane: verb scaffold + routine registry, switch.log receipt)
   -> hosts/{linux,mac}    (the system legs)
@@ -65,8 +65,8 @@ option tree applied as a module.
 | --- | --- |
 | `bin/workstation` | Launcher shim: flake resolution order, verb dispatch, exit codes (dispatch gate: `.github/scripts/shim-dispatch.sh`) |
 | `nix/lib/machine.nix` | The machine file: identity, the flake keys (`homeKey`, `systemKey`), `settings` and `workstation.machine` as home modules |
-| `modules/default.nix` | The capability module list |
-| `modules/<domain>/<domain>.nix` | The domain's options and declarations, gated on `workstation.<domain>.enable` (members also on their own flag) |
+| `modules/default.nix` | The domain entries (flake-parts modules) |
+| `modules/<domain>/<domain>.nix` | The domain entry: its options and declarations as `flake.modules.homeManager.<domain>`, gated on `workstation.<domain>.enable` (members also on their own flag); imports its feature and member files |
 | `nix/report.nix` | The read verbs from one home eval: rows from the option tree, attribution from `definitionsWithLocations` |
 | `nix/lib/capability.nix` | The module helpers, imported by relative path: `capability` (the enable option + its gate over every enclosing enable), `whenOn` (a contribution guarded by the owning domain's enable), `isOn` (every enable on a path), `shellInit`; the payload helpers ride along |
 | `nix/lib/payload.nix` | The payload helpers, free of the module system: `script`, `overlayTree` |
@@ -77,11 +77,11 @@ option tree applied as a module.
 
 ## Declaration contract
 
-- One native nix module per domain, imported by `workstation-home.nix`
+- One flake-parts module per domain file, contributing `flake.modules.<class>.<domain>`;
+  the plane hub (`nix/flake/planes.nix`) imports every domain of its class
   (system-plane toolchains ride `workstation-system.nix` / `home.packages`).
-  The module import IS the registration; duplicate options fail the eval.
-- Module shape: `ws.capability [ "<domain>" "<member>" ] { description; default; options; config; }`
-  (`ws = import <rel>/nix/lib/capability.nix { inherit config lib pkgs; }`):
+  The contribution IS the registration; duplicate options fail the eval.
+- Module shape: `{ wsLib, ... }: { flake.modules.homeManager.<domain> = { config, lib, pkgs, ... }: let ws = wsLib.capability { inherit config lib pkgs; }; in ws.capability [ "<domain>" "<member>" ] { … }; }`:
   the enable option at the path, `config` gated on every enclosing enable;
   a contribution to another domain's option rides `ws.whenOn "<domain>" { … }`.
 - Payload bytes live beside the module and are copied into the store at
@@ -140,7 +140,7 @@ and sorted, never hidden.
 - Tools, all nixpkgs: fd, ripgrep, lazygit, mise, newt (whiptail, the
   shim's install-time UI).
 - The tailscale transport (`workstation.network.enable`;
-  `services.tailscale` on the system legs through `modules/network/system.nix`; on standalone linux the
+  `services.tailscale` on the system legs through `flake.modules.{nixos,darwin}.network` in `modules/network/network.nix`; on standalone linux the
   `workstation-tailscaled` activation: the substrate's systemd unit; a
   package, snap or foreign unit already owning tailscaled stops the
   provision, named; off retracts the unit only). The

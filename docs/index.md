@@ -30,7 +30,7 @@
 
 The substrate is nixpkgs-native: declared state + two clients.
 One current shape per verb, per option, per pin; no compatibility
-surfaces. `modules/default.nix` is the capability list; reads are `nix eval` over `workstation.report`;
+surfaces. `modules/default.nix` lists the domain entries (flake-parts modules); reads are `nix eval` over `workstation.report`;
 verification is behavioral (docs/architecture.md is the anchor). Lua appears
 only as live payload data (deployed editor config read as bytes), never
 executed.

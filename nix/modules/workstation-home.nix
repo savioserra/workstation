@@ -1,5 +1,5 @@
-# The home plane: the capability modules, the workstation launcher and the
-# switch driver.
+# The home plane core: the machine options, the routine registry, the
+# workstation launcher and the switch driver.
 {
   config,
   lib,
@@ -21,8 +21,6 @@ let
   };
 in
 {
-  imports = [ ../../modules ];
-
   options.workstation = {
     machine = {
       host = lib.mkOption {

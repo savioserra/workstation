@@ -2,11 +2,13 @@
 # | File | Owns |
 # | --- | --- |
 # | systems.nix | the systems, one nixpkgs instance per system |
+# | lib.nix | `wsLib`, the capability helpers |
 # | machines.nix | the machine files: the captured machine and the template ones |
 # | planes.nix | the home and system plane hubs (`flake.modules.<class>.workstation`) |
 # | legs.nix | the leg builders: home, linux (NixOS-WSL), mac (nix-darwin) |
 # | outputs.nix | the machine's configurations and `workstation` (report, rev, keys) |
 # | checks.nix | the check surface on the CI system |
+# | ../../modules | the capability domains |
 { inputs, ... }:
 {
   imports = [
@@ -14,10 +16,12 @@
     inputs.home-manager.flakeModules.home-manager
     inputs.nix-darwin.flakeModules.default
     ./systems.nix
+    ./lib.nix
     ./machines.nix
     ./planes.nix
     ./legs.nix
     ./outputs.nix
     ./checks.nix
+    ../../modules
   ];
 }

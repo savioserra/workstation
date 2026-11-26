@@ -5,12 +5,13 @@
 
 ## Proven idioms (use these)
 
-- **Module shape rides `nix/lib/capability.nix`**: `ws = import <rel>/nix/lib/capability.nix { inherit config lib pkgs; };`
+- **Module shape rides `nix/lib/capability.nix`**, delivered as the flake-parts arg `wsLib` (`nix/flake/lib.nix`): `{ wsLib, ... }: { flake.modules.homeManager.<domain> = { config, lib, pkgs, ... }: let ws = wsLib.capability { inherit config lib pkgs; }; in ws.capability [ "<domain>" "<member>" ] { … }; }`;
   then `ws.capability [ "<domain>" "<member>" ] { description; default; options; config; }`
   (the enable option + `config` gated on every enclosing enable) and
   `ws.whenOn "<domain>"` / `ws.whenOn [ "<domain>" "<member>" ]` for a
-  contribution to another domain's option. Delivery is the relative import:
-  `_module.args.ws` recurses the moment the helper shapes a module
+  contribution to another domain's option. `wsLib` is a TOP-LEVEL (flake-parts)
+  argument, the HM-level `ws` is built inside the module from its own `config`:
+  an HM `_module.args.ws` recurses the moment the helper shapes a module
   (`infinite recursion … while evaluating the module argument 'ws'`), and a
   specialArgs `ws` breaks every outside consumer of
   `modules.homeManager.workstation`. Helpers called inside the member file
@@ -37,7 +38,7 @@
   (`setpath(path + ["enable"]; true)`), validating paths against the report's
   `selectable` first.
 - **Gating**: `config = lib.mkIf cfg.enable { … }` — every module is listed in
-  `modules/default.nix` and always imported; only its definitions are
+  a plane hub (`flake.modules.<class>.workstation`) and always imported; only its definitions are
   conditional. A member gates on `domain.enable && member.enable`.
   `types.bool` merge is logical OR — multiple enable definitions never
   conflict.

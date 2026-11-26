@@ -13,8 +13,8 @@ switch.log receipt).
 | Path | Role |
 | --- | --- |
 | `flake.nix`, `flake.lock` | The entry point: one nixpkgs input, home-manager, nix-darwin, NixOS-WSL, flake-parts; `mkFlake` over `nix/flake` |
-| `nix/flake/` | The flake-parts modules: `systems.nix` (systems, one nixpkgs per system), `machines.nix` (the machine files), `planes.nix` (`flake.modules.<class>.workstation`), `legs.nix` (the leg builders), `outputs.nix` (the machine's legs, `workstation`), `checks.nix` |
-| `modules/<domain>/` | One directory per capability domain: the module (options + declarations), the bytes it deploys, `system.nix` where the domain carries a system plane. `modules/default.nix` lists the modules |
+| `nix/flake/` | The flake-parts modules: `systems.nix` (systems, one nixpkgs per system), `lib.nix` (`wsLib`, the capability helpers), `machines.nix` (the machine files), `planes.nix` (`flake.modules.<class>.workstation`), `legs.nix` (the leg builders), `outputs.nix` (the machine's legs, `workstation`), `checks.nix` |
+| `modules/<domain>/` | One directory per capability domain, every `.nix` a flake-parts module: the entry (`<domain>.nix`) contributes `flake.modules.homeManager.<domain>` and imports its feature files (`<domain>-<feature>.nix`) and members (`<member>/<member>.nix`); a system plane rides the same file as `flake.modules.{nixos,darwin}.<domain>`; `perSystem` packages beside it. `modules/default.nix` lists the domain entries |
 | `nix/` | Shared infrastructure: `report.nix` (the read verbs), `lib/machine.nix` (the machine file), `lib/license.nix` (the unfree acceptance), `lib/capability.nix` (the module helpers), `lib/payload.nix` (scripts and overlaid trees), `lib/switch.nix` (the composed write plane: verb scaffold + routine registry), `modules/` (the home plane, the system plane, the host options) |
 | `hosts/` | `linux/` and `mac/` (the system legs: modules applied by `nix/flake/legs.nix` through `importApply`); `template/` (`machine.json`); `local/` (gitignored): the machine's copy, written by `workstation init` / `add|remove` |
 | `bin/workstation` | The launcher (POSIX sh): reads are `nix eval`s over `workstation.report.<verb>`; `add|remove` edit `hosts/local/machine.json` (jq); writes exec the staged switch driver |
@@ -100,8 +100,10 @@ Ownership and baseline over time are the nix generation's story
 ## The capability-module law
 
 A capability is self-contained at `modules/<domain>/`: its options, its
-declarations and its payload bytes. `modules/default.nix` lists the
-modules; every leg imports all of them and each gates on its own enable.
+declarations and its payload bytes, as flake-parts modules contributing
+`flake.modules.<class>.<domain>`. `modules/default.nix` lists the domain
+entries; the plane hubs (`flake.modules.<class>.workstation`) import every
+domain of their class and each gates on its own enable.
 Tools come from the one nixpkgs input.
 
 ## The client law

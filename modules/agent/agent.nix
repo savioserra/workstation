@@ -7,18 +7,8 @@
 # | hermes-extensions.nix | gateway extensions and their enable ensure |
 # | hermes-toolsets.nix | cli toolsets and disabled MCP servers |
 # | hermes-skin.nix | a skin per theme, the pick's skin reload |
+{ wsLib, ... }:
 {
-  config,
-  lib,
-  pkgs,
-  ...
-}:
-let
-  ws = import ../../nix/lib/capability.nix { inherit config lib pkgs; };
-in
-ws.capability [ "agent" ] {
-  description = "the hermes agent runtime and its served skills";
-  default = true;
   imports = [
     ./hermes-pin.nix
     ./hermes-launcher.nix
@@ -27,4 +17,19 @@ ws.capability [ "agent" ] {
     ./hermes-toolsets.nix
     ./hermes-skin.nix
   ];
+
+  flake.modules.homeManager.agent =
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
+    let
+      ws = wsLib.capability { inherit config lib pkgs; };
+    in
+    ws.capability [ "agent" ] {
+      description = "the hermes agent runtime and its served skills";
+      default = true;
+    };
 }

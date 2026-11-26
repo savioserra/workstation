@@ -4,162 +4,167 @@
 # | --- | --- |
 # | theme.nix | the theme and consumer types, the shipped themes, the tokens |
 # | theme-picker.nix | the rendered theme tree and the runtime pick (`workstation theme`) |
+{ wsLib, ... }:
 {
-  config,
-  lib,
-  pkgs,
-  ...
-}:
-let
-  ws = import ../../nix/lib/capability.nix { inherit config lib pkgs; };
-  cfg = config.workstation.theme;
-
-  paletteRoles = [
-    "accent"
-    "ok"
-    "warn"
-    "err"
-    "chrome"
-    "text"
-    "shortcut"
-    "selected_bg"
-    "selected_fg"
-    "inactive"
-    "ramp_start"
-    "ramp_mid"
-    "ramp_end"
-    "bg"
-    "muted"
+  imports = [
+    ./theme-picker.nix
+    ./themes/dark.nix
+    ./themes/light.nix
   ];
-  # terminal color index order
-  ansiNames = [
-    "black"
-    "red"
-    "green"
-    "yellow"
-    "blue"
-    "magenta"
-    "cyan"
-    "white"
-    "brightblack"
-    "brightred"
-    "brightgreen"
-    "brightyellow"
-    "brightblue"
-    "brightmagenta"
-    "brightcyan"
-    "brightwhite"
-  ];
-  hex = lib.types.strMatching "#[0-9a-fA-F]{6}";
 
-  themeType = lib.types.submodule (
-    { name, ... }:
+  flake.modules.homeManager.theme =
     {
-      options = {
-        description = lib.mkOption {
-          type = lib.types.str;
-          default = name;
-          description = "The picker's label.";
-        };
-        appearance = lib.mkOption {
-          type = lib.types.enum [
-            "dark"
-            "light"
-          ];
-          description = "The background family: consumers with a dark/light mode follow it.";
-        };
-        palette = lib.genAttrs paletteRoles (
-          role:
-          lib.mkOption {
-            type = hex;
-            description = "The ${role} role as #rrggbb.";
-          }
-        );
-        ansi = lib.mkOption {
-          type = lib.types.nullOr (
-            lib.types.submodule {
-              options = lib.genAttrs ansiNames (
-                n:
-                lib.mkOption {
-                  type = hex;
-                  description = "The terminal ${n} as #rrggbb.";
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
+    let
+      ws = wsLib.capability { inherit config lib pkgs; };
+      cfg = config.workstation.theme;
+
+      paletteRoles = [
+        "accent"
+        "ok"
+        "warn"
+        "err"
+        "chrome"
+        "text"
+        "shortcut"
+        "selected_bg"
+        "selected_fg"
+        "inactive"
+        "ramp_start"
+        "ramp_mid"
+        "ramp_end"
+        "bg"
+        "muted"
+      ];
+      # terminal color index order
+      ansiNames = [
+        "black"
+        "red"
+        "green"
+        "yellow"
+        "blue"
+        "magenta"
+        "cyan"
+        "white"
+        "brightblack"
+        "brightred"
+        "brightgreen"
+        "brightyellow"
+        "brightblue"
+        "brightmagenta"
+        "brightcyan"
+        "brightwhite"
+      ];
+      hex = lib.types.strMatching "#[0-9a-fA-F]{6}";
+
+      themeType = lib.types.submodule (
+        { name, ... }:
+        {
+          options = {
+            description = lib.mkOption {
+              type = lib.types.str;
+              default = name;
+              description = "The picker's label.";
+            };
+            appearance = lib.mkOption {
+              type = lib.types.enum [
+                "dark"
+                "light"
+              ];
+              description = "The background family: consumers with a dark/light mode follow it.";
+            };
+            palette = lib.genAttrs paletteRoles (
+              role:
+              lib.mkOption {
+                type = hex;
+                description = "The ${role} role as #rrggbb.";
+              }
+            );
+            ansi = lib.mkOption {
+              type = lib.types.nullOr (
+                lib.types.submodule {
+                  options = lib.genAttrs ansiNames (
+                    n:
+                    lib.mkOption {
+                      type = hex;
+                      description = "The terminal ${n} as #rrggbb.";
+                    }
+                  );
                 }
               );
-            }
-          );
-          default = null;
-          description = "The 16 terminal colors over this theme's canvas; null follows the terminal's own.";
+              default = null;
+              description = "The 16 terminal colors over this theme's canvas; null follows the terminal's own.";
+            };
+          };
+        }
+      );
+
+      consumerType = lib.types.submodule {
+        options = {
+          file = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+            description = "The consumer's file inside each theme dir; null for a reload-only consumer.";
+          };
+          render = lib.mkOption {
+            type = lib.types.functionTo lib.types.lines;
+            default = _: "";
+            description = "One theme's tokens (workstation.theme.tokens.<theme>) to the file text.";
+          };
+          reload = lib.mkOption {
+            type = lib.types.lines;
+            default = "";
+            description = "Shell lines run after a pick and after every apply; $THEME names the pick.";
+          };
         };
       };
-    }
-  );
 
-  consumerType = lib.types.submodule {
-    options = {
-      file = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-        description = "The consumer's file inside each theme dir; null for a reload-only consumer.";
+      themeOf = name: t: {
+        inherit name;
+        inherit (t) appearance palette;
+        ansi = if t.ansi == null then null else map (n: t.ansi.${n}) ansiNames;
       };
-      render = lib.mkOption {
-        type = lib.types.functionTo lib.types.lines;
-        default = _: "";
-        description = "One theme's tokens (workstation.theme.tokens.<theme>) to the file text.";
+
+    in
+    ws.capability [ "theme" ] {
+      imports = [ ./theme-picker.nix ];
+      description = "the themes, the picker and the consumer files";
+      default = true;
+      options = {
+        themes = lib.mkOption {
+          type = lib.types.attrsOf themeType;
+          default = { };
+          description = "The themes by name; dark and light ship with the domain, more merge in.";
+        };
+        default = lib.mkOption {
+          type = lib.types.str;
+          default = "dark";
+          description = "The theme linked when no live pick exists (the first apply, or a pick the generation dropped).";
+        };
+        consumers = lib.mkOption {
+          type = lib.types.attrsOf consumerType;
+          default = { };
+          description = "Theme consumers: a file rendered per theme under ~/.local/share/workstation/themes/<theme>/ and read through ~/.local/state/workstation/theme/current, a reload hook, or both; contributors guard with whenOn \"theme\".";
+        };
+        tokens = lib.mkOption {
+          type = lib.types.attrsOf lib.types.raw;
+          readOnly = true;
+          default = lib.mapAttrs themeOf cfg.themes;
+          defaultText = lib.literalMD "every theme as `{ name; appearance; palette; ansi; }`";
+          description = "The color map tokens per theme (`ws.themeTokens`): `palette` role → #rrggbb, `ansi` the 16 terminal colors in index order or null; capabilities map them into their own setup.";
+        };
       };
-      reload = lib.mkOption {
-        type = lib.types.lines;
-        default = "";
-        description = "Shell lines run after a pick and after every apply; $THEME names the pick.";
+      config = {
+        assertions = [
+          {
+            assertion = cfg.themes ? ${cfg.default};
+            message = "workstation.theme.default '${cfg.default}' names no theme (${lib.concatStringsSep ", " (builtins.attrNames cfg.themes)})";
+          }
+        ];
       };
     };
-  };
-
-  themeOf = name: t: {
-    inherit name;
-    inherit (t) appearance palette;
-    ansi = if t.ansi == null then null else map (n: t.ansi.${n}) ansiNames;
-  };
-
-in
-ws.capability [ "theme" ] {
-  imports = [ ./theme-picker.nix ];
-  description = "the themes, the picker and the consumer files";
-  default = true;
-  options = {
-    themes = lib.mkOption {
-      type = lib.types.attrsOf themeType;
-      default = { };
-      description = "The themes by name; dark and light ship with the domain, more merge in.";
-    };
-    default = lib.mkOption {
-      type = lib.types.str;
-      default = "dark";
-      description = "The theme linked when no live pick exists (the first apply, or a pick the generation dropped).";
-    };
-    consumers = lib.mkOption {
-      type = lib.types.attrsOf consumerType;
-      default = { };
-      description = "Theme consumers: a file rendered per theme under ~/.local/share/workstation/themes/<theme>/ and read through ~/.local/state/workstation/theme/current, a reload hook, or both; contributors guard with whenOn \"theme\".";
-    };
-    tokens = lib.mkOption {
-      type = lib.types.attrsOf lib.types.raw;
-      readOnly = true;
-      default = lib.mapAttrs themeOf cfg.themes;
-      defaultText = lib.literalMD "every theme as `{ name; appearance; palette; ansi; }`";
-      description = "The color map tokens per theme (`ws.themeTokens`): `palette` role → #rrggbb, `ansi` the 16 terminal colors in index order or null; capabilities map them into their own setup.";
-    };
-  };
-  config = {
-    workstation.theme.themes = lib.mapAttrsRecursive (_: lib.mkDefault) {
-      dark = import ./themes/dark.nix;
-      light = import ./themes/light.nix;
-    };
-
-    assertions = [
-      {
-        assertion = cfg.themes ? ${cfg.default};
-        message = "workstation.theme.default '${cfg.default}' names no theme (${lib.concatStringsSep ", " (builtins.attrNames cfg.themes)})";
-      }
-    ];
-  };
 }

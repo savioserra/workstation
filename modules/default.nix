@@ -1,5 +1,6 @@
-# The capability modules: every domain and member, imported on every leg;
-# each gates itself on its own enable option.
+# The capability domains: each entry is a flake-parts module contributing
+# `flake.modules.<class>.<domain>` and importing its feature and member files;
+# every contribution gates itself on its own enable option.
 {
   imports = [
     ./agent/agent.nix
@@ -8,14 +9,9 @@
     ./fonts/fonts.nix
     ./foundation/foundation.nix
     ./languages/languages.nix
-    ./languages/elixir/elixir.nix
-    ./languages/go/go.nix
-    ./languages/node/node.nix
-    ./languages/typescript/typescript.nix
     ./network/network.nix
     ./secrets/secrets.nix
     ./terminal/terminal.nix
-    ./terminal/zellij/zellij.nix
     ./theme/theme.nix
   ];
 }

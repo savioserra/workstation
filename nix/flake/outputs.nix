@@ -17,12 +17,6 @@ in
     description = "The launcher's read surface: report (the read verbs), rev, keys (the switch targets).";
   };
 
-  config.perSystem =
-    { pkgs, ... }:
-    {
-      packages = import ../../modules/agent/packages.nix { inherit pkgs; };
-    };
-
   config.flake = {
     workstation = {
       report = import ../report.nix {

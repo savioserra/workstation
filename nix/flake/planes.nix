@@ -1,18 +1,24 @@
-# The plane hubs: `flake.modules.homeManager.workstation` (the home plane:
-# launcher, switch driver, every capability) and `flake.modules.{nixos,darwin}.workstation`
-# (the system plane).
+# The plane hubs: `flake.modules.<class>.workstation` imports the plane core
+# plus every domain module of that class.
+# | Hub | Core |
+# | --- | --- |
+# | homeManager | nix/modules/workstation-home.nix |
+# | nixos, darwin | nix/modules/workstation-system.nix, nix/modules/host.nix |
+{ config, lib, ... }:
+let
+  domains =
+    class: lib.attrValues (removeAttrs (config.flake.modules.${class} or { }) [ "workstation" ]);
+  system = [
+    ../modules/workstation-system.nix
+    ../modules/host.nix
+  ];
+in
 {
-  flake.modules.homeManager.workstation = ../modules/workstation-home.nix;
+  flake.modules.homeManager.workstation.imports = [
+    ../modules/workstation-home.nix
+  ]
+  ++ domains "homeManager";
 
-  flake.modules.nixos.workstation.imports = [
-    ../modules/workstation-system.nix
-    ../modules/host.nix
-    ../../modules/network/system.nix
-  ];
-
-  flake.modules.darwin.workstation.imports = [
-    ../modules/workstation-system.nix
-    ../modules/host.nix
-    ../../modules/network/system.nix
-  ];
+  flake.modules.nixos.workstation.imports = system ++ domains "nixos";
+  flake.modules.darwin.workstation.imports = system ++ domains "darwin";
 }
