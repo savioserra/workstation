@@ -355,6 +355,9 @@ and sorted, never hidden.
 - The `terminal/zellij` member capability: `programs.zellij` (home-manager), `.config/zellij/config.kdl`; `pkgs.zellij` on the system legs.
 - Session resurrection: `session_serialization true` — every session serialized to the cache dir on zellij's `serialization_interval` and on `zellij action save-session`, resurrectable after a quit, a crash or a reboot (`zellij attach <name>`, the session manager's `EXITED` section): tabs, pane layout and positions, each pane's cwd and command; resurrected commands wait behind zellij's `Press ENTER` banner.
 - `serialize_pane_viewport false`: pane text and scrollback stay off disk.
+- Keybinds: the built-in `unlock-first` preset (`keybinds preset="unlock-first"`) — sessions start locked, `Ctrl g` unlocks, then single keys enter the modes (`p` pane, `t` tab, `r` resize, `s` scroll, `o` session); every other chord stays with the programs in the panes.
+- Look: `theme "ayu-dark"`; pane frames with rounded corners, the session name hidden.
+- Settings live in the module: zellij's settings screen writes `config.kdl`, which links into the store — changes there are for trying out (apply, never save); keep the kept ones here.
 - Everything else: zellij's defaults.
 - Verify: the container E2E (the managed config, `zellij setup --check`, a background session resurrectable after it ends). Hosts: linux/macOS.
 

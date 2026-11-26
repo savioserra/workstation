@@ -213,6 +213,8 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "zellij plane" "the managed config does not turn session serialization on"
   grep -qx 'serialize_pane_viewport false' "$zconf" \
     || fail "zellij plane" "the managed config does not keep the pane viewport off disk"
+  grep -qx 'keybinds preset="unlock-first"' "$zconf" \
+    || fail "zellij plane" "the managed config does not select the unlock-first keybinds"
   zellij_bin=$(find_client zellij) || fail "zellij plane" "zellij is not on PATH"
   "$zellij_bin" setup --check >/dev/null 2>&1 \
     || fail "zellij plane" "zellij setup --check rejects the managed config"

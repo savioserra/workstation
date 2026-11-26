@@ -1,5 +1,6 @@
 # The zellij member: the multiplexer through home-manager's programs.zellij,
-# sessions serialized for resurrection, the pane viewport kept off disk.
+# sessions serialized for resurrection, the pane viewport kept off disk, the
+# unlock-first keybinds, the theme and the pane frames.
 {
   config,
   lib,
@@ -21,6 +22,14 @@ ws.capability [ "terminal" "zellij" ] {
         session_serialization = true;
         # pane contents stay off disk: no secrets in the serialized state
         serialize_pane_viewport = false;
+        # the built-in non-colliding preset: locked by default, Ctrl g
+        # unlocks, then single keys enter the modes
+        keybinds._props.preset = "unlock-first";
+        theme = "ayu-dark";
+        ui.pane_frames = {
+          rounded_corners = true;
+          hide_session_name = true;
+        };
       };
     };
   };
