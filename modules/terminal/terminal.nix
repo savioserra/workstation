@@ -26,7 +26,7 @@ let
   );
 in
 ws.capability [ "terminal" ] {
-  description = "eza, starship, mosh and btop";
+  description = "eza, starship, mosh, btop and zellij";
   default = true;
   config = {
     home.packages = [

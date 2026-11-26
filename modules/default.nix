@@ -15,6 +15,7 @@
     ./network/network.nix
     ./secrets/secrets.nix
     ./terminal/terminal.nix
+    ./terminal/zellij/zellij.nix
     ./theme/theme.nix
   ];
 }

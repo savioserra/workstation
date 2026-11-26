@@ -121,7 +121,7 @@ base       foundation
 fonts      fonts
 languages  languages/elixir, languages/go, languages/node, languages/typescript (member capabilities)
 editor     nvim (+ languages: typescript, elixir declare editor entries)
-terminal   terminal
+terminal   terminal, terminal/zellij (member capability)
 theme      theme
 agent      agent, herdr
 secrets    secrets
@@ -342,6 +342,13 @@ and sorted, never hidden.
   sources neither. Other clients (Termius): the same `--server` string.
 - btop: `home.packages` (all legs).
 - Hosts: all.
+
+### `zellij`
+- The `terminal/zellij` member capability: `programs.zellij` (home-manager), `.config/zellij/config.kdl`; `pkgs.zellij` on the system legs.
+- Session resurrection: `session_serialization true` — every session serialized to the cache dir on zellij's `serialization_interval` and on `zellij action save-session`, resurrectable after a quit, a crash or a reboot (`zellij attach <name>`, the session manager's `EXITED` section): tabs, pane layout and positions, each pane's cwd and command; resurrected commands wait behind zellij's `Press ENTER` banner.
+- `serialize_pane_viewport false`: pane text and scrollback stay off disk.
+- Everything else: zellij's defaults.
+- Verify: the container E2E (the managed config, `zellij setup --check`, a background session resurrectable after it ends). Hosts: linux/macOS.
 
 ## Fresh-host tools
 
