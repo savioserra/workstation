@@ -45,7 +45,7 @@
             # reads the XDG path after ~/.tmux.conf must not pick up a
             # distribution or desktop default
             ".config/tmux/tmux.conf".source =
-              lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.tmux.conf";
+              config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.tmux.conf";
             ".tmux/plugins/tmux2k".source = tmux2k;
           };
         }
