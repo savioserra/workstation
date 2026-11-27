@@ -25,9 +25,19 @@
     }:
     let
       ws = wsLib.capability { inherit config lib pkgs; };
+      hermes = config.programs.hermes;
+      servedSkills = lib.filterAttrs (_: skill: skill.enable) hermes.skills;
+      verify = pkgs.writeShellScriptBin "hermes-verify" (builtins.readFile ./verify/hermes.sh);
     in
     ws.capability [ "agent" ] {
       description = "the hermes agent runtime and its served skills";
       default = true;
+      config = {
+        # the consumer smoke rides the switch: every verb runs it after the
+        # activation, and the served skill names come from the option tree
+        workstation.routines.activate.verifyHermes = ''
+          ${verify}/bin/hermes-verify ${lib.concatStringsSep " " (lib.attrNames servedSkills)}
+        '';
+      };
     };
 }

@@ -212,7 +212,9 @@ and sorted, never hidden.
   harlequin derivation by `hsql --skill` at build time.
 - Verify: `modules/agent/verify/hermes.sh` — checkout at the deployed pin,
   store-symlink skills, interpreter, launcher `--version` consumer smoke;
-  full-stack or exit 1. Hosts: all.
+  full-stack or exit 1. It runs as the activate routine `verifyHermes`:
+  every switch smokes the consumer, and the served skill names are the
+  option tree's. Hosts: all.
 - Runtime-extended state the capability never freezes: the pm-managed
   dependency closure, the tool store (`~/.hermes/tools/…`), the gateway,
   profiles. Updates go through the pin: bump the
@@ -339,7 +341,7 @@ Fail-closed at eval:
 | `plan` / `status` / `capabilities` / `selected` | `nix eval` over `workstation.report` | Answer the declared state; mutate nothing |
 | select | `workstation add <path>...` / `workstation remove <path>...` | Validate against `selectable`, set or drop the flag in `hosts/local/machine.json`, offer the apply (idempotent; the baseline refuses) |
 | inquiry | `workstation init` (and `setup`, the full re-ask) | Capture the machine, offer the languages as a checklist pre-filled with the current selection |
-| verify lane | `modules/agent/verify/hermes.sh` | The agent stack's consumer smoke against its recorded pins |
+| verify lane | the activate routine `verifyHermes` (`modules/agent/verify/hermes.sh`) | The agent stack's consumer smoke against its recorded pins, after every switch |
 
 Reads are pure evals. The container E2E (`tests/nix`) asserts the shape
 itself: the switch receipt in `switch.log`, and the home carries only

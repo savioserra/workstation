@@ -16,9 +16,14 @@
 # the agent module) — never a repo file. An absent or broken runtime is
 # provisioning drift — exit 1, never a documented state.
 #
-# The switch never runs this script; it is the host lane's assertion surface
-# (docs/capabilities.md "Payload rule"). Exits nonzero with a message on the
-# first failed assertion.
+# The agent domain registers it as the activate routine
+# `verifyHermes`: every switch runs it after the activation, so the consumer
+# smoke rides the switch instead of a hand-run script. The declared skill
+# names are the routine's arguments — rendered from the option tree, never
+# a hand-written list. Exits nonzero with a message on the first failed
+# assertion.
+#
+# usage: hermes-verify [skill...]
 set -eu
 
 home=${WORKSTATION_VERIFY_HOME:-$HOME}
@@ -48,8 +53,9 @@ head=$(git -C "$checkout" rev-parse HEAD 2>/dev/null || true)
 
 # The declared skills: entry symlinks into the store, readable through.
 # The copy contract served real trees; the declarative surface serves ONE
-# store symlink per skill — anything else here is drift.
-for skill in secrets workstation; do
+# store symlink per skill — anything else here is drift. The names are the
+# routine's arguments (the served skills the option tree declares).
+for skill in "$@"; do
   [ -L "$home/.hermes/skills/$skill" ] ||
     fail "declared skill at $home/.hermes/skills/$skill is not an entry symlink (copy-contract drift)"
   case "$(readlink "$home/.hermes/skills/$skill")" in
@@ -79,4 +85,4 @@ smoke=$(timeout 120 env HOME="$home" "$launcher" --version 2>/dev/null | head -n
   fail "launcher --version failed at $launcher (broken launcher or interpreter)"
 [ -n "$smoke" ] || fail "launcher --version produced no output at $launcher"
 
-echo "hermes verify: full-stack ok — $checkout is at the pinned commit $pin_commit; interpreter $pin_python; smoke: $smoke"
+echo "hermes verify: full-stack ok — $checkout is at the pinned commit $pin_commit; interpreter $pin_python; skills: $*; smoke: $smoke"
