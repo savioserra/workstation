@@ -263,9 +263,9 @@ and sorted, never hidden.
   `.config/nvim/lua/languages/profile.lua` (`lib.generators.toLua`; the
   file must `return` the table).
 - `EDITOR`/`VISUAL`/`GIT_EDITOR=nvim` as `home.sessionVariables`.
-- `.config/nvim/lazy-lock.json`: seeded by the activation merge script
-  from the payload baseline, never byte-compared afterwards
-  (runtime-extended).
+- `.config/nvim/lazy-lock.json`: seeded by the activation merge program
+  from the committed baseline (`modules/editor/files/lazy-lock-baseline.json`),
+  never byte-compared afterwards (runtime-extended).
 - Verify: startup, locks, mason coverage, base/standard/Go behavior.
   Hosts: all.
 

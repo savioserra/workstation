@@ -102,8 +102,8 @@ capability's nixpkgs runtime (erlang 28 + elixir 1.18, on PATH).
 state, not byte-owned configuration:
 
 - Deploys through the editor's merge program
-  (`modules/editor/nvim/files/lazy-lock-merge.lua`, the committed asset
-  embedded verbatim).
+  (`modules/editor/files/lazy-lock-merge.sh`, a jq payload over the
+  committed baseline `modules/editor/files/lazy-lock-baseline.json`).
 - Absent targets seed the baseline byte-for-byte.
 - Drifted copies reconcile: substrate pins win; host extras with an
   installed plugin directory are preserved; stale extras are pruned;

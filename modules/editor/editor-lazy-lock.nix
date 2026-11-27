@@ -1,4 +1,4 @@
-# The lazy-lock merge: the payload baseline merged into the live,
+# The lazy-lock merge: the committed baseline pins merged into the live,
 # runtime-extended ~/.config/nvim/lazy-lock.json at apply.
 { wsLib, ... }:
 {
@@ -11,20 +11,17 @@
     }:
     let
       ws = wsLib.capability { inherit config lib pkgs; };
-      nvim = pkgs.neovim;
 
-      lazyLockBaseline = ./nvim/files/.config/nvim/lazy-lock.json;
+      lazyLockBaseline = ./files/lazy-lock-baseline.json;
 
-      mergeLua =
-        builtins.replaceStrings
-          [ "__WORKSTATION_LAZY_LOCK_BASELINE__" ]
-          [
-            (builtins.readFile lazyLockBaseline)
-          ]
-          (builtins.readFile ./nvim/files/lazy-lock-merge.lua);
-
-      mergeProgram = pkgs.writeText "ws-lazy-lock-merge.lua" mergeLua;
-
+      merge = ws.script {
+        name = "workstation-lazy-lock-merge";
+        inputs = [
+          pkgs.coreutils
+          pkgs.jq
+        ];
+        file = ./files/lazy-lock-merge.sh;
+      };
     in
     {
       config = ws.whenOn "editor" {
@@ -32,13 +29,14 @@
         # the merge owns the live lockfile beside it
         home.activation.merge-lazy-lock = lib.hm.dag.entryAfter [ "writeBoundary" "deploy-nvim-config" ] ''
           lock="$HOME/.config/nvim/lazy-lock.json"
-          if [ -f "$lock" ]; then
-            ${nvim}/bin/nvim -l "${mergeProgram}" < "$lock" > "$lock.merged"
+          if ${merge}/bin/workstation-lazy-lock-merge ${lazyLockBaseline} "$lock" > "$lock.merged"; then
+            mv "$lock.merged" "$lock"
+            echo "workstation: lazy-lock merge applied (${config.home.homeDirectory}/.config/nvim/lazy-lock.json)"
           else
-            ${nvim}/bin/nvim -l "${mergeProgram}" < /dev/null > "$lock.merged"
+            rm -f "$lock.merged"
+            echo "workstation: lazy-lock merge failed — the live lockfile is untouched" >&2
+            exit 1
           fi
-          mv "$lock.merged" "$lock"
-          echo "workstation: lazy-lock merge applied (${config.home.homeDirectory}/.config/nvim/lazy-lock.json)"
         '';
       };
     };

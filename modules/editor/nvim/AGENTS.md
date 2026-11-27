@@ -31,7 +31,7 @@ For each language contribution:
 
 | State | Source of truth |
 | --- | --- |
-| Plugins | `lazy-lock.json` (committed asset = baseline pins; deployed copy is runtime-extended via `files/lazy-lock-merge.lua`) |
+| Plugins | `lazy-lock.json` (committed asset = baseline pins; deployed copy is runtime-extended via the editor domain's merge program) |
 | Mason packages | `mason-lock.json` |
 | Language composition | generated `languages/profile.lua` (nvim-owned compositor) |
 | Base LazyVim extras | `lazyvim.json` |

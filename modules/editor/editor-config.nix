@@ -50,9 +50,6 @@
         mkdir -p "$out"
         cp -a ${payloadNvim}/. "$out/"
         chmod -R u+w "$out"
-        # the lock is runtime-extended application state — the tree never
-        # carries it; the merge activation seeds the live copy
-        rm -f "$out/lazy-lock.json"
         mkdir -p "$out/lua/languages/plugins"
         cp ${pkgs.writeText "languages-profile.lua" profileLua} "$out/lua/languages/profile.lua"
         ${lib.concatMapStringsSep "\n" (

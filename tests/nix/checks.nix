@@ -104,6 +104,22 @@ in
         mkdir -p "$out"
       '';
 
+  lazy-lock-merge =
+    pkgs.runCommand "workstation-check-lazy-lock-merge"
+      {
+        nativeBuildInputs = [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.diffutils
+          pkgs.gnugrep
+          pkgs.jq
+        ];
+      }
+      ''
+        bash ${./lazy-lock-merge.sh} ${../../modules/editor/files/lazy-lock-merge.sh} ${../../modules/editor/files/lazy-lock-baseline.json}
+        mkdir -p "$out"
+      '';
+
   container-e2e =
     pkgs.runCommand "workstation-check-container-e2e"
       {
