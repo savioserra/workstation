@@ -1,9 +1,7 @@
-# tailscale-report: the tailnet status report for the launcher popup
+# tailscale-report: the tailnet status report
 #
 # | verb | effect |
 # | --- | --- |
-# | width | the popup width in cells (layout is fixed-width) |
-# | height | the popup height in cells (content rows + borders + slack) |
 # | view | the report: summary header, then one row per device |
 #
 # row layout: dot (online green ●, offline gray ○) + name + os + note; color
@@ -45,12 +43,6 @@ d=$'\033[2m'
 o=$'\033[0m'
 
 case $mode in
-width) echo 66 ;;
-height)
-	n=$(rows | wc -l)
-	# content + header + blank + the pager's status row + the two border rows
-	echo $((n + 5))
-	;;
 view)
 	list=$(rows)
 	total=$(printf '%s\n' "$list" | wc -l)
@@ -69,7 +61,7 @@ view)
 		done
 	;;
 *)
-	echo "usage: tailscale-report width|height|view" >&2
+	echo "usage: tailscale-report view" >&2
 	exit 2
 	;;
 esac
