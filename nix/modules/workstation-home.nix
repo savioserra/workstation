@@ -1,25 +1,11 @@
-# The home plane core: the machine options, the routine registry, the
-# workstation launcher and the switch driver.
+# The home plane core: the machine options, the workstation launcher and the
+# switch driver (its routines: nix/modules/routines-home.nix).
 {
   config,
   lib,
   pkgs,
   ...
 }:
-let
-  routine = lib.types.submodule {
-    options = {
-      name = lib.mkOption {
-        type = lib.types.strMatching "[a-z0-9][a-z0-9-]*";
-        description = "A store-name-safe routine id (kebab-case).";
-      };
-      text = lib.mkOption {
-        type = lib.types.lines;
-        description = "The routine body: a shell fragment run by the switch driver at the owning event.";
-      };
-    };
-  };
-in
 {
   options.workstation = {
     machine = {
@@ -37,23 +23,6 @@ in
         type = lib.types.nullOr lib.types.str;
         default = null;
         description = "The machine's 1Password vault (machine.json).";
-      };
-    };
-    routines = {
-      after-apply = lib.mkOption {
-        type = lib.types.listOf routine;
-        default = [ ];
-        description = "Routines the switch driver runs after a successful apply (either plane), after the receipt; a failed routine reports and never fails the switch.";
-      };
-      after-rollback = lib.mkOption {
-        type = lib.types.listOf routine;
-        default = [ ];
-        description = "Routines the switch driver runs after a rollback's activation.";
-      };
-      after-update = lib.mkOption {
-        type = lib.types.listOf routine;
-        default = [ ];
-        description = "Routines the switch driver runs after update moves the checkout, before its switch.";
       };
     };
     switch = {
@@ -83,7 +52,7 @@ in
         inherit lib pkgs;
         homeAttr = config.workstation.switch.homeAttr;
         systemAttr = config.workstation.switch.systemAttr;
-        routines = config.workstation.routines;
+        routines = config.workstation.switch.routines;
       })
     ];
 

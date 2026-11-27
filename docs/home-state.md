@@ -72,12 +72,15 @@ Plan reads never persist or forward home contents into logs.
 
 ## Removal
 
-
 - entries the file plane owned leave through the generation diff — a
   `home.file` entry dropped from the declarations is removed by the next
   switch;
-- paths the file plane never owned are the operator's: the substrate
-  never deletes them.
+- activation state a capability created leaves through its teardown
+  routine (`workstation.routines.teardown`), run by the outgoing
+  generation before the switch that drops it activates
+  ([lifecycle routines](capabilities.md#lifecycle-routines));
+- paths neither the file plane nor a teardown owns are the operator's: the
+  substrate never deletes them.
 
 The themes are nix data (`modules/theme/themes/*.nix`), typed by
 `workstation.theme.themes` at eval.

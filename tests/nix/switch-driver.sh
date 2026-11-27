@@ -16,6 +16,14 @@
 # | 11 | system apply, the rebuild fails | the failure reaches the caller |
 # | 12 | system apply | the detached runner waits, relays the receipt, exits with the switch's code |
 # | 13 | a flake ref with quotes and spaces | reaches the rebuild verbatim |
+# | 14 | apply | the outgoing teardowns the incoming tree lacks run before the activation; the incoming activate routines after the receipt; a failed activate routine reports, the switch stands |
+# | 15 | apply, a teardown fails | the switch stops before the activation, names the override; WORKSTATION_SKIP_TEARDOWN=1 switches |
+# | 16 | apply, the incoming generation carries no routine tree | no teardown runs, the switch proceeds |
+# | 17 | rollback | the previous generation's tree decides the teardowns, before its activation; its activate routines run |
+# | 18 | system apply | the built toplevel's tree decides the teardowns, before the rebuild |
+# | 19 | system rollback | the previous system generation's tree decides the teardowns, before the rebuild |
+# | 20 | rollback, a PATH without awk | the previous generation resolves, its activate routines run |
+# | 21 | rollback, no previous generation | stops before any teardown or activation |
 set -eu
 
 nohome=$1
@@ -33,10 +41,42 @@ g() {
 	git -C "$work/co" -c user.name=gate -c user.email=gate@localhost "$@"
 }
 
-# fresh — a committed checkout, its machine file, a profile at generation 3
+# fresh — a committed checkout, its machine file, a home profile at
+# generation 3 over generation 2 and a system profile at 7 over 6; every
+# generation carries the incoming routine tree (teardown: kept, broken;
+# activate: probe, broken)
 fresh() {
-	rm -rf "${work:?}/co" "${work:?}/state" "${work:?}/gen" "${work:?}/home" "${work:?}/origin.git" "${work:?}/other" "${work:?}/sys"
-	mkdir -p "$work/co/hosts/local" "$work/gen" "$work/bin" "$work/home" "$work/state/nix/profiles"
+	rm -rf "${work:?}/co" "${work:?}/state" "${work:?}/gen" "${work:?}/gen2" "${work:?}/home" "${work:?}/origin.git" "${work:?}/other" "${work:?}/sys" "${work:?}/incoming"
+	mkdir -p "$work/co/hosts/local" "$work/gen" "$work/gen2" "$work/bin" "$work/home" "$work/state/nix/profiles" \
+		"$work/incoming/teardown" "$work/incoming/activate"
+	for r in teardown/kept teardown/broken activate/probe; do
+		printf '#!/bin/sh\necho "ROUTINE: %s-incoming" >>"%s"\n' "${r%%/*}" "$work/log" >"$work/incoming/$r"
+		chmod +x "$work/incoming/$r"
+	done
+	printf '#!/bin/sh\nexit 1\n' >"$work/incoming/activate/broken"
+	chmod +x "$work/incoming/activate/broken"
+	ln -s "$work/incoming" "$work/gen/workstation-routines"
+	ln -s "$work/incoming" "$work/gen2/workstation-routines"
+	cat >"$work/bin/nix-env" <<'EOF'
+#!/bin/sh
+echo "NIX-ENV: $*" >>"${0%/bin/*}/log"
+[ "$1" = --profile ] || exit 0
+p=$2
+cur=$(readlink "$p")
+for l in "$p"-*-link; do
+	n=${l#"$p"-}
+	n=${n%-link}
+	case "$3" in
+	--list-generations)
+		if [ "${l##*/}" = "$cur" ]; then echo "   $n   (current)"; else echo "   $n"; fi
+		;;
+	--rollback)
+		[ "${l##*/}" = "$cur" ] || ln -sfn "${l##*/}" "$p"
+		;;
+	esac
+done
+EOF
+	chmod +x "$work/bin/nix-env"
 	printf '%s\n' '{"host":"corrhos","user":"op","home":"/home/op","system":"x86_64-linux","settings":{}}' \
 		>"$work/co/hosts/local/machine.json"
 	printf '%s\n' '{"nodes":{"nixpkgs":{"locked":{"rev":"aaaaaaa1111"}}}}' >"$work/co/flake.lock"
@@ -46,10 +86,13 @@ fresh() {
 	g commit -q -m init
 	head=$(g rev-parse HEAD)
 	printf '#!/bin/sh\necho activate-ran >>"%s"\n' "$work/log" >"$work/gen/activate"
-	chmod +x "$work/gen/activate"
+	printf '#!/bin/sh\necho activate2-ran >>"%s"\n' "$work/log" >"$work/gen2/activate"
+	chmod +x "$work/gen/activate" "$work/gen2/activate"
+	ln -s "$work/gen2" "$work/state/nix/profiles/home-manager-2-link"
 	ln -s "$work/gen" "$work/state/nix/profiles/home-manager-3-link"
 	ln -s home-manager-3-link "$work/state/nix/profiles/home-manager"
 	mkdir -p "$work/sys"
+	ln -s "$work/gen2" "$work/sys/system-6-link"
 	ln -s "$work/gen" "$work/sys/system-7-link"
 	ln -s system-7-link "$work/sys/system"
 	flake_ref="git+file://$work/co?rev=$head"
@@ -151,6 +194,7 @@ drive "$stale" apply
 [ "$rc" != 0 ] || fail '5: a failed build must fail the switch'
 ! logged 'activate-ran' || fail '5: a failed build must activate nothing'
 ! grep -q '/activate' "$work/err" || fail '5: a failed build must stop before the activate path'
+! logged '^ROUTINE: teardown' || fail '5: a failed build must run no teardown'
 
 # 6
 fresh
@@ -209,4 +253,104 @@ drive "$stale" apply --system
 [ "$rc" = 0 ] || fail "13: a flake ref with shell characters must switch (rc $rc)"
 grep -Fq "REBUILD: switch --flake $flake_ref#corrhos" "$work/log" || fail '13: the flake ref must reach the rebuild verbatim'
 
-printf 'switch-driver.sh: OK (plane guards, the flake keys, the baked keys, update over origin, failed build, the system runner)\n'
+# line <pattern> — the first log line number matching, 0 when absent
+line() {
+	n=$(grep -n -- "$1" "$work/log" | head -n 1 | cut -d: -f1)
+	echo "${n:-0}"
+}
+
+# 14
+fresh
+stub ok "$linux_keys"
+drive "$stale" apply
+[ "$rc" = 0 ] || fail "14: apply with routines must succeed (rc $rc)"
+logged '^ROUTINE: teardown-gone$' || fail '14: an outgoing teardown the incoming tree lacks must run'
+! logged '^ROUTINE: teardown-kept$' || fail '14: an outgoing teardown the incoming tree keeps must not run'
+[ "$(line '^ROUTINE: teardown-gone$')" -lt "$(line '^activate-ran$')" ] ||
+	fail '14: the teardowns must run before the activation'
+logged '^ROUTINE: activate-incoming$' || fail '14: the incoming activate routines must run'
+! logged '^ROUTINE: activate-outgoing$' || fail '14: the outgoing activate routines must not run'
+[ "$(line '^activate-ran$')" -lt "$(line '^ROUTINE: activate-incoming$')" ] ||
+	fail '14: the activate routines must run after the activation'
+grep -q 'routine broken (activate) FAILED' "$work/err" || fail '14: a failed activate routine must report'
+grep -q 'generation 3 applied' "$work/state/workstation/switch.log" || fail '14: the receipt must land'
+
+# 15
+fresh
+stub ok "$linux_keys"
+rm "$work/incoming/teardown/broken"
+drive "$stale" apply
+[ "$rc" = 1 ] || fail "15: a failed teardown must stop the switch with rc 1 (rc $rc)"
+! logged '^activate-ran$' || fail '15: a failed teardown must stop before the activation'
+[ ! -e "$work/state/workstation/switch.log" ] || fail '15: a failed teardown must receipt nothing'
+grep -q 'routine broken (teardown) FAILED.*WORKSTATION_SKIP_TEARDOWN=1' "$work/err" ||
+	fail '15: the stop must name the teardown and the override'
+: >"$work/log"
+drive env WORKSTATION_SKIP_TEARDOWN=1 "$stale" apply
+[ "$rc" = 0 ] || fail "15: WORKSTATION_SKIP_TEARDOWN=1 must switch (rc $rc)"
+! logged '^ROUTINE: teardown' || fail '15: WORKSTATION_SKIP_TEARDOWN=1 must run no teardown'
+logged '^activate-ran$' || fail '15: WORKSTATION_SKIP_TEARDOWN=1 must activate'
+
+# 16
+fresh
+stub ok "$linux_keys"
+rm "$work/gen/workstation-routines"
+drive "$stale" apply
+[ "$rc" = 0 ] || fail "16: apply into a generation without a routine tree must succeed (rc $rc)"
+! logged '^ROUTINE: teardown' || fail '16: no teardown may run when the incoming generation carries no routine tree'
+grep -q 'routine gone (teardown) skipped' "$work/out" || fail '16: the skipped teardowns must report'
+logged '^activate-ran$' || fail '16: the switch must proceed'
+
+# 17
+fresh
+stub ok "$linux_keys"
+drive "$stale" rollback
+[ "$rc" = 0 ] || fail "17: rollback must succeed (rc $rc)"
+logged '^NIX-ENV: --profile .* --rollback' || fail '17: rollback must roll the home profile back'
+logged '^ROUTINE: teardown-gone$' || fail '17: an outgoing teardown the previous generation lacks must run'
+[ "$(line '^ROUTINE: teardown-gone$')" -lt "$(line '^NIX-ENV: --profile .* --rollback')" ] ||
+	fail '17: the teardowns must run before the profile moves'
+logged '^activate2-ran$' || fail '17: the previous generation must activate'
+logged '^ROUTINE: activate-incoming$' || fail '17: the previous generation activate routines must run'
+grep -q 'generation 2 applied' "$work/state/workstation/switch.log" || fail '17: the receipt must name the previous generation'
+
+# 18
+fresh
+stub ok "$linux_keys"
+drive "$stale" apply --system
+[ "$rc" = 0 ] || fail "18: a system apply with routines must succeed (rc $rc)"
+logged 'nixosConfigurations."corrhos".config.system.build.toplevel' || fail '18: the toplevel must build before the rebuild'
+logged '^ROUTINE: teardown-gone$' || fail '18: an outgoing teardown the toplevel tree lacks must run'
+[ "$(line '^ROUTINE: teardown-gone$')" -lt "$(line '^REBUILD: switch')" ] ||
+	fail '18: the teardowns must run before the rebuild'
+logged '^ROUTINE: activate-incoming$' || fail '18: the incoming activate routines must run'
+
+# 19
+fresh
+stub ok "$linux_keys"
+drive "$stale" rollback --system
+[ "$rc" = 0 ] || fail "19: a system rollback with routines must succeed (rc $rc)"
+logged '^ROUTINE: teardown-gone$' || fail '19: an outgoing teardown the previous system generation lacks must run'
+[ "$(line '^ROUTINE: teardown-gone$')" -lt "$(line '^REBUILD: switch --rollback')" ] ||
+	fail '19: the teardowns must run before the rebuild'
+
+# 20
+fresh
+stub ok "$linux_keys"
+noawk=$(printf '%s' "$PATH" | tr ':' '\n' | while read -r d; do [ -x "$d/awk" ] || printf '%s:' "$d"; done)
+PATH="${noawk%:}" drive "$stale" rollback
+[ "$rc" = 0 ] || fail "20: rollback without awk on PATH must succeed (rc $rc)"
+logged '^ROUTINE: teardown-gone$' || fail '20: the previous generation must resolve without awk'
+logged '^ROUTINE: activate-incoming$' || fail '20: the previous generation activate routines must run without awk'
+
+# 21
+fresh
+stub ok "$linux_keys"
+rm "$work/state/nix/profiles/home-manager-2-link"
+drive "$stale" rollback
+[ "$rc" = 1 ] || fail "21: rollback without a previous generation must stop with rc 1 (rc $rc)"
+! logged '^ROUTINE: ' || fail '21: a stopped rollback must run no routine'
+! logged '^NIX-ENV: --profile .* --rollback' || fail '21: a stopped rollback must leave the profile'
+grep -q 'nothing to roll back to' "$work/err" || fail '21: the stop must say so'
+
+printf 'switch-driver.sh: OK (plane guards, the flake keys, the baked keys, update over origin, failed build, the system runner, the routines)\n'

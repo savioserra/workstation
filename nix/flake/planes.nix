@@ -2,8 +2,8 @@
 # plus every domain module of that class.
 # | Hub | Core |
 # | --- | --- |
-# | homeManager | nix/modules/workstation-home.nix |
-# | nixos, darwin | nix/modules/workstation-system.nix, nix/modules/host.nix |
+# | homeManager | nix/modules/workstation-home.nix, nix/modules/routines-home.nix |
+# | nixos, darwin | nix/modules/workstation-system.nix, nix/modules/host.nix, nix/modules/routines-system.nix |
 { config, lib, ... }:
 let
   domains =
@@ -11,11 +11,13 @@ let
   system = [
     ../modules/workstation-system.nix
     ../modules/host.nix
+    ../modules/routines-system.nix
   ];
 in
 {
   flake.modules.homeManager.workstation.imports = [
     ../modules/workstation-home.nix
+    ../modules/routines-home.nix
   ]
   ++ domains "homeManager";
 

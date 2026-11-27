@@ -7,31 +7,20 @@
 #   workstation-e2e: OK             (the final marker run-container.sh greps)
 #
 # The apply step drives the workstation-switch driver with a prebuilt
-# activation override (WORKSTATION_SWITCH_HOME_ACTIVATE) — the offline
-# form of `home-manager switch`: the evaluation happened at build time
-# inside the container, so the override does the two things a switch would
-# have done, fully offline:
-#   1. run the standalone activation (home files, unit files, profile links)
-#   2. register the generation the way `home-manager switch` does
-#      (nix-env --set on the home-manager profile) — the driver's receipt
-#      reads the generation number from that profile link
+# generation (WORKSTATION_SWITCH_HOME_GEN): the evaluation happened at build
+# time inside the container, so the driver skips the build and runs the
+# generation's teardowns, its activation (home files, unit files, the
+# profile generation the receipt reads) and its activate routines, fully
+# offline.
 {
   lib,
   pkgs,
-  writeShellScript,
   writeShellScriptBin,
   self,
   harlequinVersion,
 }:
 let
   activation = self.checks.x86_64-linux.e2e-home;
-
-  homeActivateMinusGo = writeShellScript "workstation-e2e-home-activate-minus-go" ''
-    set -eu
-    ${activationMinusGo}/activate
-    nix-env --profile "''${XDG_STATE_HOME:-$HOME/.local/state}/nix/profiles/home-manager" \
-      --set ${activationMinusGo}
-  '';
 
   activationMinusGo = self.checks.x86_64-linux.e2e-minus-go-home;
 
@@ -416,10 +405,28 @@ writeShellScriptBin "workstation-e2e" ''
   step "apply-driven switch (the removal apply: go deselected, next generation)"
   staged_switch=$(find_client workstation-switch) \
     || fail "apply-driven switch" "the staged switch driver is not on PATH"
-  switch_out=$(WORKSTATION_SWITCH_HOME_ACTIVATE="${homeActivateMinusGo}" "$staged_switch" apply) \
-    || fail "apply-driven switch" "the driver failed (switch or receipt)"
-  unset WORKSTATION_SWITCH_HOME_ACTIVATE
+  routines_log="$home/.cache/e2e-routines.log"
+  rm -f "$routines_log"
+  switch_out=$(WORKSTATION_SWITCH_HOME_GEN="${activationMinusGo}" "$staged_switch" apply) \
+    || fail "apply-driven switch" "the driver failed (teardown, switch or receipt)"
   pass "apply-driven switch (the removal apply: go deselected, next generation)"
+
+  step "routines on the switch (the outgoing teardown before the activation, the incoming activate routine after)"
+  [ -r "$routines_log" ] || fail "routines on the switch" "no routine ran (no $routines_log)"
+  grep -qx "teardown e2eGone ${activation}" "$routines_log" \
+    || fail "routines on the switch" "the e2eGone teardown did not run against the live boot generation: $(head -n 1 "$routines_log")"
+  grep -q '^teardown e2eKept' "$routines_log" \
+    && fail "routines on the switch" "the e2eKept teardown ran though the incoming generation keeps it"
+  grep -qx 'activate minus-go' "$routines_log" \
+    || fail "routines on the switch" "the incoming generation's activate routine did not run"
+  grep -qx 'activate boot' "$routines_log" \
+    && fail "routines on the switch" "the outgoing generation's activate routine ran"
+  [ "$(tail -n 1 "$routines_log")" = 'activate minus-go' ] \
+    || fail "routines on the switch" "the activate routine must run after the teardown"
+  printf '%s' "$switch_out" | grep -q 'routine e2eGone (teardown)' \
+    || fail "routines on the switch" "the driver did not report the teardown"
+  rm -f "$routines_log"
+  pass "routines on the switch (the outgoing teardown before the activation, the incoming activate routine after)"
 
   step "the removal: go left the profile and the mise config, the rest rides"
   grep -q 'lazyvim.plugins.extras.lang.go' "$prof" \
@@ -487,12 +494,18 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "staged client" "the workstation-switch driver is not staged"
   pass "staged client (launcher, switch driver, no flake snapshot)"
 
-  step "rollback lane (the previous generation, the after-rollback routine)"
+  step "rollback lane (the previous generation, its activate routine)"
   rb_out=$("$staged_switch" rollback) \
     || fail "rollback lane" "workstation-switch rollback failed"
   PATH="$init_path" tail -n 1 "$home/.local/state/workstation/switch.log" | grep -Eq 'generation [0-9]+ applied \(' \
     || fail "rollback lane" "the rollback wrote no receipt line"
-  pass "rollback lane (the previous generation, the after-rollback routine)"
+  grep -qx 'activate boot' "$routines_log" 2>/dev/null \
+    || fail "rollback lane" "the rolled-back generation's activate routine did not run"
+  grep -qx 'activate minus-go' "$routines_log" \
+    && fail "rollback lane" "the outgoing generation's activate routine ran"
+  grep -q '^teardown' "$routines_log" \
+    && fail "rollback lane" "a teardown ran though the rolled-back generation carries every outgoing name"
+  pass "rollback lane (the previous generation, its activate routine)"
 
   echo "workstation-e2e: OK"
 ''

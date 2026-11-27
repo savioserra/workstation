@@ -46,11 +46,25 @@ in
 
   switch-driver =
     let
+      # the outgoing routine tree both gate drivers carry: each routine
+      # logs beside the gate's home; `broken` fails
+      probe =
+        name:
+        pkgs.writeShellScript "workstation-check-routine-${name}" ''
+          echo "ROUTINE: ${name}" >>"$HOME/../log"
+        '';
+      routines = pkgs.runCommand "workstation-check-switch-driver-routines" { } ''
+        mkdir -p $out/teardown $out/activate
+        ln -s ${probe "activate-outgoing"} $out/activate/probe
+        ln -s ${probe "teardown-gone"} $out/teardown/gone
+        ln -s ${probe "teardown-kept"} $out/teardown/kept
+        ln -s ${pkgs.writeShellScript "workstation-check-routine-broken" "exit 1"} $out/teardown/broken
+      '';
       driver =
         homeAttr:
         import ../../nix/lib/switch.nix {
           inherit (pkgs) lib;
-          inherit pkgs homeAttr;
+          inherit pkgs homeAttr routines;
           systemAttr = "sys";
         };
     in

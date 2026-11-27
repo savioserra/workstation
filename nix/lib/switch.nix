@@ -1,45 +1,85 @@
 # The write plane, composed: the verb scaffold (apply|rollback|update|sync,
 # home and system planes, the detached system runner, the switch.log
-# receipt) plus the lifecycle routines the workstation modules register
-# (workstation.routines.<event>) — each routine runs at its event, reports,
-# and never fails the switch.
+# receipt) plus the routine runner over routine trees (`<event>/<name>`,
+# nix/modules/routines-home.nix). The outgoing tree is this generation's
+# (`routines`); the incoming one rides the incoming generation's root
+# (`workstation-routines`), read before its activation.
+# | Step | Routines |
+# | --- | --- |
+# | build, then teardown | the outgoing teardowns the incoming tree lacks; a failure stops the switch |
+# | activation, receipt, then activate | the incoming activate routines; a failure reports |
 {
   lib,
   pkgs,
   homeAttr ? null,
   systemAttr ? null,
-  routines ? { },
+  routines ? null,
 }:
 let
   rebuild = if pkgs.stdenv.hostPlatform.isDarwin then "darwin-rebuild" else "nixos-rebuild";
-
-  events = [
-    "after-apply"
-    "after-rollback"
-    "after-update"
-  ];
-
-  routineScript = event: r: pkgs.writeShellScript "ws-routine-${event}-${r.name}" r.text;
-
-  routine = event: r: ''
-    echo "workstation-switch: routine ${r.name} (${event})"
-    if ! as_invoker ${routineScript event r}; then
-      echo "workstation-switch: routine ${r.name} (${event}) FAILED — the switch stands, the routine did not run clean" >&2
-    fi
-  '';
+  systemConfigurations =
+    if pkgs.stdenv.hostPlatform.isDarwin then "darwinConfigurations" else "nixosConfigurations";
 
   runRoutines = ''
-    run_routines() {
-      case "$1" in
-        ${lib.concatStringsSep "\n" (
-          map (event: ''
-            ${event})
-              ${lib.concatStringsSep "\n" (map (routine event) (routines.${event} or [ ]))}
-              ;;
-          '') events
-        )}
-        *) ;;
-      esac
+    outgoing=${if routines == null then "" else routines}
+    # run_teardown <incoming tree> — before the incoming activation: the
+    # outgoing teardowns the incoming tree lacks; a failure stops the switch;
+    # an incoming generation without a tree runs none
+    run_teardown() {
+      [ -n "$outgoing" ] && [ -d "$outgoing/teardown" ] || return 0
+      for r in "$outgoing/teardown"/*; do
+        [ -x "$r" ] || continue
+        rname=''${r##*/}
+        if [ -n "''${WORKSTATION_SKIP_TEARDOWN:-}" ]; then
+          echo "workstation-switch: routine $rname (teardown) skipped — WORKSTATION_SKIP_TEARDOWN"
+        elif [ -z "$1" ] || [ ! -d "$1/teardown" ]; then
+          echo "workstation-switch: routine $rname (teardown) skipped — the incoming generation carries no routine tree"
+        elif [ ! -e "$1/teardown/$rname" ]; then
+          echo "workstation-switch: routine $rname (teardown)"
+          if ! as_invoker "$r"; then
+            echo "workstation-switch: routine $rname (teardown) FAILED — the switch stops before the activation; fix it and re-apply, or skip the teardowns: WORKSTATION_SKIP_TEARDOWN=1 workstation <verb>" >&2
+            exit 1
+          fi
+        fi
+      done
+    }
+    # run_activate <incoming tree> — after the activation and the receipt
+    run_activate() {
+      [ -n "$1" ] && [ -d "$1/activate" ] || return 0
+      for r in "$1/activate"/*; do
+        [ -x "$r" ] || continue
+        rname=''${r##*/}
+        echo "workstation-switch: routine $rname (activate)"
+        if ! as_invoker "$r"; then
+          echo "workstation-switch: routine $rname (activate) FAILED — the switch stands, the routine did not run clean" >&2
+        fi
+      done
+    }
+    # previous_generation <profile> — the generation link `--rollback`
+    # activates (the generation listed before the current one); bash only,
+    # no host tool beyond nix-env
+    previous_generation() {
+      local gens n rest last=""
+      gens=$(nix-env --profile "$1" --list-generations 2>/dev/null) || return 0
+      while read -r n rest; do
+        case "$rest" in
+          *"(current)"*)
+            if [ -n "$last" ]; then
+              printf '%s\n' "$1-$last-link"
+            fi
+            return 0
+            ;;
+        esac
+        last=$n
+      done <<<"$gens"
+    }
+    # rollback_target <profile> — the previous generation, or a stop
+    rollback_target() {
+      target=$(previous_generation "$1")
+      if [ -z "$target" ]; then
+        echo "workstation-switch: no generation before the current one in $1 — nothing to roll back to" >&2
+        exit 1
+      fi
     }
   '';
 
@@ -148,7 +188,7 @@ pkgs.writeShellScriptBin "workstation-switch" ''
   fi
   home_attr="''${WORKSTATION_SWITCH_HOME_ATTR:-${if homeAttr == null then "" else homeAttr}}"
   system_attr="''${WORKSTATION_SWITCH_SYSTEM_ATTR:-${if systemAttr == null then "" else systemAttr}}"
-  home_activate="''${WORKSTATION_SWITCH_HOME_ACTIVATE:-}"
+  home_gen="''${WORKSTATION_SWITCH_HOME_GEN:-}"
   # the keys come from the flake being built (workstation.keys: the machine
   # file's identity, a null key = the leg carries no such plane); the baked
   # attrs answer where the flake does not; the env wins
@@ -203,8 +243,8 @@ pkgs.writeShellScriptBin "workstation-switch" ''
     own "$state_dir" "$log"
     seen=$(wc -c < "$log")
     # the runner carries its env explicitly, every value shell-quoted
-    inner=$(printf 'WORKSTATION_SWITCH_DETACHED=1 WORKSTATION_SWITCH_FLAKE=%q WORKSTATION_SWITCH_MACHINE=%q WORKSTATION_SWITCH_HOME_ATTR=%q WORKSTATION_SWITCH_SYSTEM_ATTR=%q HOME=%q XDG_STATE_HOME=%q SUDO_USER=%q PATH=%q %q %q --system' \
-      "$flake" "''${WORKSTATION_SWITCH_MACHINE:-}" "$home_attr" "$system_attr" "$HOME" "''${XDG_STATE_HOME:-$HOME/.local/state}" "''${SUDO_USER:-}" "$PATH" "$0" "$cmd")
+    inner=$(printf 'WORKSTATION_SWITCH_DETACHED=1 WORKSTATION_SWITCH_FLAKE=%q WORKSTATION_SWITCH_MACHINE=%q WORKSTATION_SWITCH_HOME_ATTR=%q WORKSTATION_SWITCH_SYSTEM_ATTR=%q WORKSTATION_SKIP_TEARDOWN=%q HOME=%q XDG_STATE_HOME=%q SUDO_USER=%q PATH=%q %q %q --system' \
+      "$flake" "''${WORKSTATION_SWITCH_MACHINE:-}" "$home_attr" "$system_attr" "''${WORKSTATION_SKIP_TEARDOWN:-}" "$HOME" "''${XDG_STATE_HOME:-$HOME/.local/state}" "''${SUDO_USER:-}" "$PATH" "$0" "$cmd")
     payload=$(printf '%s 2>&1 | tee -a %q; echo "''${PIPESTATUS[0]}" > %q' "$inner" "$log" "$status")
     # finish — the runner's output since launch, its exit code
     finish() {
@@ -223,25 +263,28 @@ pkgs.writeShellScriptBin "workstation-switch" ''
     finish
   fi
 
-  event=""
+  incoming=""
   case "$plane:$cmd" in
     home:apply|home:sync)
       need_home
-      if [ -n "$home_activate" ]; then
-        "$home_activate"
+      if [ -n "$home_gen" ]; then
+        gen=$home_gen
       else
         need_flake
         gen="$(nix build --no-link --print-out-paths "$flake#homeConfigurations.\"$home_attr\".activationPackage" "''${override[@]}")"
-        "$gen/activate"
       fi
+      incoming="$gen/workstation-routines"
+      run_teardown "$incoming"
+      "$gen/activate"
       ${resolveHomeProfile}
-      event=after-apply
       ;;
     home:rollback)
       ${resolveHomeProfile}
+      rollback_target "$profile"
+      incoming="''${target:+$target/workstation-routines}"
+      run_teardown "$incoming"
       nix-env --profile "$profile" --rollback
       "$profile/activate"
-      event=after-rollback
       ;;
     home:update|system:update)
       checkout="''${WORKSTATION_SWITCH_CHECKOUT:-}"
@@ -279,7 +322,6 @@ pkgs.writeShellScriptBin "workstation-switch" ''
       else
         echo "workstation-switch: the checkout has no origin — switching to its commit"
       fi
-      run_routines after-update
       # the pinned ref follows the checkout's new HEAD
       case "$flake" in
         "git+file://$checkout?rev="*)
@@ -294,17 +336,21 @@ pkgs.writeShellScriptBin "workstation-switch" ''
     system:apply|system:sync)
       need_system
       need_flake
+      toplevel="$(nix build --no-link --print-out-paths "$flake#${systemConfigurations}.\"$system_attr\".config.system.build.toplevel" "''${override[@]}")"
+      incoming="$toplevel/workstation-routines"
+      run_teardown "$incoming"
       ${rebuild} switch --flake "$flake#$system_attr" "''${override[@]}"
       profile="''${WORKSTATION_SWITCH_SYSTEM_PROFILE:-/nix/var/nix/profiles/system}"
-      event=after-apply
       ;;
     system:rollback)
-      ${rebuild} switch --rollback
       profile="''${WORKSTATION_SWITCH_SYSTEM_PROFILE:-/nix/var/nix/profiles/system}"
-      event=after-rollback
+      rollback_target "$profile"
+      incoming="''${target:+$target/workstation-routines}"
+      run_teardown "$incoming"
+      ${rebuild} switch --rollback
       ;;
   esac
 
   ${readAndPublish}
-  run_routines "$event"
+  run_activate "$incoming"
 ''

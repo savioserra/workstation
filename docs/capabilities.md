@@ -12,10 +12,10 @@ flake.nix               (flake-parts mkFlake over nix/flake)
   -> nix/flake/machines.nix  (nix/lib/machine.nix: hosts/local/machine.json, identity + settings)
   -> nix/flake/planes.nix    (flake.modules.<class>.workstation: nix/modules)
   -> nix/flake/legs.nix      (home, linux, mac builders; withSystem pkgs)
-  -> nix/modules          (the plane cores: workstation-home, workstation-system, host)
+  -> nix/modules          (the plane cores: workstation-home, routines-home, workstation-system, host, routines-system)
   -> modules/default.nix  (the domain entries: flake-parts modules contributing flake.modules.<class>.<domain>)
   -> nix/report.nix       (workstation.report.<verb>: one home eval)
-  -> nix/lib/switch.nix  (the composed write plane: verb scaffold + routine registry, switch.log receipt)
+  -> nix/lib/switch.nix  (the composed write plane: verb scaffold + routine runner, switch.log receipt)
   -> hosts/{linux,mac}    (the system legs)
 
 bin/workstation (POSIX sh: flake resolution, verb dispatch)
@@ -65,6 +65,7 @@ option tree applied as a module.
 | --- | --- |
 | `bin/workstation` | Launcher shim: flake resolution order, verb dispatch, exit codes (dispatch gate: `.github/scripts/shim-dispatch.sh`) |
 | `nix/lib/machine.nix` | The machine file: identity, the flake keys (`homeKey`, `systemKey`), `settings` and `workstation.machine` as home modules |
+| `nix/modules/routines-home.nix`, `nix/modules/routines-system.nix` | The routine registry: `workstation.routines.<event>.<name>`, the routine tree at every generation's root ([Lifecycle routines](#lifecycle-routines)) |
 | `modules/default.nix` | The domain entries (flake-parts modules) |
 | `modules/<domain>/<domain>.nix` | The domain entry: its options and declarations as `flake.modules.homeManager.<domain>`, gated on `workstation.<domain>.enable` (members also on their own flag); imports its feature and member files |
 | `nix/report.nix` | The read verbs from one home eval: rows from the option tree, attribution from `definitionsWithLocations` |
@@ -103,10 +104,9 @@ option tree applied as a module.
   - **the switch driver** — the one system-ordered surface: its tail writes
     the receipt; the theme activation seeds the pick and reloads the
     theme consumers;
-  - **the routine registry** — `workstation.routines.<event>`
-    (after-apply, after-rollback, after-update): module-registered shell
-    routines the driver runs at the event, after the receipt; a failed
-    routine reports and never fails the switch.
+  - **the routine registry** — `workstation.routines.<event>.<name>`
+    (teardown, activate): module-registered shell routines the driver runs
+    around every switch ([Lifecycle routines](#lifecycle-routines)).
 - No inter-capability ordering graph exists: store closure has no apply
   order. The only ordered surfaces are the ones above.
 
@@ -351,6 +351,41 @@ A switch is the one event a generation carries: the receipt line lands in
 `switch.log`, and the theme consumers reload against the live pick
 (`~/.local/state/workstation/theme/current`). Consumers read files or watch
 the link; nothing polls.
+
+### Lifecycle routines
+
+`nix/modules/routines-home.nix`: `workstation.routines.<event>.<name>`, a
+shell body keyed by a camelCase name (`[a-z][a-zA-Z0-9]*`, asserted at
+eval), registered by the module owning the state it touches, inside its
+capability gate.
+
+- The tree: one per generation (`<event>/<name>`) at the generation's
+  root, `workstation-routines` — the home generation's, linked into the
+  system generation by `nix/modules/routines-system.nix`; the driver
+  carries its own generation's tree as the outgoing one.
+- The run: as the invoking user, on every switch (apply, sync, update,
+  rollback, either plane).
+
+| Event | Runs | Routines of | A failure |
+| --- | --- | --- | --- |
+| `teardown` | after the build, before the incoming activation, per name the incoming tree lacks | the outgoing generation | stops the switch before the activation |
+| `activate` | after the incoming activation and its receipt | the incoming generation | reports; the switch stands |
+
+- The incoming tree: the built home generation, the built system
+  toplevel, or, on a rollback, the previous profile generation — read
+  before anything activates.
+- Teardown: the undo of a capability's activation state (units, clones,
+  copied trees), declared beside its setup hook, idempotent; it fires on
+  the switch that drops its name — a deleted capability, a `workstation
+  remove`, a rollback across an addition.
+- A teardown ships before its capability leaves: only a generation that
+  carries it can run it.
+- A stopped switch names the teardown and the override:
+  `WORKSTATION_SKIP_TEARDOWN=1 workstation <verb>` switches without the
+  teardowns.
+- An incoming generation without a routine tree runs no teardown.
+- Operator data and processes holding sessions stay: a teardown removes
+  only what its capability's activation created.
 
 ## Payload rule
 

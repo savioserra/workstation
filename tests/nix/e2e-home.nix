@@ -16,4 +16,8 @@
     "fresh"
   ];
   workstation.foundation.shell.extras = "stty -ixon";
+  # the routine fixture both generations carry: a teardown no switch runs
+  workstation.routines.teardown.e2eKept = ''
+    mkdir -p "$HOME/.cache" && echo "teardown e2eKept" >>"$HOME/.cache/e2e-routines.log"
+  '';
 }
