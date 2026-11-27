@@ -112,7 +112,7 @@ uncaptured() {
 # the apply offer: whiptail yes/no where the dialog tool exists, a printed
 # next step otherwise; WORKSTATION_NO_APPLY=1 skips
 offer_apply() {
-	what=${1:-selection}
+	what=selection
 	if [ "${WORKSTATION_NO_APPLY:-}" = 1 ]; then
 		printf 'workstation: %s saved; apply skipped (WORKSTATION_NO_APPLY=1) — next: workstation apply\n' "$what"
 		return 0
