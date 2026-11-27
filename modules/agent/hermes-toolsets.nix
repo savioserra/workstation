@@ -53,8 +53,8 @@ in
 
         disabledMcpServers = lib.mkOption {
           type = lib.types.listOf lib.types.str;
-          default = [ "rea" ];
-          description = "MCP servers kept disabled in config.yaml (entries the user added and the ruled surface drops).";
+          default = [ ];
+          description = "MCP servers kept disabled in config.yaml (the machine's own entries; the tracked tree names none).";
         };
       };
 
