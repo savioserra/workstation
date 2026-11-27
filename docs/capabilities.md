@@ -69,8 +69,8 @@ option tree applied as a module.
 | `modules/default.nix` | The domain entries (flake-parts modules) |
 | `modules/<domain>/<domain>.nix` | The domain entry: its options and declarations as `flake.modules.homeManager.<domain>`, gated on `workstation.<domain>.enable` (members also on their own flag); imports its feature and member files |
 | `nix/report.nix` | The read verbs from one home eval: rows from the option tree, attribution from `definitionsWithLocations` |
-| `nix/lib/capability.nix` | The module helpers, imported by relative path: `capability` (the enable option + its gate over every enclosing enable), `whenOn` (a contribution guarded by the owning domain's enable), `isOn` (every enable on a path), `shellInit`; the payload helpers ride along |
-| `nix/lib/payload.nix` | The payload helpers, free of the module system: `script`, `overlayTree` |
+| `nix/lib/capability.nix` | The module helpers, imported by relative path: `capability` (the enable option + its gate over every enclosing enable), `whenOn` (a contribution guarded by the owning domain's enable), `themeTokens` (the theme palette per theme); the payload helpers ride along |
+| `nix/lib/payload.nix` | The payload helpers, free of the module system: `script` (a payload file as a program) |
 | `nix/lib/license.nix` | The secrets domain's unfree acceptance (the 1Password CLI): one predicate, applied once in `nix/flake/systems.nix` (the per-system pkgs every leg reads) |
 | `modules/agent/hermes-*.nix` | The agent domain's hot-home surfaces: managed skill leaves (`hermes-skills.nix`), the checkout ensure (`hermes-pin.nix`), the config.yaml ensures (`hermes-toolsets.nix`, `hermes-extensions.nix`) |
 | `modules/<domain>/` payload dirs | Payload assets (`files/`, verify scripts), co-located with the declaring module |

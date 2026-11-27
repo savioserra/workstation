@@ -12,7 +12,6 @@ provider state remain user-owned.
 | --- | --- | --- |
 | Declaration | `modules/<domain>/<domain>.nix` + its feature files (`<domain>-<feature>.nix`) | Native nix: home.file surfaces, tools (nixpkgs), upstream `programs.*`, activation scripts |
 | Payload | `modules/<domain>/` (co-located with the declaring module) | Referenced bytes, copied into the store at eval |
-| Claim composition | `nix/lib/payload.nix` `overlayTree` | Overlapping dir claims compose into one derivation |
 | Deployment | the generation | `home-manager switch` links every target atomically |
 
 Target collisions throw at eval — two capabilities claiming one home target

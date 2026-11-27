@@ -16,8 +16,6 @@ let
 in
 import ./payload.nix { inherit lib pkgs; }
 // {
-  inherit isOn;
-
   # capability [ "languages" "go" ] { description; default?; enable?; options?; config?; }
   # a path is <domain> or <domain>/<member>, the grammar of the selection verbs
   capability =
@@ -62,8 +60,4 @@ import ./payload.nix { inherit lib pkgs; }
   # them into its own setup; empty without the theme domain
   themeTokens = lib.attrByPath [ "workstation" "theme" "tokens" ] { } config;
 
-  shellInit = text: {
-    programs.bash.initExtra = text;
-    programs.zsh.initContent = text;
-  };
 }
