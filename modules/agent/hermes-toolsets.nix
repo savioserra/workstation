@@ -1,5 +1,5 @@
 # The cli session toolsets and the disabled MCP servers, converged into
-# config.yaml at apply by workstation-hermes-toolsets (also a flake package).
+# config.yaml at apply by workstation-hermes-toolsets.
 { wsLib, ... }:
 let
   toolsets =
@@ -15,12 +15,6 @@ let
       };
 in
 {
-  perSystem =
-    { pkgs, ... }:
-    {
-      packages.workstation-hermes-toolsets = toolsets pkgs;
-    };
-
   flake.modules.homeManager.agent =
     {
       config,

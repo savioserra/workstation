@@ -32,9 +32,9 @@ machine's selection pins —, `capabilities` — scope with an attrpath,
 (the plane hubs, class-checked),
 `homeConfigurations` and `nixosConfigurations.<host>` (a linux machine's
 home and system planes), `darwinConfigurations` (a mac's leg),
-`packages.<system>.workstation-hermes-toolsets`, `checks.<system>` (`nix flake check` is
-the canonical validation entry: the declared-state reads, every host leg's
-eval, and the container E2E lane's staged entry).
+`checks.<system>` (`nix flake check` is the canonical validation entry: the
+declared-state reads, every host leg's eval, and the container E2E lane's
+staged entry).
 
 ## The invariants
 
