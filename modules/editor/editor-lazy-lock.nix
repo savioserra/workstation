@@ -28,15 +28,14 @@
     in
     {
       config = ws.whenOn "editor" {
-        home.activation.merge-lazy-lock = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        # the merge runs after the deploy: the deploy owns the config tree,
+        # the merge owns the live lockfile beside it
+        home.activation.merge-lazy-lock = lib.hm.dag.entryAfter [ "writeBoundary" "deploy-nvim-config" ] ''
           lock="$HOME/.config/nvim/lazy-lock.json"
-          work=$(mktemp)
-          trap 'rm -f "$work"' EXIT
-          cp ${mergeProgram} "$work"
           if [ -f "$lock" ]; then
-            ${nvim}/bin/nvim -l "$work" < "$lock" > "$lock.merged"
+            ${nvim}/bin/nvim -l "${mergeProgram}" < "$lock" > "$lock.merged"
           else
-            ${nvim}/bin/nvim -l "$work" < /dev/null > "$lock.merged"
+            ${nvim}/bin/nvim -l "${mergeProgram}" < /dev/null > "$lock.merged"
           fi
           mv "$lock.merged" "$lock"
           echo "workstation: lazy-lock merge applied (${config.home.homeDirectory}/.config/nvim/lazy-lock.json)"
