@@ -62,9 +62,10 @@
           # C.UTF-8 is builtin to glibc and needs no archive generation
           home.sessionVariables = {
             LANG = lib.mkDefault "C.UTF-8";
-            # a nix host outside NixOS resolves locales from the host's archive;
-            # NixOS owns its own path and its own environment
-            LOCALE_ARCHIVE = lib.mkIf (pkgs.stdenv.hostPlatform.isLinux && !builtins.pathExists /etc/NIXOS) (
+            # a host outside NixOS resolves locales from the host's archive;
+            # the NixOS leg owns its own path and its own environment (the leg
+            # that embeds home-manager, not the machine that evaluates it)
+            LOCALE_ARCHIVE = lib.mkIf (pkgs.stdenv.hostPlatform.isLinux && !config.submoduleSupport.enable) (
               lib.mkDefault "/usr/lib/locale/locale-archive"
             );
           };
