@@ -139,13 +139,13 @@ let
   guards = ''
     need_home() {
       if [ -z "$home_attr" ]; then
-        echo "workstation-switch: no default home attr on this leg — set workstation.switch.homeAttr in the host module (or WORKSTATION_SWITCH_HOME_ATTR); this leg's documented mutating seam may be --system" >&2
+        echo "workstation-switch: no home attr on this leg — the machine file carries no home key (a darwin machine has no home plane) and WORKSTATION_SWITCH_HOME_ATTR is unset; this leg's mutating seam is --system" >&2
         exit 2
       fi
     }
     need_system() {
       if [ -z "$system_attr" ]; then
-        echo "workstation-switch: no default system attr on this leg — set workstation.switch.systemAttr in the host module (or WORKSTATION_SWITCH_SYSTEM_ATTR)" >&2
+        echo "workstation-switch: no system attr on this leg — the machine file carries no system key and WORKSTATION_SWITCH_SYSTEM_ATTR is unset" >&2
         exit 2
       fi
     }
