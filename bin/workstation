@@ -74,7 +74,9 @@ nixf() {
 }
 
 nix_eval() {
-	nixf eval --json "$@"
+	# three --quiet: nix's "not writing modified lock file" warning is the
+	# evaluator's business, not the reader's
+	nixf eval --quiet --quiet --quiet --json "$@"
 }
 
 # jq: the staged launcher carries it; a bare checkout builds it from the
@@ -416,18 +418,25 @@ selected)
 add | remove)
 	[ $# -ge 1 ] || die "usage: workstation $verb <path>... (see: workstation help)" 2
 	writable_machine selections
-	changed=0
+	# one read for the whole set: every path is validated before any edit,
+	# so a bad path later in the list leaves the machine file untouched
+	rows=$(nix_eval "$ref#workstation.report.selectable") ||
+		die "the selectable paths could not be read (workstation selected lists them)" 2
 	for path do
 		case $path in
 		*[!A-Za-z0-9_/-]* | "" | /* | */ | */*/*)
 			die "invalid path: $path (the grammar is <domain> or <domain>/<member>, [A-Za-z0-9_-] only)" 2
 			;;
 		esac
-		row=$(nix_eval "$ref#workstation.report.selectable.\"$path\"") ||
-			die "unknown path: $path (workstation selected lists the valid paths)" 2
+		row=$(printf '%s' "$rows" | jqx -rc --arg p "$path" '.[$p] // ""')
+		[ -n "$row" ] || die "unknown path: $path (workstation selected lists the valid paths)" 2
 		if printf '%s' "$row" | grep -q '"baseline":true'; then
 			die "$path is baseline — always on" 2
 		fi
+	done
+	changed=0
+	for path do
+		row=$(printf '%s' "$rows" | jqx -rc --arg p "$path" '.[$p] // ""')
 		keys=$(printf '%s' "$path" | jqx -Rc 'split("/")')
 		cur=$(jqx -r --argjson p "$keys" '.settings.workstation | getpath($p + ["enable"]) | if . == null then "unset" else tostring end' "$machine")
 		if [ "$verb" = add ]; then
