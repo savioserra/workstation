@@ -24,23 +24,42 @@ gate() {
 	hitmsg=$2
 	shift 2
 	rc=0
-	"$@" || rc=$?
+	out=$("$@" 2>&1) || rc=$?
 	case $rc in
 	1) return 0 ;;
 	0)
 		fail=1
-		"$@"
+		if [ -n "$out" ]; then printf '%s\n' "$out"; fi
 		printf '%s\n' "$hitmsg" >&2
 		;;
 	*)
 		fail=1
+		if [ -n "$out" ]; then printf '%s\n' "$out" >&2; fi
 		printf '%s: %s exited %s — failing closed (a gate only passes on a real no-match)\n' "$name" "$1" "$rc" >&2
 		;;
 	esac
 }
+# the identity gate reads git grep's own status: a hit is 0, a real
+# no-match is 1, a tooling failure is any other code and fails closed
+identity_hits() {
+	rc=0
+	out=$(git grep -iE 'savio|shyylol' -- . ':(exclude).github/scripts/check.sh') || rc=$?
+	case $rc in
+	0)
+		hits=$(printf '%s\n' "$out" | grep -vF 'savioserra/workstation' || true)
+		if [ -n "$hits" ]; then
+			printf '%s\n' "$hits"
+			return 0
+		fi
+		return 1
+		;;
+	1) return 1 ;;
+	*) return "$rc" ;;
+	esac
+}
 gate 'identity gate' \
 	'identity gate: hardcoded personal identity in the tracked tree — the legs are templates; hosts/local/machine.json (captured by workstation init, kept uncommitted) is the only identity surface' \
-	sh -c "git grep -iE 'savio|shyylol' -- . ':(exclude).github/scripts/check.sh' | grep -vF 'savioserra/workstation' ; test \$? -ne 1"
+	identity_hits
 
 step 'history-prose gate (the tree describes the current world)'
 # dates, card ids, ruling citations and history words belong in git
