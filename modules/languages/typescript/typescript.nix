@@ -21,11 +21,6 @@
           "linting.eslint"
           "formatting.prettier"
         ];
-        mason = [
-          "typescript-language-server"
-          "eslint-lsp"
-          "prettier"
-        ];
         plugin = ./files/languages/plugins/typescript.lua;
       };
     };

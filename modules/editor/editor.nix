@@ -21,6 +21,7 @@
     let
       ws = wsLib.capability { inherit config lib pkgs; };
       nvim = pkgs.neovim;
+      cfg = config.workstation.editor;
     in
     ws.capability [ "editor" ] {
       description = "neovim and the composed language profile";
@@ -32,17 +33,12 @@
               requires = lib.mkOption {
                 type = lib.types.listOf lib.types.nonEmptyStr;
                 default = [ ];
-                description = "Host capability ids the entry needs (the profile's `requires`).";
+                description = "The language capabilities the entry needs; an entry whose capability is off fails the eval.";
               };
               extras = lib.mkOption {
                 type = lib.types.listOf lib.types.nonEmptyStr;
                 default = [ ];
                 description = "LazyVim extras under lazyvim.plugins.extras (`lang.go`), imported before the base specs.";
-              };
-              mason = lib.mkOption {
-                type = lib.types.listOf lib.types.nonEmptyStr;
-                default = [ ];
-                description = "Mason packages (each pinned in mason-lock.json).";
               };
               plugin = lib.mkOption {
                 type = lib.types.nullOr lib.types.path;
@@ -57,6 +53,19 @@
       };
 
       config = {
+        # an entry whose language capability is off is a broken profile: the
+        # assertion names the selection that fixes it
+        assertions = lib.concatLists (
+          lib.mapAttrsToList (
+            id: entry:
+            map (req: {
+              assertion =
+                builtins.hasAttr req config.workstation.languages && config.workstation.languages.${req}.enable;
+              message = "the editor's ${id} entry needs the ${req} language capability — enable it: workstation add languages/${req}";
+            }) entry.requires
+          ) cfg.languages
+        );
+
         home.packages = [ pkgs.tree-sitter ];
 
         home.sessionVariables = {

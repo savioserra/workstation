@@ -24,7 +24,6 @@
       };
       editor = {
         extras = [ "lang.elixir" ];
-        mason = [ "elixir-ls" ];
         plugin = ./files/languages/plugins/elixir.lua;
       };
     };

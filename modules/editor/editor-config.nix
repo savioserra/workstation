@@ -37,7 +37,6 @@
         lib.filterAttrs (_: v: v != null && v != [ ]) {
           inherit (l) id requires;
           lazyvim_extras = map (e: extrasPrefix + e) l.extras;
-          mason_packages = l.mason;
           plugin_module = if l.plugin == null then null else "languages.plugins.${l.id}";
         };
 
