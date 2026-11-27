@@ -9,11 +9,6 @@
 {
   options.workstation = {
     machine = {
-      host = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-        description = "The machine's captured host name (machine.json).";
-      };
       checkout = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
         default = null;

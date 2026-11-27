@@ -52,7 +52,6 @@ in
         systemAttr = systemKey;
       };
       workstation.machine = {
-        inherit host;
         checkout = m.checkout or null;
         vault = m.vault or null;
       };

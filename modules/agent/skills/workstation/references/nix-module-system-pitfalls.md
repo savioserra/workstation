@@ -88,9 +88,9 @@
   parts are separate modules or `lib.mkMerge [ … (lib.mkIf c { … }) ]`;
   optional values are nullable options a consumer reads.
 - **The machine file sets identity, the domains read it.**
-  `workstation.machine.{host,checkout,vault}` is declared by the home
+  `workstation.machine.{checkout,vault}` is declared by the home
   plane and set by `nix/lib/machine.nix`; a domain derives its own option
-  from it (`default = …machine.vault`, `lib.mkDefault …machine.host`) — the
+  from it (`default = …machine.vault`) — the
   lib never names a domain's option.
 
 - **A module with `options`/`config` keys must put every definition inside
