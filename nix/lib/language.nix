@@ -17,7 +17,10 @@ in
   language =
     path: spec:
     ws.capability path (
-      spec
+      lib.removeAttrs spec [
+        "editor"
+        "tools"
+      ]
       // {
         config = lib.mkMerge [
           { workstation.languages.tools = spec.tools or { }; }

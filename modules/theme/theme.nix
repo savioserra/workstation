@@ -131,7 +131,6 @@
 
     in
     ws.capability [ "theme" ] {
-      imports = [ ./theme-picker.nix ];
       description = "the themes, the picker and the consumer files";
       default = true;
       options = {

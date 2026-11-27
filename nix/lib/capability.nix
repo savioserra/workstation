@@ -26,6 +26,18 @@ import ./payload.nix { inherit lib pkgs; }
       1
       2
     ]) "capability: the path ${lib.concatStringsSep "/" path} must be <domain> or <domain>/<member>";
+    let
+      specKeys = [
+        "config"
+        "default"
+        "description"
+        "enable"
+        "options"
+      ];
+      unknown = builtins.filter (k: !(builtins.elem k specKeys)) (builtins.attrNames spec);
+    in
+    assert lib.assertMsg (unknown == [ ])
+      "capability: ${lib.concatStringsSep "/" path}: unknown spec key(s) ${lib.concatStringsSep ", " unknown} (the known keys: ${lib.concatStringsSep ", " specKeys})";
     {
       options.workstation = lib.setAttrByPath path (
         {
