@@ -115,7 +115,7 @@
             fi
           else
             head=$("$git_" -C "$checkout" rev-parse HEAD 2>/dev/null || true)
-            dirty=$("$git_" -C "$checkout" status --porcelain 2>/dev/null | head -n 1)
+            dirty=$("$git_" -C "$checkout" status --porcelain 2>/dev/null | head -n 1 || true)
             if [ -n "$dirty" ]; then
               echo "workstation: hermes checkout dirty — runtime state untouched"
             elif [ "$head" = "$rev" ]; then
