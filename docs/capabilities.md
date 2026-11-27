@@ -72,7 +72,7 @@ option tree applied as a module.
 | `nix/lib/capability.nix` | The module helpers, imported by relative path: `capability` (the enable option + its gate over every enclosing enable), `whenOn` (a contribution guarded by the owning domain's enable), `themeTokens` (the theme palette per theme); the payload helpers ride along |
 | `nix/lib/payload.nix` | The payload helpers, free of the module system: `script` (a payload file as a program) |
 | `nix/lib/license.nix` | The secrets domain's unfree acceptance (the 1Password CLI): one predicate, applied once in `nix/flake/systems.nix` (the per-system pkgs every leg reads) |
-| `modules/agent/hermes-*.nix` | The agent domain's hot-home surfaces: managed skill leaves (`hermes-skills.nix`), the checkout ensure (`hermes-pin.nix`), the config.yaml ensures (`hermes-toolsets.nix`, `hermes-extensions.nix`) |
+| `modules/agent/hermes-*.nix` | The agent domain's hot-home surfaces: managed skill leaves (`hermes-skills.nix`), the checkout ensure (`hermes-pin.nix`), the config.yaml ensure (`hermes-toolsets.nix`), the skin (`hermes-skin.nix`) |
 | `modules/<domain>/` payload dirs | Payload assets (`files/`, verify scripts), co-located with the declaring module |
 | `modules/theme/themes/*.nix` | The themes (`dark`, `light`): appearance + a `#rrggbb` palette per role — nix data typed by `workstation.theme.themes` |
 
@@ -210,8 +210,6 @@ and sorted, never hidden.
   dev workflow + references) is authored at
   `modules/agent/skills/workstation`; `hsql` is generated from the
   harlequin derivation by `hsql --skill` at build time.
-- Gateway extensions: `programs.hermes.extensions` → entry symlinks into
-  `~/.hermes/plugins/<name>`.
 - Verify: `modules/agent/verify/hermes.sh` — checkout at the deployed pin,
   store-symlink skills, interpreter, launcher `--version` consumer smoke;
   full-stack or exit 1. Hosts: all.

@@ -4,7 +4,6 @@
 # | hermes-pin.nix | the pin, the interpreter floor, the pin manifest, the checkout ensure |
 # | hermes-launcher.nix | the launcher derivation and its PATH links |
 # | hermes-skills.nix | served skills, the authored skills, the bundled-name guard |
-# | hermes-extensions.nix | gateway extensions and their enable ensure |
 # | hermes-toolsets.nix | cli toolsets and disabled MCP servers |
 # | hermes-skin.nix | a skin per theme, the pick's skin reload |
 { wsLib, ... }:
@@ -13,7 +12,6 @@
     ./hermes-pin.nix
     ./hermes-launcher.nix
     ./hermes-skills.nix
-    ./hermes-extensions.nix
     ./hermes-toolsets.nix
     ./hermes-skin.nix
   ];
