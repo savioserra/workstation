@@ -36,7 +36,9 @@
       config = {
         home.sessionVariables.WORKSTATION_VAULT = vault;
         home.sessionVariablesExtra = ''
-          [ -r ${envFile} ] && { set -a; . ${envFile}; set +a; }
+          if [ -r ${envFile} ]; then
+            set -a; . ${envFile}; set +a
+          fi
         '';
         home.packages = [ pkgs._1password-cli ];
       };
