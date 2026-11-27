@@ -11,33 +11,13 @@ permissions:
   contents: read
 
 jobs:
-  # the static battery: identity gate, history-prose gate, shell syntax +
-  # ShellCheck, the launcher shim's dispatch gate (stubbed nix — no nix
-  # install needed), whitespace. The nix-eval read gate inside check.sh
-  # self-skips here and is owned by the nix job below plus the docker
-  # acceptance (docs/testing.md).
-  static:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          persist-credentials: false
-
-      # runner-provided; no unpinned lint downloads
-      - name: Confirm ShellCheck is available
-        shell: bash
-        run: command -v shellcheck
-
-      - name: Run the check matrix
-        shell: bash
-        run: sh .github/scripts/check.sh
-
-  # the nix leg: the declared-state reads and the flake's eval surface.
-  # Evaluation only — closure builds are the docker acceptance's job
-  # (docs/testing.md); this proves the reads answer and every host leg
-  # still evaluates on a clean checkout.
-  nix-evals:
+  # the check matrix: the identity gate, the history-prose gate, the shell
+  # syntax and ShellCheck gates, the format gate, the launcher shim's
+  # dispatch gate (a stub nix), the nix eval read gate and the whitespace
+  # gate. The gate tools come from the flake's lock, so the job installs
+  # nix: the battery, the CI job and the docker lane run the same
+  # ShellCheck and nixfmt.
+  battery:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -47,32 +27,9 @@ jobs:
 
       - uses: DeterminateSystems/nix-installer-action@e50d5f73bfe71c2dd0aa4218de8f4afa59f8f81d # v16
 
-      - name: The nixfmt gate (RFC 166 formatting is CI-enforced)
+      - name: Run the check matrix
         shell: bash
-        run: nix run nixpkgs#nixfmt-rfc-style -- --check $(git ls-files '*.nix')
-
-      - name: Evaluate the declared-state reads
-        shell: bash
-        run: |
-          set -euo pipefail
-          for verb in status plan capabilities; do
-            nix eval --json ".#workstation.report.$verb" > /dev/null
-          done
-          nix eval --json .#workstation.report.status.counts
-
-      - name: Evaluate every host leg
-        shell: bash
-        run: |
-          set -euo pipefail
-          for system in $(nix eval --json .#nixosConfigurations --apply 'builtins.attrNames' | tr -d '[]\" ' | tr ',' ' '); do
-            nix eval --raw ".#nixosConfigurations.$system.config.system.build.toplevel.drvPath" > /dev/null
-          done
-          for system in $(nix eval --json .#darwinConfigurations --apply 'builtins.attrNames' | tr -d '[]" ' | tr ',' ' '); do
-            nix eval --raw ".#darwinConfigurations.$system.config.system.build.toplevel.drvPath" > /dev/null
-          done
-          for home in $(nix eval --json .#homeConfigurations --apply 'builtins.attrNames' | tr -d '[]" ' | tr ',' ' '); do
-            nix eval --raw ".#homeConfigurations.$home.activationPackage.drvPath" > /dev/null
-          done
+        run: sh .github/scripts/check.sh
 
   # the canonical validation entry: `nix flake check` — the flake's checks
   # output (the declared-state reads, every host leg's eval, and the

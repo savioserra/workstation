@@ -71,24 +71,52 @@ gate 'history-prose gate' \
 	git grep -nIE "$history_pattern" -- . ':(exclude)*.lock' ':(exclude)*-lock.json'
 
 
-step 'shell syntax (sh -n) and ShellCheck when available'
+step 'the gate tools (the lock carries ShellCheck and nixfmt)'
+# the battery, the CI job and the docker lane run the same tools: the
+# lock's. Without a nix install the PATH tools answer.
+locked_tool() {
+	nix --extra-experimental-features 'nix-command flakes' build --no-link \
+		--print-out-paths --inputs-from "$repo_root" "nixpkgs#$1" 2>/dev/null |
+		tail -n 1 |
+		sed "s|\$|/bin/$2|"
+}
+shellcheck_bin=
+nixfmt_bin=
+if command -v nix >/dev/null 2>&1; then
+	shellcheck_bin=$(locked_tool shellcheck.bin shellcheck)
+	nixfmt_bin=$(locked_tool nixfmt nixfmt)
+	if [ -z "$shellcheck_bin" ] || [ -z "$nixfmt_bin" ]; then
+		printf 'the locked gate tools did not build (shellcheck, nixfmt)\n' >&2
+		exit 1
+	fi
+else
+	if command -v shellcheck >/dev/null 2>&1; then
+		shellcheck_bin=$(command -v shellcheck)
+	fi
+	if command -v nixfmt >/dev/null 2>&1; then
+		nixfmt_bin=$(command -v nixfmt)
+	fi
+fi
+printf 'shellcheck: %s\nnixfmt: %s\n' "${shellcheck_bin:-absent}" "${nixfmt_bin:-absent}"
+
+step 'shell syntax (sh -n) and ShellCheck'
 {
 	find bin modules .github/scripts tests hosts -type f \( -name '*.sh' -o -name 'workstation' \) -print
 	printf 'install.sh\n'
 } | while IFS= read -r file; do
 	sh -n "$file" || exit 1
-	if command -v shellcheck >/dev/null 2>&1; then
-		shellcheck -s sh "$file" || exit 1
+	if [ -n "$shellcheck_bin" ]; then
+		"$shellcheck_bin" -s sh "$file" || exit 1
 	fi
 done || fail=1
-if ! command -v shellcheck >/dev/null 2>&1; then
+if [ -z "$shellcheck_bin" ]; then
 	printf 'ShellCheck unavailable here; required in the Linux CI job.\n' >&2
 fi
 
-step 'nixfmt-rfc-style gate (RFC 166)'
-if command -v nixfmt >/dev/null 2>&1; then
+step 'nixfmt gate (RFC 166)'
+if [ -n "$nixfmt_bin" ]; then
 	{ find flake.nix modules nix hosts tests -type f -name '*.nix' -print; } |
-		xargs nixfmt --check || fail=1
+		xargs "$nixfmt_bin" --check || fail=1
 else
 	printf 'nixfmt unavailable here; the nix CI job owns the format gate.\n' >&2
 fi

@@ -6,15 +6,23 @@
 sh .github/scripts/check.sh
 ```
 
-The static battery: the nix identity gate (per-host identity lives only in
+The check matrix: the nix identity gate (per-host identity lives only in
 `hosts/local/`, gitignored), the history-prose gate, `sh -n` +
-ShellCheck over the shell surfaces, the launcher shim's dispatch gate (a
-stub `nix` and a stub `workstation-switch` — dispatch, flake resolution
-order, delegation and fail-closed paths, no nix install needed), the nix
-eval read gate (`#workstation.report.<verb>` answers — self-skipped where
-nix is absent; the docker acceptance owns it there), and
-`git diff --check`. ShellCheck is required in Linux CI; report local
-absence.
+ShellCheck over the shell surfaces, the format gate (nixfmt), the launcher
+shim's dispatch gate (a stub `nix` and a stub `workstation-switch` —
+dispatch, flake resolution order, delegation and fail-closed paths), the
+nix eval read gate (`#workstation.report.<verb>` answers — self-skipped
+where nix is absent; the docker acceptance owns it there), and
+`git diff --check`.
+
+| Tool | Source |
+| --- | --- |
+| ShellCheck, nixfmt | the flake's lock (`nix build --inputs-from . nixpkgs#…`) where nix answers; the PATH tools without nix |
+| the identity gate, the history gate | `git grep` over the tracked tree |
+
+The gate tools come from the lock: the battery, the CI job and the
+docker lane run the same ShellCheck and nixfmt. Without a nix install
+the battery runs the PATH tools and reports the absence.
 
 Verification beyond the battery is behavioral
 (docs/architecture.md):
@@ -36,8 +44,9 @@ persistent store volume works; build from `git archive HEAD` extractions —
 worktree gitdirs do not resolve in containers) and explicit authorization.
 The lane map — which lane proves what:
 
-- **The static battery** (`sh .github/scripts/check.sh`) — offline source
-  gates, universal: any checkout, no nix required.
+- **The check matrix** (`sh .github/scripts/check.sh`) — source gates,
+  universal: any checkout; the gate tools come from the lock where nix
+  answers.
 - **The eval gates** — the DECLARED surface, universal where nix runs
   (locally via the docker-nix recipe, and CI's nix jobs): `nix flake
   check` evaluates the declared-state reads, every host leg's toplevel

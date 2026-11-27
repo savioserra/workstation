@@ -9,7 +9,7 @@
 | `flake.nix`, `nix/` | The substrate: the flake-parts modules (`nix/flake`), the machine file, the report verbs, the switch driver, the home/system/host modules |
 | `bin/workstation` | The launcher shim (POSIX sh): flake resolution + verb dispatch; reads are nix evals, writes run the staged switch driver — the operator types `workstation` only |
 | `hosts/` | `linux` (the linux leg; NixOS-WSL system plane), `mac` (nix-darwin); `template/` the machine-file template, `local/` the machine's copy written by `workstation init` (gitignored) |
-| `.github/workflows/ci.yml` | The static battery + the nix evaluation leg |
+| `.github/workflows/ci.yml` | The check matrix + the flake check + the container E2E |
 | `.github/workflows/release.yml` | Tagged source archives |
 | `modules/` | Capability domains, one directory each — module + payload bytes co-located (adding a capability is adding one directory) — each domain owns its tools (the one nixpkgs input) and its remaining pins |
 

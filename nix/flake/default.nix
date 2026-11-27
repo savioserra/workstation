@@ -8,6 +8,7 @@
 # | legs.nix | the leg builders: home, linux (NixOS-WSL), mac (nix-darwin) |
 # | outputs.nix | the machine's configurations and `workstation` (report, rev, keys) |
 # | checks.nix | the check surface on the CI system |
+# | formatter.nix | the lock's formatter (`nix fmt`) |
 # | ../../modules | the capability domains |
 { inputs, ... }:
 {
@@ -22,6 +23,7 @@
     ./legs.nix
     ./outputs.nix
     ./checks.nix
+    ./formatter.nix
     ../../modules
   ];
 }
