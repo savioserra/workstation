@@ -39,6 +39,9 @@
           ${pkgs.gnused}/bin/sed -i 's|assert IDE_THEMES == frozenset(VALID_THEMES)|assert IDE_THEMES == frozenset(VALID_THEMES) - {"starlight-dark", "starlight-light"}|' tests/unit_tests/test_hsql.py
         '';
       });
+      # the starlight pair rides the theme tokens: without the theme domain
+      # harlequin ships its own themes
+      harlequinPkg = if config.workstation.theme.enable then harlequinStarlight else pkgs.harlequin;
       hsqlSkill =
         pkgs.runCommand "hsql-agent-skill-${pkgs.harlequin.version}"
           {
@@ -57,7 +60,7 @@
       description = "harlequin and the hsql agent skill";
       default = true;
       config = {
-        home.packages = [ harlequinStarlight ];
+        home.packages = [ harlequinPkg ];
         programs.hermes.skills = ws.whenOn "agent" {
           hsql = {
             enable = true;

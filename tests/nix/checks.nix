@@ -37,6 +37,15 @@ in
   mac-leg-eval = evalCheck "mac-leg-eval" legs.mac.config.system.build.toplevel.drvPath;
   home-legs-eval = evalCheck "home-legs-eval" legs.home.activationPackage.drvPath;
 
+  # the theme domain off: a consumer guards its theme contribution, so the
+  # home leg still evaluates without the tokens
+  home-minus-theme-eval =
+    evalCheck "home-minus-theme-eval"
+      (home pkgs.stdenv.hostPlatform.system [
+        ./e2e-home.nix
+        { workstation.theme.enable = false; }
+      ]).activationPackage.drvPath;
+
   e2e-home = e2eHome ./e2e-selections.nix;
   e2e-minus-go-home = e2eHome ./e2e-selections-minus-go.nix;
   e2e-driver = pkgs.callPackage ./e2e.nix {
