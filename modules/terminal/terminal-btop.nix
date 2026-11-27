@@ -18,6 +18,18 @@
         workstation.theme = ws.whenOn "theme" {
           consumers.btop = {
             file = "btop.theme";
+            target = ".config/btop/themes/starlight.theme";
+            # the pick owns the colors: btop reads the starlight theme file,
+            # the link follows the pick; the rest of btop.conf stays
+            # user-owned
+            activate = ''
+              mkdir -p ${config.home.homeDirectory}/.config/btop/themes
+              if [ -f ${config.home.homeDirectory}/.config/btop/btop.conf ]; then
+                ${pkgs.gnused}/bin/sed -i 's|^color_theme.*|color_theme = "starlight"|' ${config.home.homeDirectory}/.config/btop/btop.conf
+              else
+                printf 'color_theme = "starlight"\n' > ${config.home.homeDirectory}/.config/btop/btop.conf
+              fi
+            '';
             render =
               t:
               let
@@ -58,26 +70,6 @@
           };
         };
 
-        home.file.".config/btop/themes/starlight.theme" =
-          if config.workstation.theme.enable then
-            {
-              source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.local/state/workstation/theme/current/btop.theme";
-            }
-          else
-            { enable = false; };
-
-        # the pick owns the colors: btop reads the starlight theme file, the
-        # symlink follows the pick; the rest of btop.conf stays user-owned
-        home.activation.btop-theme = lib.mkIf config.workstation.theme.enable (
-          lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-            mkdir -p ${config.home.homeDirectory}/.config/btop/themes
-            if [ -f ${config.home.homeDirectory}/.config/btop/btop.conf ]; then
-              ${pkgs.gnused}/bin/sed -i 's|^color_theme.*|color_theme = "starlight"|' ${config.home.homeDirectory}/.config/btop/btop.conf
-            else
-              printf 'color_theme = "starlight"\n' > ${config.home.homeDirectory}/.config/btop/btop.conf
-            fi
-          ''
-        );
       };
     };
 }

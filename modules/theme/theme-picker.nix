@@ -51,9 +51,20 @@
     {
       config = ws.whenOn "theme" {
         home.packages = [ program ];
-        home.file.".local/share/workstation/themes".source = themeTree;
+        # the theme tree and the consumer links: the state path belongs to
+        # the theme domain
+        home.file = lib.mkMerge [
+          { ".local/share/workstation/themes".source = themeTree; }
+          (lib.mapAttrs' (
+            name: c:
+            lib.nameValuePair c.target {
+              source = config.lib.file.mkOutOfStoreSymlink "${home}/.local/state/workstation/theme/current/${c.file}";
+            }
+          ) (lib.filterAttrs (_: c: c.target != null && c.file != null) cfg.consumers))
+        ];
         home.activation.workstation-theme = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
           ${program}/bin/workstation-theme seed || true
+          ${lib.concatMapStrings (c: c.activate) (builtins.attrValues cfg.consumers)}
         '';
       };
     };

@@ -110,6 +110,16 @@
             default = null;
             description = "The consumer's file inside each theme dir; null for a reload-only consumer.";
           };
+          target = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+            description = "The home path the consumer's rendered file is linked to; the theme domain owns the link.";
+          };
+          activate = lib.mkOption {
+            type = lib.types.lines;
+            default = "";
+            description = "Shell lines the theme domain runs at activation, after the pick is seeded.";
+          };
           render = lib.mkOption {
             type = lib.types.functionTo lib.types.lines;
             default = _: "";

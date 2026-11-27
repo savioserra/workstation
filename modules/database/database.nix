@@ -70,6 +70,7 @@
         workstation.theme = ws.whenOn "theme" {
           consumers.harlequin = {
             file = "harlequin.toml";
+            target = ".config/harlequin/config.toml";
             # harlequin only accepts its builtin textual themes: the appearance maps
             # harlequin only accepts its registered builtin textual themes: the
             # appearance maps onto the injected starlight pair
@@ -86,13 +87,6 @@
               '';
           };
         };
-        home.file.".config/harlequin/config.toml" =
-          if config.workstation.theme.enable then
-            {
-              source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.local/state/workstation/theme/current/harlequin.toml";
-            }
-          else
-            { enable = false; };
       };
     };
 }

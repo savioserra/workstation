@@ -42,10 +42,12 @@ order (the base/standard entry is the editor module's own).
 | Option field | Profile field | Shape / use |
 | --- | --- | --- |
 | `<id>` (the attr name) | `id` | Unique profile id |
-| `requires` | `requires` | Host capability ids |
+| `requires` | `requires` | The language capabilities the entry needs; an entry whose capability is off fails the eval (the message names the selection) |
 | `extras` | `lazyvim_extras` | Names under `lazyvim.plugins.extras.` (`lang.go`); imported before base custom specs |
 | `plugin` | `plugin_module` = `languages.plugins.<id>` | The spec file, deployed as `lua/languages/plugins/<id>.lua`; imported after base custom specs |
-| `mason` | `mason_packages` | Package names; verification requires entries in `mason-lock.json` |
+
+The Mason packages are the payload's `mason-lock.json` — the lockfile pins
+the versions, the editor restores them from it.
 
 The behavior cases (`language_cases`/`formatter_cases`) stay payload data:
 they feed the verify lane's parser/LSP and formatter checks, not the
