@@ -54,7 +54,7 @@ case "\$*" in
     exit 0
     ;;
   *"report.selectable"*)
-    printf '%s\n' '{"languages/elixir":{"baseline":false,"default":false,"kind":"member"},"languages/go":{"baseline":false,"default":false,"kind":"member"},"languages/node":{"baseline":false,"default":false,"kind":"member"},"languages/typescript":{"baseline":false,"default":false,"kind":"member"},"editor":{"baseline":false,"default":true,"kind":"domain"},"foundation":{"baseline":true,"default":true,"kind":"baseline"}}'
+    printf '%s\n' '{"foundation":{"baseline":true,"default":true,"kind":"baseline"},"editor":{"baseline":false,"default":true,"kind":"domain"},"terminal":{"baseline":false,"default":true,"kind":"domain"},"terminal/zellij":{"baseline":false,"default":true,"kind":"domain"},"theme":{"baseline":false,"default":true,"kind":"domain"},"fonts":{"baseline":false,"default":true,"kind":"domain"},"secrets":{"baseline":false,"default":true,"kind":"domain"},"agent":{"baseline":false,"default":true,"kind":"domain"},"languages":{"baseline":false,"default":true,"kind":"domain"},"network":{"baseline":false,"default":false,"kind":"member"},"languages/elixir":{"baseline":false,"default":false,"kind":"member"},"languages/go":{"baseline":false,"default":false,"kind":"member"},"languages/node":{"baseline":false,"default":false,"kind":"member"},"languages/typescript":{"baseline":false,"default":false,"kind":"member"}}'
     exit 0
     ;;
 esac
@@ -110,7 +110,7 @@ rc=0
 # 2
 out=$("$shim" --flake "$repo_root" status) || fail 'status with an explicit flake failed'
 [ "$out" = '{"stub":true}' ] || fail 'the read must print the eval stdout unchanged'
-expect_log "eval --json $repo_ref#workstation.report.status$repo_ovr"
+expect_log "eval --quiet --quiet --quiet --json $repo_ref#workstation.report.status$repo_ovr"
 
 # 3
 WORKSTATION_FLAKE=$repo_root "$shim" plan >/dev/null || fail 'plan via WORKSTATION_FLAKE failed'
@@ -188,6 +188,16 @@ for bad in foundation 'bad;path' a/b/c /leading nonsense; do
 	[ "$rc" = 2 ] || fail "add '$bad' must exit 2 (got $rc)"
 done
 [ "$before" = "$(cat "$sf/hosts/local/machine.json")" ] || fail 'the refusals must not touch the file'
+# a refused path in a list leaves the file untouched: every path is
+# validated before any edit
+rc=0
+sel add languages/go 'bad;path' >"$root/err" 2>&1 || rc=$?
+[ "$rc" = 2 ] || fail "an invalid path in a list must exit 2 (got $rc)"
+[ "$before" = "$(cat "$sf/hosts/local/machine.json")" ] || fail 'a refused path must leave the machine file untouched'
+rc=0
+sel add languages/go nope >"$root/err" 2>&1 || rc=$?
+[ "$rc" = 2 ] || fail "an unknown path in a list must exit 2 (got $rc)"
+[ "$before" = "$(cat "$sf/hosts/local/machine.json")" ] || fail 'an unknown path must leave the machine file untouched'
 nofile=$root/nofileflake
 mkdir -p "$nofile/hosts"
 rc=0
