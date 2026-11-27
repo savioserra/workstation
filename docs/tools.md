@@ -30,7 +30,8 @@ Platforms: linux x86_64 (WSL counts as linux), macOS arm64.
 | 1Password CLI | 2.41.x | nixpkgs (`modules/secrets/secrets.nix`; unfree — the acceptance is `nix/lib/license.nix`) | `op` on PATH via `home.packages` | linux-x86_64, darwin-arm64 |
 | Hermes Agent | rev `8fc037444` (v0.23.4) + interpreter `pkgs.python314` | github.com/NousResearch/hermes-agent; nixpkgs (python 3.14.10, the interpreter floor) | Pinned checkout `~/.hermes/hermes-agent` (activation ensure); interpreter at `.local/opt/hermes/python`; launcher at `.local/bin/hermes`; skills as store entry symlinks (`programs.hermes.skills`); extensions into `~/.hermes/plugins`; verify anchor `.local/opt/hermes/pin.json` | linux-x86_64, darwin-arm64 |
 | JetBrainsMono Nerd Font | 3.5.0 | nixpkgs (`modules/fonts/fonts.nix`) | linux `.local/share/fonts/JetBrainsMonoNerdFont`; darwin `Library/Fonts/JetBrainsMonoNerdFont`; fontconfig enabled | linux-x86_64, darwin-arm64 |
-| zellij | 0.46.0 | nixpkgs | the zellij member (`programs.zellij`); the system legs (NixOS, darwin) | linux-x86_64, darwin-arm64 |
+| tmux | 3.8 | nixpkgs | the tmux member (`pkgs.tmux`); the system legs (NixOS, darwin) | linux-x86_64, darwin-arm64 |
+| tmux2k | d8c5c29 | GitHub pin | the tmux member's status plugin (`modules/terminal/tmux/tmux.nix`) | linux-x86_64, darwin-arm64 |
 | btop | 1.4.7 | nixpkgs | the terminal domain (`home.packages`, every leg); the system legs (NixOS, darwin) | linux-x86_64, darwin-arm64 |
 
 ## Pin maintenance

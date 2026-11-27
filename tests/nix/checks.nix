@@ -91,19 +91,6 @@ in
         mkdir -p "$out"
       '';
 
-  hermes-pane-resume =
-    pkgs.runCommand "workstation-check-hermes-pane-resume"
-      {
-        nativeBuildInputs = [
-          pkgs.python3
-          pkgs.procps
-        ];
-      }
-      ''
-        bash ${./hermes-pane-resume.sh} ${../../modules/agent/files/hermes-pane-resume.sh} ${pkgs.python3}/bin/python3
-        mkdir -p "$out"
-      '';
-
   lazy-lock-merge =
     pkgs.runCommand "workstation-check-lazy-lock-merge"
       {

@@ -42,7 +42,7 @@ case "\$*" in
     p=\$(printf '%s' "\$*" | sed -n 's/.*selectable."\([^"]*\)".*/\1/p')
     case "\$p" in
       foundation) printf '{"baseline":true,"default":true,"kind":"baseline"}\n' ;;
-      editor | terminal | terminal/zellij | theme | fonts | secrets | agent | languages)
+      editor | terminal | terminal/tmux | theme | fonts | secrets | agent | languages)
         printf '{"baseline":false,"default":true,"kind":"domain"}\n' ;;
       network | languages/elixir | languages/go | languages/node | languages/typescript)
         printf '{"baseline":false,"default":false,"kind":"member"}\n' ;;
@@ -54,7 +54,7 @@ case "\$*" in
     exit 0
     ;;
   *"report.selectable"*)
-    printf '%s\n' '{"foundation":{"baseline":true,"default":true,"kind":"baseline"},"editor":{"baseline":false,"default":true,"kind":"domain"},"terminal":{"baseline":false,"default":true,"kind":"domain"},"terminal/zellij":{"baseline":false,"default":true,"kind":"domain"},"theme":{"baseline":false,"default":true,"kind":"domain"},"fonts":{"baseline":false,"default":true,"kind":"domain"},"secrets":{"baseline":false,"default":true,"kind":"domain"},"agent":{"baseline":false,"default":true,"kind":"domain"},"languages":{"baseline":false,"default":true,"kind":"domain"},"network":{"baseline":false,"default":false,"kind":"member"},"languages/elixir":{"baseline":false,"default":false,"kind":"member"},"languages/go":{"baseline":false,"default":false,"kind":"member"},"languages/node":{"baseline":false,"default":false,"kind":"member"},"languages/typescript":{"baseline":false,"default":false,"kind":"member"}}'
+    printf '%s\n' '{"foundation":{"baseline":true,"default":true,"kind":"baseline"},"editor":{"baseline":false,"default":true,"kind":"domain"},"terminal":{"baseline":false,"default":true,"kind":"domain"},"terminal/tmux":{"baseline":false,"default":true,"kind":"domain"},"theme":{"baseline":false,"default":true,"kind":"domain"},"fonts":{"baseline":false,"default":true,"kind":"domain"},"secrets":{"baseline":false,"default":true,"kind":"domain"},"agent":{"baseline":false,"default":true,"kind":"domain"},"languages":{"baseline":false,"default":true,"kind":"domain"},"network":{"baseline":false,"default":false,"kind":"member"},"languages/elixir":{"baseline":false,"default":false,"kind":"member"},"languages/go":{"baseline":false,"default":false,"kind":"member"},"languages/node":{"baseline":false,"default":false,"kind":"member"},"languages/typescript":{"baseline":false,"default":false,"kind":"member"}}'
     exit 0
     ;;
 esac

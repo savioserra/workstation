@@ -155,11 +155,6 @@ writeShellScriptBin "workstation-e2e" ''
     || fail "agent runtime stack" "the deployed pin manifest carries no engine rev"
   pass "agent runtime stack"
 
-  step "hermes pane resume helper staged beside the launcher"
-  [ -x "$(dirname "$(readlink -f "$home/.local/bin/hermes")")/hermes-pane-resume" ] \
-    || fail "pane resume" "hermes-pane-resume is not beside the launcher"
-  pass "pane resume"
-
   step "agent skills served as declared entry symlinks"
   [ -L "$home/.hermes/skills/secrets" ] \
     || fail "agent skills" "$home/.hermes/skills/secrets is not the declared entry symlink"
@@ -192,43 +187,23 @@ writeShellScriptBin "workstation-e2e" ''
   esac
   pass "hsql skill version"
 
-  step "zellij plane (managed config, resurrection on, a session resurrectable after it ends)"
-  zconf="$home/.config/zellij/config.kdl"
-  [ -r "$zconf" ] \
-    || fail "zellij plane" "$zconf missing"
-  grep -qx 'session_serialization true' "$zconf" \
-    || fail "zellij plane" "the managed config does not turn session serialization on"
-  grep -qx 'serialize_pane_viewport false' "$zconf" \
-    || fail "zellij plane" "the managed config does not keep the pane viewport off disk"
-  grep -qx 'keybinds preset="unlock-first"' "$zconf" \
-    || fail "zellij plane" "the managed config does not select the unlock-first keybinds"
-  zellij_bin=$(find_client zellij) || fail "zellij plane" "zellij is not on PATH"
-  "$zellij_bin" setup --check >/dev/null 2>&1 \
-    || fail "zellij plane" "zellij setup --check rejects the managed config"
-  "$zellij_bin" attach --create-background e2e-z >/dev/null 2>&1 \
-    || fail "zellij plane" "a background session did not start on the managed config"
-  "$zellij_bin" list-sessions --no-formatting 2>/dev/null | grep -q '^e2e-z ' \
-    || fail "zellij plane" "the background session is not listed"
-  # a save right after the start writes only the metadata: save until the
-  # layout lands
-  zinfo="''${XDG_CACHE_HOME:-$home/.cache}/zellij/contract_version_1/session_info"
-  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-    "$zellij_bin" -s e2e-z action save-session >/dev/null 2>&1
-    ls "$zinfo"/*/session-layout.kdl >/dev/null 2>&1 && break
-    sleep 0.5
-  done
-  ls "$zinfo"/*/session-layout.kdl >/dev/null 2>&1 \
-    || fail "zellij plane" "the session did not serialize its layout"
-  "$zellij_bin" kill-session e2e-z >/dev/null 2>&1 \
-    || fail "zellij plane" "the session did not end"
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    "$zellij_bin" list-sessions --no-formatting 2>/dev/null | grep -q '^e2e-z .*EXITED' && break
-    sleep 1
-  done
-  "$zellij_bin" list-sessions --no-formatting 2>/dev/null | grep -q '^e2e-z .*EXITED' \
-    || fail "zellij plane" "the ended session is not resurrectable"
-  "$zellij_bin" delete-session --force e2e-z >/dev/null 2>&1 || true
-  pass "zellij plane"
+  step "tmux plane (the managed config, the tmux2k plugin, an isolated server parses it)"
+  tconf="$home/.tmux.conf"
+  [ -r "$tconf" ] \
+    || fail "tmux plane" "$tconf missing"
+  [ -L "$home/.config/tmux/tmux.conf" ] \
+    || fail "tmux plane" "the XDG config symlink is missing"
+  [ -d "$home/.tmux/plugins/tmux2k" ] \
+    || fail "tmux plane" "the tmux2k plugin checkout is missing"
+  grep -q '@tmux2k-theme' "$tconf" \
+    || fail "tmux plane" "the managed config carries no tmux2k options"
+  tmux_bin=$(find_client tmux) || fail "tmux plane" "tmux is not on PATH"
+  "$tmux_bin" -L e2e-tmux -f "$tconf" new-session -d 'sleep 30' >/dev/null 2>&1 \
+    || fail "tmux plane" "tmux refused the managed config"
+  "$tmux_bin" -L e2e-tmux show-options -gv @tmux2k-theme >/dev/null 2>&1 \
+    || fail "tmux plane" "the tmux2k options did not parse"
+  "$tmux_bin" -L e2e-tmux kill-server >/dev/null 2>&1 || true
+  pass "tmux plane"
 
   step "pre-existing rc file moved aside by the first switch"
   grep -qx '# distro bashrc' "$home/.bashrc.hm-backup" 2>/dev/null \

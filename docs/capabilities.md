@@ -119,7 +119,7 @@ base       foundation
 fonts      fonts
 languages  languages/elixir, languages/go, languages/node, languages/typescript (member capabilities)
 editor     nvim (+ languages: typescript, elixir declare editor entries)
-terminal   terminal, terminal/zellij (member capability)
+terminal   terminal, terminal/tmux (member capability)
 theme      theme
 agent      agent
 secrets    secrets
@@ -188,14 +188,6 @@ and sorted, never hidden.
 - The launcher: `programs.hermes.package` at `.local/bin/hermes`; resolves
   the interpreter and checkout from `$HOME` at run time, runs the
   interpreter isolated, fails closed with a named message.
-- Pane resume (inside a zellij pane): the launcher starts
-  `hermes-pane-resume` beside itself; while hermes runs it reads the
-  pane's terminal breadcrumb (`~/.hermes/terminal-sessions/tty-<tty>`, else
-  `zellij_pane_id-<id>`; only breadcrumbs written since the launch) and keeps
-  the pane's resurrect command on `~/.local/bin/hermes [--tui|--cli] --resume
-  <id>` (`zellij action set-resurrect-command`), following `/new` and
-  session switches; a resurrected pane reopens its conversation, the
-  compression chain followed to the live tip. Outside zellij: a no-op.
 - Theme (theme domain on): `~/.hermes/skins/workstation-<theme>.yaml` per
   theme from `ws.themeTokens`; the pick sets `display.skin` through
   `hermes config set` ([theme](theme.md)).
@@ -293,15 +285,12 @@ and sorted, never hidden.
 - btop: `home.packages` (all legs).
 - Hosts: all.
 
-### `zellij`
-- The `terminal/zellij` member capability: `programs.zellij` (home-manager), `.config/zellij/config.kdl`; `pkgs.zellij` on the system legs.
-- Session resurrection: `session_serialization true` — every session serialized to the cache dir on zellij's `serialization_interval` and on `zellij action save-session`, resurrectable after a quit, a crash or a reboot (`zellij attach <name>`, the session manager's `EXITED` section): tabs, pane layout and positions, each pane's cwd and command; resurrected commands wait behind zellij's `Press ENTER` banner.
-- `serialize_pane_viewport false`: pane text and scrollback stay off disk.
-- Keybinds: the built-in `unlock-first` preset (`keybinds preset="unlock-first"`) — sessions start locked, `Ctrl g` unlocks, then single keys enter the modes (`p` pane, `t` tab, `r` resize, `s` scroll, `o` session); every other chord stays with the programs in the panes.
-- Look: `theme "dracula"` (`theme_dark "default"` beside it — a set `theme` pins the session and turns the dark/light pair off); pane frames with rounded corners, the session name hidden; startup tips off.
-- Settings live in the module: zellij's settings screen writes `config.kdl`, which links into the store — changes there are for trying out (apply, never save); keep the kept ones here.
-- Everything else: zellij's defaults.
-- Verify: the container E2E (the managed config, `zellij setup --check`, a background session resurrectable after it ends). Hosts: linux/macOS.
+### `tmux`
+- The `terminal/tmux` member capability: `pkgs.tmux`, the managed `~/.tmux.conf` and its XDG symlink, the tmux2k status plugin as a pinned checkout; `pkgs.tmux` on the system legs.
+- The status bar: tmux2k, its options in the managed config, the theme pick's palette over the `onedark` fallback — the theme consumer renders `tmux.conf` into the theme tree, the config sources it.
+- The shell drain: the `tmux()` wrapper in bash and zsh — tmux takes the terminal for its own prompt, the wrapper reads the reply and hands the terminal back.
+- The server skew: the activate routine `tmuxServerSkew` reports the running server's version against the generation's; a switch never restarts the server (it holds live sessions).
+- Verify: `modules/terminal/tmux/verify/tmux.sh` (the binary, the config and its symlink, the plugin checkout, an isolated server parsing the config) and the container E2E (the tmux plane). Hosts: linux/macOS.
 
 ## Fresh-host tools
 

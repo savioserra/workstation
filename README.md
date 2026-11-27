@@ -62,7 +62,7 @@ live in `hosts/local/machine.json` (gitignored) — edit it by hand if you
 prefer; an unknown flag is rejected at eval, a typo never silently
 no-ops.
 
-Domains: editor, terminal (zellij), languages (elixir, go, node,
+Domains: editor, terminal (tmux), languages (elixir, go, node,
 typescript), fonts, theme, foundation (shell, prompt, the CLI toolset),
 secrets, agent, network. Domains default on; `network` and the language
 members default off.

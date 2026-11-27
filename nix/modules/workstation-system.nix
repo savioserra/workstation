@@ -22,7 +22,7 @@ in
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [
       pkgs.btop
-      pkgs.zellij
+      pkgs.tmux
     ]
     ++ cfg.extraPackages;
   };
