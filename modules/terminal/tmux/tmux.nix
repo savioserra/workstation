@@ -84,7 +84,7 @@
                   set -g @tmux2k-bg-alt '${canvas}'
                   set -g @tmux2k-dark-blue '${canvas}'
                   set -g @tmux2k-black '${p.bg}'
-                  set -g @tmux2k-text '${p.text}'
+                  set -g @tmux2k-text '${p.bg}'
                   set -g @tmux2k-white '${p.inactive}'
                   set -g @tmux2k-gray '${p.chrome}'
                   set -g @tmux2k-dark-gray '${p.chrome}'
